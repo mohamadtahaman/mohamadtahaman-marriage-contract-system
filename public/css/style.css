@@ -1,0 +1,214 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@700&display=swap');
+
+:root {
+  --green-dark: #1a4d3a;
+  --green-mid: #2d6a4f;
+  --green-light: #40916c;
+  --gold: #d4a944;
+  --gold-light: #e9c46a;
+  --red: #a8332a;
+  --cream: #f8f7f2;
+  --text-dark: #2d2d2d;
+  --text-gray: #6b6b6b;
+  --border: #e0ddd5;
+  --white: #ffffff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Tajawal', sans-serif;
+  background: var(--cream);
+  min-height: 100vh;
+  color: var(--text-dark);
+  line-height: 1.6;
+}
+
+.lang-bar {
+  background: var(--green-dark);
+  color: var(--white);
+  padding: 8px 15px;
+  border-bottom: 1px solid rgba(212, 169, 68, 0.3);
+}
+
+.lang-container {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lang-buttons { display: flex; gap: 8px; }
+
+.lang-btn {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--white);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.lang-btn.active, .lang-btn:hover {
+  background: var(--gold);
+  color: var(--green-dark);
+  font-weight: bold;
+}
+
+.main-header {
+  text-align: center;
+  padding: 30px 15px 20px;
+  background: linear-gradient(180deg, var(--green-dark) 0%, var(--green-mid) 100%);
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.brand-title {
+  font-family: 'Amiri', serif;
+  font-size: 2.2rem;
+  color: var(--gold-light);
+  margin-bottom: 5px;
+}
+
+.brand-sub {
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  opacity: 0.9;
+}
+
+.container {
+  max-width: 700px;
+  margin: -20px auto 40px;
+  padding: 0 15px;
+}
+
+.bismillah {
+  font-family: 'Amiri', serif;
+  text-align: center;
+  font-size: 1.6rem;
+  color: var(--green-dark);
+  margin-bottom: 15px;
+  background: var(--white);
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.card {
+  background: var(--white);
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+.hero-card {
+  text-align: center;
+  border-top: 4px solid var(--gold);
+}
+
+.hero-card h1 {
+  color: var(--green-dark);
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.hidden { display: none !important; }
+
+.form-group { margin-bottom: 18px; }
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--green-mid);
+}
+
+.btn {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary {
+  background: var(--green-mid);
+  color: var(--white);
+}
+
+.btn-primary:hover { background: var(--green-dark); }
+
+.btn-secondary {
+  background: var(--cream);
+  color: var(--green-dark);
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  text-align: right;
+  padding: 15px;
+}
+
+.btn-secondary:hover {
+  border-color: var(--green-mid);
+  background: #f0eee6;
+}
+
+.btn-back {
+  background: transparent;
+  border: none;
+  color: var(--green-mid);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: bold;
+  margin-bottom: 15px;
+  padding: 0;
+}
+
+.alert {
+  margin-top: 15px;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  display: none;
+}
+
+.alert-error {
+  display: block;
+  background: #fde8e8;
+  color: var(--red);
+  border: 1px solid #f8b4b4;
+}
+
+.alert-success {
+  display: block;
+  background: #eef7f2;
+  color: var(--green-dark);
+  border: 1px solid #b7e4c7;
+}
+
+

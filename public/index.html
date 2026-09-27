@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arresalah Zentrum Berlin - نظام تسجيل العقد</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="lang-bar">
+    <div class="lang-container">
+      <span style="font-size: 0.85rem; opacity: 0.8;" data-i18n="selectLanguage">اختر اللغة / Language:</span>
+      <div class="lang-buttons">
+        <button class="lang-btn active" onclick="setLanguage('ar')">العربية</button>
+        <button class="lang-btn" onclick="setLanguage('de')">Deutsch</button>
+        <button class="lang-btn" onclick="setLanguage('en')">English</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="main-header">
+    <div class="brand-title" data-i18n="brandName">مركز الرسالة برلين</div>
+    <div class="brand-sub" data-i18n="brandSub">ISLAMISCHES ZENTRUM BERLIN</div>
+  </header>
+
+  <div class="container">
+    <div class="bismillah" data-i18n="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+
+    <div class="card hero-card">
+      <h1 data-i18n="heroTitle">نظام تسجيل بيانات عقد الزواج</h1>
+      <p data-i18n="heroSub">منصة إلكترونية آمنة ومخصصة لتسجيل بيانات أطراف العقد</p>
+    </div>
+
+    <div id="verifyScreen" class="card">
+      <h2 data-i18n="verifyTitle">التحقق من كود العقد</h2>
+      <p style="margin-bottom: 20px; color: var(--text-gray);" data-i18n="verifySub">يرجى إدخال كود العقد المكون من 6 أرقام للبدء</p>
+      
+      <div class="form-group">
+        <label data-i18n="contractCodeLabel">كود العقد (6 أرقام):</label>
+        <input type="text" id="contractCodeInput" maxlength="6" placeholder="مثال: 123456" style="font-size: 1.2rem; letter-spacing: 2px; text-align: center;">
+      </div>
+
+      <button class="btn btn-primary" onclick="verifyContractCode()" data-i18n="verifyBtn">تحقق والبدء</button>
+      <div id="verifyAlert" class="alert"></div>
+    </div>
+
+    <div id="roleScreen" class="card hidden">
+      <h2 data-i18n="roleTitle">تحديد الصفة</h2>
+      <p style="margin-bottom: 20px; color: var(--text-gray);" data-i18n="roleSub">اختر الطرف الذي تقوم بتعبئة البيانات له</p>
+      
+      <div class="role-grid">
+        <button class="btn btn-secondary" onclick="selectRole('husband')" data-i18n="roleHusband">بيانات الزوج</button>
+        <button class="btn btn-secondary" onclick="selectRole('wife')" data-i18n="roleWife">بيانات الزوجة</button>
+        <button class="btn btn-secondary" onclick="selectRole('guardian')" data-i18n="roleGuardian">بيانات الولي</button>
+        <button class="btn btn-secondary" onclick="selectRole('witness1')" data-i18n="roleWitness1">الشاهد الأول</button>
+        <button class="btn btn-secondary" onclick="selectRole('witness2')" data-i18n="roleWitness2">الشاهد الثاني</button>
+      </div>
+    </div>
+
+    <div id="inputScreen" class="card hidden">
+      <button class="btn-back" onclick="showScreen('roleScreen')" data-i18n="backBtn">← العودة لتحديد الصفة</button>
+      <h2 id="formRoleTitle">تعبئة البيانات</h2>
+
+      <form id="contractForm" onsubmit="handleFormSubmit(event)">
+        <div class="form-group">
+          <label data-i18n="fullName">الاسم الكامل (حسب الوثيقة الرسمية):</label>
+          <input type="text" id="inputName" required>
+        </div>
+        <div class="form-group">
+          <label data-i18n="idNumber">رقم الهوية / الجواز:</label>
+          <input type="text" id="inputIdNumber" required>
+        </div>
+        <div class="form-group">
+          <label data-i18n="phone">رقم الهاتف:</label>
+          <input type="tel" id="inputPhone" required>
+        </div>
+        <div class="form-group">
+          <label data-i18n="address">العنوان الحالي:</label>
+          <input type="text" id="inputAddress" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" data-i18n="saveBtn">حفظ وإرسال البيانات</button>
+      </form>
+      <div id="formAlert" class="alert"></div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <a href="#" onclick="showAdminModal()" style="color: var(--text-gray); text-decoration: none; font-size: 0.9rem;" data-i18n="adminLink">لوحة الإدارة</a>
+    </div>
+  </div>
+
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
