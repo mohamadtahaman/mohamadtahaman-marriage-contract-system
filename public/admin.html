@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة الإدارة - Arresalah Zentrum Berlin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/admin.css">
+</head>
+<body class="admin-body">
+
+<!-- الشريط العلوي -->
+<div class="topbar">
+  <div>🛠 لوحة الإدارة — Arresalah Zentrum</div>
+  <div class="lang-switcher">
+    <button class="lang-btn active" data-lang="ar" onclick="setLanguage('ar')">عربي</button>
+    <button class="lang-btn" data-lang="de" onclick="setLanguage('de')">DE</button>
+    <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">EN</button>
+  </div>
+</div>
+
+<!-- شاشة تسجيل الدخول -->
+<div id="loginScreen" class="admin-login-wrap">
+  <div class="admin-login-card">
+    <div class="admin-login-icon">🔐</div>
+    <h2>دخول لوحة الإدارة</h2>
+    <p>أدخل كلمة المرور للمتابعة</p>
+
+    <input type="password" id="passwordInput" placeholder="••••••••"
+           autocomplete="current-password" autofocus>
+
+    <button class="btn gold admin-login-btn" id="loginBtn">
+      دخول →
+    </button>
+
+    <div class="admin-login-hint">
+      <a href="./index.html">← رجوع لواجهة المستخدم</a>
+    </div>
+  </div>
+</div>
+
+<!-- لوحة الإدارة (مخفية حتى تسجيل الدخول) -->
+<div id="adminPanel" class="hidden admin-panel-wrap">
+
+  <!-- الهيدر -->
+  <div class="admin-header">
+    <div class="admin-header-left">
+      <h1>🛠 لوحة الإدارة</h1>
+      <span class="admin-badge">Arresalah Zentrum</span>
+    </div>
+    <div class="admin-header-right">
+      <button class="btn-classic" onclick="refreshData()">🔄 تحديث</button>
+      <button class="btn-classic" onclick="logout()">🚪 خروج</button>
+    </div>
+  </div>
+
+  <div class="admin-container">
+
+    <!-- جدول الأكواد -->
+    <div class="admin-block">
+      <div class="admin-block-title">
+        📋 أكواد العقود (5 عقود)
+      </div>
+      <div class="admin-block-content no-padding">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th style="width:50px;">#</th>
+              <th style="width:120px;">الكود</th>
+              <th>الحالة</th>
+              <th style="width:200px;">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="codesTableBody">
+            <tr>
+              <td colspan="4" class="admin-loading">جارٍ التحميل...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- إدارة الأكواد -->
+    <div class="admin-block">
+      <div class="admin-block-title">
+        🎲 إدارة أكواد العقود
+      </div>
+      <div class="admin-block-content">
+        <div class="admin-hint">
+          توليد 5 أكواد جديدة يُلغي الأكواد الحالية وكل العقود المرتبطة بها.
+          تُستخدم عند استهلاك جميع الأكواد السابقة.
+        </div>
+        <button class="btn-classic primary" onclick="confirmGenerateNewCodes()">
+          🎲 توليد 5 أكواد جديدة
+        </button>
+      </div>
+    </div>
+
+    <!-- منطقة الخطر -->
+    <div class="admin-block admin-block-danger">
+      <div class="admin-block-title">
+        ⚠️ منطقة الخطر
+      </div>
+      <div class="admin-block-content">
+        <div class="admin-hint">
+          مسح المسودات المحفوظة محلياً على هذا المتصفح فقط.
+          العقود المُرسلة على الخادم لن تتأثر.
+        </div>
+        <button class="btn-classic danger" onclick="confirmClearLocalDrafts()">
+          🗑 مسح المسودات المحلية
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal: عرض عقد -->
+<div id="viewModal" class="modal-overlay hidden">
+  <div class="modal admin-modal-wide">
+    <h3 id="viewModalTitle">تفاصيل العقد</h3>
+    <div id="viewModalContent" class="admin-modal-content"></div>
+    <div class="admin-modal-actions">
+      <button class="btn gray" onclick="closeViewModal()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<script src="./js/i18n.js"></script>
+<script src="./js/admin-client.js"></script>
+</body>
+</html>
