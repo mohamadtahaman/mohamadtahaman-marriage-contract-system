@@ -4,94 +4,141 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Arresalah Zentrum Berlin - نظام تسجيل العقد</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
 
-  <div class="lang-bar">
-    <div class="lang-container">
-      <span style="font-size: 0.85rem; opacity: 0.8;" data-i18n="selectLanguage">اختر اللغة / Language:</span>
-      <div class="lang-buttons">
-        <button class="lang-btn active" onclick="setLanguage('ar')">العربية</button>
-        <button class="lang-btn" onclick="setLanguage('de')">Deutsch</button>
-        <button class="lang-btn" onclick="setLanguage('en')">English</button>
-      </div>
+<!-- الشريط العلوي -->
+<div class="topbar">
+  <div>🕌 Arresalah e.V. — Berlin</div>
+  <div class="lang-switcher">
+    <button class="lang-btn active" data-lang="ar" onclick="setLanguage('ar')">عربي</button>
+    <button class="lang-btn" data-lang="de" onclick="setLanguage('de')">DE</button>
+    <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">EN</button>
+  </div>
+</div>
+
+<!-- الهيدر -->
+<header>
+  <div class="brand">
+    <div class="brand-logo">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 50 30 Q 30 25 15 30 L 15 70 Q 30 65 50 70 Z" fill="#d4a944" opacity="0.9"/>
+        <path d="M 50 30 Q 70 25 85 30 L 85 70 Q 70 65 50 70 Z" fill="#e9c46a" opacity="0.9"/>
+        <path d="M 55 20 A 12 12 0 1 0 55 44 A 9 9 0 1 1 55 20 Z" fill="#d4a944"/>
+        <path d="M 68 25 L 70 30 L 75 30 L 71 33 L 72 38 L 68 35 L 64 38 L 65 33 L 61 30 L 66 30 Z" fill="#d4a944"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1 data-i18n="brandName">Arresalah Zentrum</h1>
+      <p data-i18n="brandSub">ISLAMISCHES ZENTRUM BERLIN</p>
     </div>
   </div>
+  <div class="header-info">
+    <strong>📞</strong> +49 30 XXXXXXX<br>
+    <strong>📍</strong> Turnstraße 83, 10551 Berlin
+  </div>
+</header>
 
-  <header class="main-header">
-    <div class="brand-title" data-i18n="brandName">مركز الرسالة برلين</div>
-    <div class="brand-sub" data-i18n="brandSub">ISLAMISCHES ZENTRUM BERLIN</div>
-  </header>
-
-  <div class="container">
+<!-- الهيرو -->
+<section class="hero">
+  <div class="hero-content">
     <div class="bismillah" data-i18n="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+    <h2 data-i18n="heroTitle">نظام تسجيل بيانات عقد الزواج</h2>
+    <p data-i18n="heroSub">منصة إلكترونية لتسجيل بيانات أطراف العقد بسهولة ودقة</p>
+    <div class="ornament"></div>
+  </div>
+</section>
 
-    <div class="card hero-card">
-      <h1 data-i18n="heroTitle">نظام تسجيل بيانات عقد الزواج</h1>
-      <p data-i18n="heroSub">منصة إلكترونية آمنة ومخصصة لتسجيل بيانات أطراف العقد</p>
-    </div>
+<!-- البطاقة الرئيسية -->
+<div class="container">
 
-    <div id="verifyScreen" class="card">
-      <h2 data-i18n="verifyTitle">التحقق من كود العقد</h2>
-      <p style="margin-bottom: 20px; color: var(--text-gray);" data-i18n="verifySub">يرجى إدخال كود العقد المكون من 6 أرقام للبدء</p>
-      
-      <div class="form-group">
-        <label data-i18n="contractCodeLabel">كود العقد (6 أرقام):</label>
-        <input type="text" id="contractCodeInput" maxlength="6" placeholder="مثال: 123456" style="font-size: 1.2rem; letter-spacing: 2px; text-align: center;">
+  <!-- شاشة التحقق -->
+  <div id="verifyScreen">
+    <div class="icon-circle">🔐</div>
+    <h2 data-i18n="verifyTitle">التحقق من رقم العقد</h2>
+    <p class="subtitle" data-i18n="verifySub">أدخل رقم العقد للبدء في تعبئة بيانات الأطراف</p>
+
+    <input type="text" id="contractCodeInput" placeholder="XXXXXX" maxlength="6"
+           inputmode="text" autocomplete="off" autocapitalize="characters"
+           spellcheck="false">
+
+    <p class="helper-text">
+      💡 <span data-i18n="helperText">رقم العقد يُمنح لكم من المركز عند تسجيل العقد</span>
+    </p>
+
+    <br>
+    <button class="btn gold" id="verifyBtn" data-i18n="verifyBtn">متابعة ←</button>
+    <br>
+    <button class="btn help" id="helpBtn" style="margin-top:10px;">
+      ❓ <span data-i18n="helpBtn">كيف أحصل على رقم العقد؟</span>
+    </button>
+  </div>
+
+  <!-- شاشة اختيار الأطراف -->
+  <div id="roleScreen" class="hidden">
+    <div class="progress-section">
+      <div class="progress-circle" id="progressCircleRole">
+        <span id="progressTextRole">0%</span>
       </div>
-
-      <button class="btn btn-primary" onclick="verifyContractCode()" data-i18n="verifyBtn">تحقق والبدء</button>
-      <div id="verifyAlert" class="alert"></div>
-    </div>
-
-    <div id="roleScreen" class="card hidden">
-      <h2 data-i18n="roleTitle">تحديد الصفة</h2>
-      <p style="margin-bottom: 20px; color: var(--text-gray);" data-i18n="roleSub">اختر الطرف الذي تقوم بتعبئة البيانات له</p>
-      
-      <div class="role-grid">
-        <button class="btn btn-secondary" onclick="selectRole('husband')" data-i18n="roleHusband">بيانات الزوج</button>
-        <button class="btn btn-secondary" onclick="selectRole('wife')" data-i18n="roleWife">بيانات الزوجة</button>
-        <button class="btn btn-secondary" onclick="selectRole('guardian')" data-i18n="roleGuardian">بيانات الولي</button>
-        <button class="btn btn-secondary" onclick="selectRole('witness1')" data-i18n="roleWitness1">الشاهد الأول</button>
-        <button class="btn btn-secondary" onclick="selectRole('witness2')" data-i18n="roleWitness2">الشاهد الثاني</button>
+      <div class="progress-text">
+        <h4 data-i18n="progressTitle">اكتمال بيانات العقد</h4>
+        <p id="progressSubtextRole">0 / 5</p>
       </div>
     </div>
 
-    <div id="inputScreen" class="card hidden">
-      <button class="btn-back" onclick="showScreen('roleScreen')" data-i18n="backBtn">← العودة لتحديد الصفة</button>
-      <h2 id="formRoleTitle">تعبئة البيانات</h2>
+    <h2 class="screen-title" data-i18n="chooseRole">اختر الطرف لتعبئة بياناته</h2>
+    <p class="screen-subtitle" data-i18n="chooseRoleSub">اضغط على أي طرف لبدء التعبئة</p>
 
-      <form id="contractForm" onsubmit="handleFormSubmit(event)">
-        <div class="form-group">
-          <label data-i18n="fullName">الاسم الكامل (حسب الوثيقة الرسمية):</label>
-          <input type="text" id="inputName" required>
-        </div>
-        <div class="form-group">
-          <label data-i18n="idNumber">رقم الهوية / الجواز:</label>
-          <input type="text" id="inputIdNumber" required>
-        </div>
-        <div class="form-group">
-          <label data-i18n="phone">رقم الهاتف:</label>
-          <input type="tel" id="inputPhone" required>
-        </div>
-        <div class="form-group">
-          <label data-i18n="address">العنوان الحالي:</label>
-          <input type="text" id="inputAddress" required>
-        </div>
+    <div class="party-tabs" id="rolePicker"></div>
 
-        <button type="submit" class="btn btn-primary" data-i18n="saveBtn">حفظ وإرسال البيانات</button>
-      </form>
-      <div id="formAlert" class="alert"></div>
-    </div>
-
-    <div style="text-align: center; margin-top: 30px;">
-      <a href="#" onclick="showAdminModal()" style="color: var(--text-gray); text-decoration: none; font-size: 0.9rem;" data-i18n="adminLink">لوحة الإدارة</a>
+    <div id="sendArea" class="hidden send-area">
+      <p class="send-msg">
+        ✅ <span data-i18n="allComplete">اكتملت بيانات جميع الأطراف</span>
+      </p>
+      <button class="btn gold send-btn" id="submitAllBtn">
+        📨 <span data-i18n="sendContract">إرسال العقد إلى المركز</span>
+      </button>
     </div>
   </div>
 
-  <script src="js/i18n.js"></script>
-  <script src="js/app.js"></script>
+  <!-- شاشة الإدخال -->
+  <div id="inputScreen" class="hidden">
+    <div id="partyFormWrap"></div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-title">Arresalah e.V. — Berlin</div>
+  <div>Turnstraße 83, 10551 Berlin · <span class="footer-gold">Die Botschaft des Friedens</span></div>
+  <div class="footer-copy">© 2026 Arresalah Zentrum Berlin</div>
+</footer>
+
+<!-- Help Modal -->
+<div id="helpModal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>❓ <span data-i18n="helpTitle">كيف أحصل على رقم العقد؟</span></h3>
+    <div class="help-list">
+      <div class="contact-line">📞 <span data-i18n="helpPhone">اتصل بالمركز: +49 30 XXXXXXX</span></div>
+      <div class="contact-line">💬 <span data-i18n="helpWhats">أو راسلنا عبر واتساب</span></div>
+      <div class="contact-line">✉️ <span data-i18n="helpEmail">أو راسلنا على البريد الإلكتروني</span></div>
+      <div class="help-note">
+        <span data-i18n="helpNote">رقم العقد مكوّن من 6 أحرف/أرقام إنجليزية، مثال: A7K9P2</span>
+      </div>
+    </div>
+    <button class="btn gray" onclick="closeHelpModal()" data-i18n="close">إغلاق</button>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<script src="./js/i18n.js"></script>
+<script src="./js/app.js"></script>
 </body>
 </html>
