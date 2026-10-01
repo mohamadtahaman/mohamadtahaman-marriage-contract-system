@@ -1,116 +1,106 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة الإدارة - Arresalah Zentrum Berlin</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/style.css">
-  <link rel="stylesheet" href="./css/admin.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الإدارة - Arresalah Zentrum Berlin</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/admin.css">
 </head>
-<body class="admin-body">
-
-<!-- الشريط العلوي -->
-<div class="topbar">
-  <div>🛠 لوحة الإدارة — Arresalah Zentrum</div>
-  <div class="lang-switcher">
-    <button class="lang-btn active" data-lang="ar" onclick="setLanguage('ar')">عربي</button>
-    <button class="lang-btn" data-lang="de" onclick="setLanguage('de')">DE</button>
-    <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">EN</button>
-  </div>
-</div>
+<body>
 
 <!-- شاشة تسجيل الدخول -->
-<div id="loginScreen" class="admin-login-wrap">
-  <div class="admin-login-card">
-    <div class="admin-login-icon">🔐</div>
-    <h2>دخول لوحة الإدارة</h2>
-    <p>أدخل كلمة المرور للمتابعة</p>
+<div id="loginScreen" class="login-wrap">
+  <div class="login-box">
+    <div class="login-header">
+      <h1>Arresalah Zentrum Berlin</h1>
+      <p>لوحة الإدارة</p>
+    </div>
 
-    <input type="password" id="passwordInput" placeholder="••••••••"
-           autocomplete="current-password" autofocus>
+    <div class="login-body">
+      <label>كلمة المرور</label>
+      <input type="password" id="passwordInput" placeholder="أدخل كلمة المرور" autofocus>
 
-    <button class="btn gold admin-login-btn" id="loginBtn">
-      دخول →
-    </button>
+      <button id="loginBtn" class="btn-login">دخول</button>
 
-    <div class="admin-login-hint">
-      <a href="./index.html">← رجوع لواجهة المستخدم</a>
+      <div id="loginMessage" class="message hidden"></div>
+    </div>
+
+    <div class="login-footer">
+      <a href="./index.html">← رجوع للصفحة الرئيسية</a>
     </div>
   </div>
 </div>
 
-<!-- لوحة الإدارة (مخفية حتى تسجيل الدخول) -->
-<div id="adminPanel" class="hidden admin-panel-wrap">
+<!-- لوحة الإدارة -->
+<div id="adminPanel" class="panel-wrap hidden">
 
   <!-- الهيدر -->
-  <div class="admin-header">
-    <div class="admin-header-left">
-      <h1>🛠 لوحة الإدارة</h1>
-      <span class="admin-badge">Arresalah Zentrum</span>
+  <div class="panel-header">
+    <div class="panel-title">
+      <h1>لوحة الإدارة</h1>
+      <span class="badge">Arresalah Zentrum</span>
     </div>
-    <div class="admin-header-right">
-      <button class="btn-classic" onclick="refreshData()">🔄 تحديث</button>
-      <button class="btn-classic" onclick="logout()">🚪 خروج</button>
+    <div class="panel-actions">
+      <button onclick="refreshData()" class="btn-secondary">تحديث</button>
+      <button onclick="logout()" class="btn-danger">خروج</button>
     </div>
   </div>
 
-  <div class="admin-container">
+  <!-- رسالة النظام -->
+  <div id="systemMessage" class="system-message hidden"></div>
+
+  <!-- المحتوى -->
+  <div class="panel-content">
 
     <!-- جدول الأكواد -->
-    <div class="admin-block">
-      <div class="admin-block-title">
-        📋 أكواد العقود (5 عقود)
+    <div class="card">
+      <div class="card-header">
+        <h2>أكواد العقود (5 عقود)</h2>
       </div>
-      <div class="admin-block-content no-padding">
-        <table class="admin-table">
+      <div class="card-body no-padding">
+        <table class="codes-table">
           <thead>
             <tr>
-              <th style="width:50px;">#</th>
-              <th style="width:120px;">الكود</th>
+              <th style="width:60px;">#</th>
+              <th style="width:150px;">الكود</th>
               <th>الحالة</th>
-              <th style="width:200px;">إجراءات</th>
+              <th style="width:250px;">إجراءات</th>
             </tr>
           </thead>
-          <tbody id="codesTableBody">
-            <tr>
-              <td colspan="4" class="admin-loading">جارٍ التحميل...</td>
-            </tr>
+          <tbody id="codesBody">
+            <tr><td colspan="4" class="loading-cell">جارٍ التحميل...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
     <!-- إدارة الأكواد -->
-    <div class="admin-block">
-      <div class="admin-block-title">
-        🎲 إدارة أكواد العقود
+    <div class="card">
+      <div class="card-header">
+        <h2>إدارة أكواد العقود</h2>
       </div>
-      <div class="admin-block-content">
-        <div class="admin-hint">
+      <div class="card-body">
+        <p class="hint">
           توليد 5 أكواد جديدة يُلغي الأكواد الحالية وكل العقود المرتبطة بها.
-          تُستخدم عند استهلاك جميع الأكواد السابقة.
-        </div>
-        <button class="btn-classic primary" onclick="confirmGenerateNewCodes()">
-          🎲 توليد 5 أكواد جديدة
+        </p>
+        <button onclick="generateNewCodes()" class="btn-primary">
+          توليد 5 أكواد جديدة
         </button>
       </div>
     </div>
 
     <!-- منطقة الخطر -->
-    <div class="admin-block admin-block-danger">
-      <div class="admin-block-title">
-        ⚠️ منطقة الخطر
+    <div class="card card-danger">
+      <div class="card-header">
+        <h2>منطقة الخطر</h2>
       </div>
-      <div class="admin-block-content">
-        <div class="admin-hint">
-          مسح المسودات المحفوظة محلياً على هذا المتصفح فقط.
-          العقود المُرسلة على الخادم لن تتأثر.
-        </div>
-        <button class="btn-classic danger" onclick="confirmClearLocalDrafts()">
-          🗑 مسح المسودات المحلية
+      <div class="card-body">
+        <p class="hint">
+          مسح المسودات المحفوظة على هذا المتصفح فقط.
+        </p>
+        <button onclick="clearLocalDrafts()" class="btn-danger">
+          مسح المسودات المحلية
         </button>
       </div>
     </div>
@@ -118,21 +108,20 @@
   </div>
 </div>
 
-<!-- Modal: عرض عقد -->
+<!-- Modal عرض عقد -->
 <div id="viewModal" class="modal-overlay hidden">
-  <div class="modal admin-modal-wide">
-    <h3 id="viewModalTitle">تفاصيل العقد</h3>
-    <div id="viewModalContent" class="admin-modal-content"></div>
-    <div class="admin-modal-actions">
-      <button class="btn gray" onclick="closeViewModal()">إغلاق</button>
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitle">تفاصيل العقد</h3>
+      <button onclick="closeModal()" class="modal-close">×</button>
+    </div>
+    <div id="modalContent" class="modal-body"></div>
+    <div class="modal-footer">
+      <button onclick="closeModal()" class="btn-secondary">إغلاق</button>
     </div>
   </div>
 </div>
 
-<!-- Toast container -->
-<div id="toastContainer"></div>
-
-<script src="./js/i18n.js"></script>
 <script src="./js/admin-client.js"></script>
 </body>
 </html>
