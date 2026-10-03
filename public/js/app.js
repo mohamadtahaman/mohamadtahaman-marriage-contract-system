@@ -1,22 +1,15 @@
 /* ============================================================
-   Marriage Contract System - Main App
-   Arresalah Zentrum Berlin
+   Marriage Contract System V2 - Main App
 ============================================================ */
 
-/* ============================================================
-   الحالة العامة
-============================================================ */
 const state = {
   currentContractCode: null,
   currentPartyIndex: 0,
   contractData: {},
+  contractDate: { day: '', month: '', year: '' },
   contractCodes: [],
-  saving: false,
 };
 
-/* ============================================================
-   تعريف الأطراف
-============================================================ */
 const PARTY_DEFS = [
   { key: 'groom',    labelKey: 'groom',    icon: '👨', isSpouse: true, isGroom: true },
   { key: 'bride',    labelKey: 'bride',    icon: '👩', isSpouse: true, isGroom: false },
@@ -27,36 +20,38 @@ const PARTY_DEFS = [
 
 const PARTIES_COUNT = 5;
 
+// نطاق العمر: 18 - 100 سنة
+const MIN_AGE = 18;
+const MAX_AGE = 100;
+
 /* ============================================================
-   كائن فارغ للطرف
+   Language Restriction Patterns
+============================================================ */
+// الألمانية: لاتيني + الأحرف الألمانية الخاصة + مسافات + شرطات + نقاط + فواصل عليا
+const GERMAN_REGEX = /[^a-zA-ZäöüÄÖÜß\s\-\.\',]/g;
+// العربية: كل أحرف Unicode العربية + مسافات + شرطات + نقاط + فواصل عليا
+const ARABIC_REGEX = /[^\u0600-\u06FF\u0750-\u077F\s\-\.\',]/g;
+
+/* ============================================================
+   Empty Party
 ============================================================ */
 function emptyParty() {
   return {
-    nameDe: '',
-    nameAr: '',
-    birthDay: '',
-    birthMonth: '',
-    birthYear: '',
-    birthCountry: '',
-    birthRegion: '',
-    idNumber: '',
-    idType: 'id',
-    addressNumber: '',
-    addressStreet: '',
-    postalCode: '',
-    city: '',
-    motherNameDe: '',
-    motherNameAr: '',
-    dowryAdvance: '',
-    dowryDeferred: '',
-    dowryNotes: '',
+    nameDe: '', nameAr: '',
+    birthDay: '', birthMonth: '', birthYear: '',
+    birthCountry: '', birthRegion: '',
+    idNumber: '', idType: 'id',
+    addressNumber: '', addressStreet: '',
+    postalCode: '', city: '',
+    motherNameDe: '', motherNameAr: '',
+    dowryAdvance: '', dowryDeferred: '', dowryNotes: '',
     waliIsBride: false,
     witnessIsCenter: false,
   };
 }
 
 /* ============================================================
-   أدوات مساعدة
+   Utilities
 ============================================================ */
 function esc(v) {
   if (v === undefined || v === null) return '';
@@ -72,21 +67,31 @@ function toast(msg, type = '') {
   setTimeout(() => {
     el.style.opacity = '0';
     setTimeout(() => el.remove(), 300);
-  }, 2700);
+  }, 2800);
 }
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function getBirthDate(p) {
-  const d = (p.birthDay || '').padStart(2, '0');
-  const m = (p.birthMonth || '').padStart(2, '0');
-  const y = p.birthYear || '';
-  if (!d || !m || !y) return '—';
-  return `${d}.${m}.${y}`;
+function pad2(n) {
+  return String(n).padStart(2, '0');
 }
 
+function getBirthDate(p) {
+  if (!p.birthDay || !p.birthMonth || !p.birthYear) return '—';
+  return `${pad2(p.birthDay)}.${pad2(p.birthMonth)}.${p.birthYear}`;
+}
+
+function getContractDateStr() {
+  const { day, month, year } = state.contractDate;
+  if (!day || !month || !year) return '—';
+  return `${pad2(day)}.${pad2(month)}.${year}`;
+}
+
+/* ============================================================
+   Date Validation
+============================================================ */
 function isValidDate(day, month, year) {
   if (!day || !month || !year) return true;
   const d = parseInt(day, 10);
@@ -97,47 +102,85 @@ function isValidDate(day, month, year) {
   return date.getDate() === d && date.getMonth() === m - 1 && date.getFullYear() === y;
 }
 
+function getDaysInMonth(month, year) {
+  if (!month) return 31;
+  const m = parseInt(month, 10);
+  const y = year ? parseInt(year, 10) : 2000;
+  return new Date(y, m, 0).getDate();
+}
+
 /* ============================================================
-   الحفظ المحلي (Draft)
+   Build Date Dropdowns
 ============================================================ */
-function saveDraft() {
-  if (!state.currentContractCode) return;
-  try {
-    localStorage.setItem(
-      'draft_' + state.currentContractCode,
-      JSON.stringify(state.contractData)
-    );
-  } catch (e) {
-    console.warn('Save draft failed:', e);
+function buildDayOptions(selectedDay, month, year) {
+  const maxDays = getDaysInMonth(month, year);
+  const dayLabel = (typeof t === 'function' ? t('selectDay') : 'Day');
+  let html = `<option value="">${dayLabel}</option>`;
+  for (let d = 1; d <= maxDays; d++) {
+    html += `<option value="${d}" ${String(d) === String(selectedDay) ? 'selected' : ''}>${d}</option>`;
   }
+  return html;
 }
 
-function restoreDraft() {
-  if (!state.currentContractCode) return false;
-  try {
-    const raw = localStorage.getItem('draft_' + state.currentContractCode);
-    if (raw) {
-      const saved = JSON.parse(raw);
-      PARTY_DEFS.forEach(def => {
-        if (saved[def.key]) {
-          state.contractData[def.key] = { ...emptyParty(), ...saved[def.key] };
-        }
-      });
-      return true;
-    }
-  } catch (e) {
-    console.warn('Restore draft failed:', e);
+function buildMonthOptions(selectedMonth) {
+  const monthLabel = (typeof t === 'function' ? t('selectMonth') : 'Month');
+  let html = `<option value="">${monthLabel}</option>`;
+  for (let m = 1; m <= 12; m++) {
+    const name = (typeof t === 'function' ? t('monthName_' + m) : m);
+    html += `<option value="${m}" ${String(m) === String(selectedMonth) ? 'selected' : ''}>${name}</option>`;
   }
-  return false;
+  return html;
 }
 
-function clearDraft() {
-  if (!state.currentContractCode) return;
-  localStorage.removeItem('draft_' + state.currentContractCode);
+function buildYearOptions(selectedYear, isBirth = true) {
+  const yearLabel = (typeof t === 'function' ? t('selectYear') : 'Year');
+  const currentYear = new Date().getFullYear();
+  let min, max;
+  if (isBirth) {
+    max = currentYear - MIN_AGE;   // أقصى سنة ميلاد (18 سنة)
+    min = currentYear - MAX_AGE;   // أقدم سنة ميلاد (100 سنة)
+  } else {
+    // تاريخ العقد: من 2020 إلى currentYear + 1
+    min = currentYear - 5;
+    max = currentYear + 1;
+  }
+  let html = `<option value="">${yearLabel}</option>`;
+  for (let y = max; y >= min; y--) {
+    html += `<option value="${y}" ${String(y) === String(selectedYear) ? 'selected' : ''}>${y}</option>`;
+  }
+  return html;
 }
 
 /* ============================================================
-   إدارة النافذة (Screen Manager)
+   Language Restriction - Filter Input
+============================================================ */
+function applyLanguageFilter(input) {
+  const mode = input.dataset.lang;
+  if (!mode) return;
+
+  let original = input.value;
+  let filtered;
+
+  if (mode === 'de') {
+    filtered = original.replace(GERMAN_REGEX, '');
+  } else if (mode === 'ar') {
+    filtered = original.replace(ARABIC_REGEX, '');
+  } else {
+    return;
+  }
+
+  if (filtered !== original) {
+    // احفظ موضع المؤشر
+    const pos = input.selectionStart;
+    const diff = original.length - filtered.length;
+    input.value = filtered;
+    input.setSelectionRange(Math.max(0, pos - diff), Math.max(0, pos - diff));
+    toast(t(mode === 'de' ? 'invalidGerman' : 'invalidArabic'), 'error');
+  }
+}
+
+/* ============================================================
+   Screen Management
 ============================================================ */
 function showScreen(name) {
   ['verifyScreen', 'roleScreen', 'inputScreen'].forEach(id => {
@@ -148,25 +191,17 @@ function showScreen(name) {
 }
 
 /* ============================================================
-   شاشة التحقق
+   Verify Code
 ============================================================ */
 async function verifyCode() {
   const input = document.getElementById('contractCodeInput');
   const btn = document.getElementById('verifyBtn');
   const code = input.value.trim().toUpperCase();
 
-  /* التحقق الأساسي */
-  if (!code) {
-    return toast(t('requiredField'), 'error');
-  }
-  if (code.length !== 6) {
-    return toast(t('invalidCode'), 'error');
-  }
-  if (!/^[A-Z0-9]{6}$/.test(code)) {
-    return toast(t('invalidChars'), 'error');
-  }
+  if (!code) return toast(t('requiredField'), 'error');
+  if (code.length !== 6) return toast(t('invalidCode'), 'error');
+  if (!/^[A-Z0-9]{6}$/.test(code)) return toast(t('invalidChars'), 'error');
 
-  /* قفل الزر */
   btn.disabled = true;
   const originalText = btn.textContent;
   btn.textContent = t('verifying');
@@ -183,31 +218,27 @@ async function verifyCode() {
     if (!response.ok || !data.valid) {
       btn.disabled = false;
       btn.textContent = originalText;
-
-      if (data.error === 'already_sent') {
-        return toast(t('codeAlreadySent'), 'error');
-      }
-      if (data.error === 'not_found') {
-        return toast(t('codeNotApproved'), 'error');
-      }
+      if (data.error === 'already_sent') return toast(t('codeAlreadySent'), 'error');
+      if (data.error === 'not_found') return toast(t('codeNotApproved'), 'error');
       return toast(data.message || t('codeNotApproved'), 'error');
     }
 
-    /* نجاح التحقق */
     state.currentContractCode = code;
     state.currentPartyIndex = 0;
     state.contractData = {};
-    PARTY_DEFS.forEach(def => {
-      state.contractData[def.key] = emptyParty();
-    });
+    PARTY_DEFS.forEach(def => { state.contractData[def.key] = emptyParty(); });
 
-    /* استرجاع المسودة */
+    // تاريخ العقد = اليوم افتراضياً
+    const today = new Date();
+    state.contractDate = {
+      day: today.getDate(),
+      month: today.getMonth() + 1,
+      year: today.getFullYear(),
+    };
+
     const restored = restoreDraft();
-    if (restored) {
-      toast(t('codeRestored'), 'success');
-    }
+    if (restored) toast(t('codeRestored'), 'success');
 
-    /* الانتقال للشاشة التالية */
     showScreen('roleScreen');
     renderRolePicker();
 
@@ -223,7 +254,7 @@ async function verifyCode() {
 }
 
 /* ============================================================
-   شاشة اختيار الأطراف
+   Role Picker
 ============================================================ */
 function renderRolePicker() {
   updateProgress();
@@ -249,33 +280,28 @@ function renderRolePicker() {
 }
 
 /* ============================================================
-   التحقق من اكتمال طرف
+   Party Completion Check
 ============================================================ */
 function isPartyComplete(p, def) {
   if (!p) return false;
 
-  /* الولي: مكتمل إذا فعّل "الولي هي الزوجة نفسها" */
   if (def.isWali && p.waliIsBride) return true;
-
-  /* الشاهد: مكتمل إذا فعّل "الشاهد طرف المركز" */
   if (def.isWitness && p.witnessIsCenter) return true;
 
-  /* الاسم بالألمانية إلزامي */
+  // الحقول الإلزامية
   if (!p.nameDe || !p.nameDe.trim()) return false;
-
-  /* اسم الأم إلزامي للزوجين */
   if (def.isSpouse && (!p.motherNameDe || !p.motherNameDe.trim())) return false;
-
-  /* التحقق من التاريخ */
-  if (p.birthDay || p.birthMonth || p.birthYear) {
-    if (!isValidDate(p.birthDay, p.birthMonth, p.birthYear)) return false;
-  }
+  if (!p.birthDay || !p.birthMonth || !p.birthYear) return false;
+  if (!isValidDate(p.birthDay, p.birthMonth, p.birthYear)) return false;
+  if (!p.birthCountry || !p.birthCountry.trim()) return false;
+  if (!p.birthRegion || !p.birthRegion.trim()) return false;
+  if (!p.idNumber || !p.idNumber.trim()) return false;
 
   return true;
 }
 
 /* ============================================================
-   تحديث المؤشر الدائري
+   Progress
 ============================================================ */
 function updateProgress() {
   const done = PARTY_DEFS.filter(d =>
@@ -285,9 +311,7 @@ function updateProgress() {
   const pct = Math.round((done / PARTIES_COUNT) * 100);
 
   const circle = document.getElementById('progressCircleRole');
-  if (circle) {
-    circle.style.background = `conic-gradient(var(--green-dark) ${pct}%, #e0e0e0 ${pct}%)`;
-  }
+  if (circle) circle.style.background = `conic-gradient(var(--green) ${pct}%, var(--green-pale) ${pct}%)`;
 
   const text = document.getElementById('progressTextRole');
   if (text) text.textContent = pct + '%';
@@ -297,39 +321,69 @@ function updateProgress() {
 }
 
 /* ============================================================
-   التحقق من اكتمال الكل
+   Check All Done
 ============================================================ */
 function checkAllDone() {
   const allDone = PARTY_DEFS.every(d =>
     isPartyComplete(state.contractData[d.key], d)
   );
   const sendArea = document.getElementById('sendArea');
-  if (sendArea) sendArea.classList.toggle('hidden', !allDone);
+  if (sendArea) {
+    sendArea.classList.toggle('hidden', !allDone);
+    if (allDone) {
+      renderContractDateDropdowns();
+    }
+  }
 }
 
 /* ============================================================
-   نموذج الطرف
+   Contract Date Dropdowns
+============================================================ */
+function renderContractDateDropdowns() {
+  const { day, month, year } = state.contractDate;
+
+  const dayEl = document.getElementById('contractDay');
+  const monthEl = document.getElementById('contractMonth');
+  const yearEl = document.getElementById('contractYear');
+
+  if (dayEl) dayEl.innerHTML = buildDayOptions(day, month, year);
+  if (monthEl) monthEl.innerHTML = buildMonthOptions(month);
+  if (yearEl) yearEl.innerHTML = buildYearOptions(year, false);
+
+  if (dayEl) dayEl.onchange = () => { state.contractDate.day = dayEl.value; saveDraft(); };
+  if (monthEl) monthEl.onchange = () => {
+    state.contractDate.month = monthEl.value;
+    // أعد بناء الأيام (لشهر فبراير)
+    dayEl.innerHTML = buildDayOptions(state.contractDate.day, monthEl.value, state.contractDate.year);
+    saveDraft();
+  };
+  if (yearEl) yearEl.onchange = () => {
+    state.contractDate.year = yearEl.value;
+    dayEl.innerHTML = buildDayOptions(state.contractDate.day, monthEl.value, yearEl.value);
+    saveDraft();
+  };
+}
+
+/* ============================================================
+   Party Form
 ============================================================ */
 function renderPartyForm() {
   const def = PARTY_DEFS[state.currentPartyIndex];
   const party = state.contractData[def.key];
   const wrap = document.getElementById('partyFormWrap');
-
   wrap.innerHTML = buildPartyForm(def, party);
   attachFormHandlers(def.key);
   updateSaveButtonState(def, party);
 }
 
 /* ============================================================
-   بناء نموذج الطرف
+   Build Party Form
 ============================================================ */
 function buildPartyForm(def, p) {
-  const spouse = def.isSpouse;
-  const groom = def.isGroom;
   const isWali = def.isWali;
   const isWitness = def.isWitness;
 
-  /* حالة خاصة: الولي = الزوجة */
+  // الولي = الزوجة
   if (isWali && p.waliIsBride) {
     return `
       <div class="form-grid">
@@ -338,7 +392,7 @@ function buildPartyForm(def, p) {
           <input type="checkbox" id="waliIsBrideCheck" checked>
           <label for="waliIsBrideCheck">${t('waliIsBride')}</label>
         </div>
-        <div class="special-info-box">✓ ${t('waliIsBrideText')}</div>
+        <div class="special-info-box">${t('waliIsBrideText')}</div>
       </div>
       <div class="save-btn-wrap">
         <button class="btn save-btn complete" onclick="savePartyAndReturn()">
@@ -348,7 +402,7 @@ function buildPartyForm(def, p) {
       </div>`;
   }
 
-  /* حالة خاصة: الشاهد = طرف المركز */
+  // الشاهد = طرف المركز
   if (isWitness && p.witnessIsCenter) {
     return `
       <div class="form-grid">
@@ -357,7 +411,7 @@ function buildPartyForm(def, p) {
           <input type="checkbox" id="witnessIsCenterCheck" checked>
           <label for="witnessIsCenterCheck">${t('witnessIsCenter')}</label>
         </div>
-        <div class="special-info-box">✓ ${t('witnessIsCenterText')}</div>
+        <div class="special-info-box">${t('witnessIsCenterText')}</div>
       </div>
       <div class="save-btn-wrap">
         <button class="btn save-btn complete" onclick="savePartyAndReturn()">
@@ -367,38 +421,41 @@ function buildPartyForm(def, p) {
       </div>`;
   }
 
-  /* النموذج العادي */
+  const spouse = def.isSpouse;
+  const groom = def.isGroom;
+
   let html = `<div class="form-grid">
     <div class="section-title">${def.icon} ${t(def.labelKey)}</div>
 
     <div class="field">
       <label>${t('nameDe')} <span class="req">*</span></label>
-      <input type="text" data-k="nameDe" value="${esc(p.nameDe)}" autocomplete="off">
+      <input type="text" data-k="nameDe" data-lang="de"
+             value="${esc(p.nameDe)}" autocomplete="off" spellcheck="false">
     </div>
     <div class="field">
       <label>${t('nameAr')}</label>
-      <input type="text" data-k="nameAr" value="${esc(p.nameAr)}" autocomplete="off">
+      <input type="text" data-k="nameAr" data-lang="ar"
+             value="${esc(p.nameAr)}" autocomplete="off" spellcheck="false">
     </div>
 
     <div class="field full">
-      <label>${t('birthDate')}</label>
-      <div class="date-inputs">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2"
-               placeholder="${t('day')}" data-k="birthDay" value="${esc(p.birthDay)}">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2"
-               placeholder="${t('month')}" data-k="birthMonth" value="${esc(p.birthMonth)}">
-        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4"
-               placeholder="${t('year')}" data-k="birthYear" value="${esc(p.birthYear)}">
+      <label>${t('birthDate')} <span class="req">*</span></label>
+      <div class="date-selects">
+        <select data-k="birthDay" data-type="birth-date">${buildDayOptions(p.birthDay, p.birthMonth, p.birthYear)}</select>
+        <select data-k="birthMonth" data-type="birth-date">${buildMonthOptions(p.birthMonth)}</select>
+        <select data-k="birthYear" data-type="birth-date">${buildYearOptions(p.birthYear, true)}</select>
       </div>
     </div>
 
     <div class="field">
-      <label>${t('birthCountry')}</label>
-      <input type="text" data-k="birthCountry" value="${esc(p.birthCountry)}" autocomplete="off">
+      <label>${t('birthCountry')} <span class="req">*</span></label>
+      <input type="text" data-k="birthCountry" data-lang="auto"
+             value="${esc(p.birthCountry)}" autocomplete="off">
     </div>
     <div class="field">
-      <label>${t('birthRegion')}</label>
-      <input type="text" data-k="birthRegion" value="${esc(p.birthRegion)}" autocomplete="off">
+      <label>${t('birthRegion')} <span class="req">*</span></label>
+      <input type="text" data-k="birthRegion" data-lang="auto"
+             value="${esc(p.birthRegion)}" autocomplete="off">
     </div>
 
     <div class="field">
@@ -409,55 +466,60 @@ function buildPartyForm(def, p) {
       </select>
     </div>
     <div class="field">
-      <label>${t('idNumber')}</label>
-      <input type="text" data-k="idNumber" value="${esc(p.idNumber)}"
-             autocomplete="off" spellcheck="false">
+      <label>${t('idNumber')} <span class="req">*</span></label>
+      <input type="text" data-k="idNumber" data-lang="auto"
+             value="${esc(p.idNumber)}" autocomplete="off" spellcheck="false">
     </div>
 
     <div class="section-title">${t('address')}</div>
     <div class="address-sub">
       <div class="field">
         <label>${t('addressNumber')}</label>
-        <input type="text" data-k="addressNumber" value="${esc(p.addressNumber)}" autocomplete="off">
+        <input type="text" data-k="addressNumber" data-lang="auto"
+               value="${esc(p.addressNumber)}" autocomplete="off">
       </div>
       <div class="field">
         <label>${t('addressStreet')}</label>
-        <input type="text" data-k="addressStreet" value="${esc(p.addressStreet)}" autocomplete="off">
+        <input type="text" data-k="addressStreet" data-lang="auto"
+               value="${esc(p.addressStreet)}" autocomplete="off">
       </div>
     </div>
     <div class="address-sub2">
       <div class="field">
         <label>${t('postalCode')}</label>
-        <input type="text" inputmode="numeric" pattern="[0-9]*"
-               data-k="postalCode" value="${esc(p.postalCode)}" autocomplete="off">
+        <input type="text" data-k="postalCode" data-lang="auto"
+               value="${esc(p.postalCode)}" autocomplete="off">
       </div>
       <div class="field">
         <label>${t('city')}</label>
-        <input type="text" data-k="city" value="${esc(p.city)}" autocomplete="off">
+        <input type="text" data-k="city" data-lang="auto"
+               value="${esc(p.city)}" autocomplete="off">
       </div>
     </div>
   `;
 
-  /* قسم الأم (للزوجين) */
+  // الأم للزوجين
   if (spouse) {
     html += `
       <div class="section-title">${t('motherData')}</div>
       <div class="field">
         <label>${t('motherNameDe')} <span class="req">*</span></label>
-        <input type="text" data-k="motherNameDe" value="${esc(p.motherNameDe)}" autocomplete="off">
+        <input type="text" data-k="motherNameDe" data-lang="de"
+               value="${esc(p.motherNameDe)}" autocomplete="off" spellcheck="false">
       </div>
       <div class="field">
         <label>${t('motherNameAr')}</label>
-        <input type="text" data-k="motherNameAr" value="${esc(p.motherNameAr)}" autocomplete="off">
+        <input type="text" data-k="motherNameAr" data-lang="ar"
+               value="${esc(p.motherNameAr)}" autocomplete="off" spellcheck="false">
       </div>
     `;
   }
 
-  /* قسم المهر (للزوج فقط) */
+  // المهر للزوج
   if (groom) {
     html += `
       <div class="dowry-box">
-        <div class="dowry-box-title">💰 ${t('dowryTitle')}</div>
+        <div class="dowry-box-title">${t('dowryTitle')}</div>
         <div class="dowry-fields">
           <div class="field">
             <label>${t('dowryAdvance')}</label>
@@ -478,7 +540,7 @@ function buildPartyForm(def, p) {
     `;
   }
 
-  /* خيار الولي */
+  // خيار الولي
   if (isWali) {
     html += `
       <div class="special-box">
@@ -488,7 +550,7 @@ function buildPartyForm(def, p) {
     `;
   }
 
-  /* خيار الشاهد */
+  // خيار الشاهد
   if (isWitness) {
     html += `
       <div class="special-box">
@@ -510,7 +572,7 @@ function buildPartyForm(def, p) {
 }
 
 /* ============================================================
-   منع الأحرف في الحقول الرقمية + ربط الأحداث
+   Attach Form Handlers
 ============================================================ */
 function attachFormHandlers(partyKey) {
   const party = state.contractData[partyKey];
@@ -518,22 +580,52 @@ function attachFormHandlers(partyKey) {
   document.querySelectorAll('#partyFormWrap [data-k]').forEach(inp => {
     const key = inp.dataset.k;
 
-    /* منع الأحرف في الحقول الرقمية */
+    // 1. الحقول الرقمية: منع الأحرف
     if (inp.inputMode === 'numeric' || inp.pattern === '[0-9]*') {
       inp.addEventListener('input', () => {
         inp.value = inp.value.replace(/[^0-9]/g, '');
       });
     }
 
-    /* ربط الإدخال */
+    // 2. فلتر اللغة
+    if (inp.tagName === 'INPUT' && inp.dataset.lang) {
+      inp.addEventListener('input', () => applyLanguageFilter(inp));
+    }
+
+    // 3. ربط الإدخال
     inp.addEventListener('input', () => {
+      party[key] = inp.value;
+      // إزالة الإطار الأحمر عند التصحيح
+      inp.classList.remove('error');
+      saveDraft();
+      updateSaveButtonState(PARTY_DEFS[state.currentPartyIndex], party);
+    });
+
+    inp.addEventListener('change', () => {
       party[key] = inp.value;
       saveDraft();
       updateSaveButtonState(PARTY_DEFS[state.currentPartyIndex], party);
     });
+
+    // 4. قوائم التاريخ
+    if (inp.dataset.type === 'birth-date') {
+      if (key === 'birthMonth' || key === 'birthYear') {
+        inp.addEventListener('change', () => {
+          // أعد بناء قائمة الأيام
+          const daySelect = document.querySelector('#partyFormWrap [data-k="birthDay"]');
+          if (daySelect) {
+            daySelect.innerHTML = buildDayOptions(
+              party.birthDay,
+              party.birthMonth,
+              party.birthYear
+            );
+          }
+        });
+      }
+    }
   });
 
-  /* الولي */
+  // الولي
   const waliCheck = document.getElementById('waliIsBrideCheck');
   if (waliCheck) {
     waliCheck.addEventListener('change', () => {
@@ -543,7 +635,7 @@ function attachFormHandlers(partyKey) {
     });
   }
 
-  /* الشاهد */
+  // الشاهد
   const witnessCheck = document.getElementById('witnessIsCenterCheck');
   if (witnessCheck) {
     witnessCheck.addEventListener('change', () => {
@@ -555,7 +647,7 @@ function attachFormHandlers(partyKey) {
 }
 
 /* ============================================================
-   تحديث حالة زر الحفظ
+   Update Save Button
 ============================================================ */
 function updateSaveButtonState(def, party) {
   const btn = document.getElementById('saveBtn');
@@ -570,57 +662,73 @@ function updateSaveButtonState(def, party) {
 }
 
 /* ============================================================
-   حفظ الطرف والعودة
+   Save Party
 ============================================================ */
 function savePartyAndReturn() {
   const def = PARTY_DEFS[state.currentPartyIndex];
   const party = state.contractData[def.key];
 
-  if (!isPartyComplete(party, def)) {
+  // مسح الحالات السابقة
+  document.querySelectorAll('#partyFormWrap .error').forEach(el => el.classList.remove('error'));
+
+  // تحقق خاص
+  const errors = [];
+
+  if (!party.nameDe || !party.nameDe.trim()) errors.push('nameDe');
+  if (def.isSpouse && (!party.motherNameDe || !party.motherNameDe.trim())) errors.push('motherNameDe');
+  if (!party.birthDay || !party.birthMonth || !party.birthYear) {
+    errors.push('birthDay', 'birthMonth', 'birthYear');
+  } else if (!isValidDate(party.birthDay, party.birthMonth, party.birthYear)) {
+    errors.push('birthDay', 'birthMonth', 'birthYear');
+    toast(t('invalidBirthDate'), 'error');
+  }
+  if (!party.birthCountry || !party.birthCountry.trim()) errors.push('birthCountry');
+  if (!party.birthRegion || !party.birthRegion.trim()) errors.push('birthRegion');
+  if (!party.idNumber || !party.idNumber.trim()) errors.push('idNumber');
+
+  if (errors.length > 0) {
+    errors.forEach(k => {
+      const el = document.querySelector(`#partyFormWrap [data-k="${k}"]`);
+      if (el) el.classList.add('error');
+    });
     toast('❌ ' + t('incomplete'), 'error');
     return;
   }
 
   saveDraft();
-  toast('✓ ' + t(def.labelKey) + ' — ✓', 'success');
+  toast('✓ ' + t(def.labelKey), 'success');
 
   showScreen('roleScreen');
   renderRolePicker();
 }
 
 /* ============================================================
-   الإرسال النهائي
+   Submit All
 ============================================================ */
 async function submitAllParties() {
   const btn = document.getElementById('submitAllBtn');
 
-  /* التحقق من كل الأطراف */
-  const errors = [];
-  for (const def of PARTY_DEFS) {
-    const p = state.contractData[def.key];
-    if (def.isWali && p.waliIsBride) continue;
-    if (def.isWitness && p.witnessIsCenter) continue;
-
-    if (!p.nameDe || !p.nameDe.trim()) {
-      errors.push(t(def.labelKey) + ': ' + t('nameDe'));
-    }
-    if (def.isSpouse && (!p.motherNameDe || !p.motherNameDe.trim())) {
-      errors.push(t(def.labelKey) + ': ' + t('motherNameDe'));
-    }
-    if (p.birthDay || p.birthMonth || p.birthYear) {
-      if (!isValidDate(p.birthDay, p.birthMonth, p.birthYear)) {
-        errors.push(t(def.labelKey) + ': ' + t('invalidDate'));
-      }
-    }
+  // التحقق من تاريخ العقد
+  const { day, month, year } = state.contractDate;
+  if (!day || !month || !year) {
+    toast(t('invalidContractDate'), 'error');
+    return;
   }
-
-  if (errors.length) {
-    toast('❌ ' + errors.length + ' ' + t('incomplete'), 'error');
-    setTimeout(() => alert(errors.join('\n')), 300);
+  if (!isValidDate(day, month, year)) {
+    toast(t('invalidContractDate'), 'error');
     return;
   }
 
+  // تحقق نهائي
+  for (const def of PARTY_DEFS) {
+    if (!isPartyComplete(state.contractData[def.key], def)) {
+      toast(t('incomplete') + ': ' + t(def.labelKey), 'error');
+      return;
+    }
+  }
+
   btn.disabled = true;
+  const originalText = btn.innerHTML;
   btn.textContent = t('submitting');
 
   try {
@@ -629,6 +737,7 @@ async function submitAllParties() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code: state.currentContractCode,
+        contractDate: getContractDateStr(),
         data: state.contractData,
       }),
     });
@@ -639,19 +748,18 @@ async function submitAllParties() {
       throw new Error(result.message || 'Submit failed');
     }
 
-    /* نجاح */
     toast(t('submitSuccess'), 'success');
     clearDraft();
 
-    /* شاشة النجاح */
     document.getElementById('roleScreen').innerHTML = `
       <div class="success-box">
         <span class="big-check">✓</span>
-        ${t('submitSuccess')}
-        <small>${state.currentContractCode}</small>
-        <div style="margin-top:25px;">
-          <button class="btn gold small" onclick="location.reload()">
-            ${t('verifyBtn')}
+        <div class="success-title">${t('submitSuccess')}</div>
+        <div class="success-code">${state.currentContractCode}</div>
+        <small>${t('contractDateTitle')}: ${getContractDateStr()}</small>
+        <div style="margin-top:24px;">
+          <button class="btn btn-primary btn-small" onclick="location.reload()">
+            ${t('newContract')}
           </button>
         </div>
       </div>`;
@@ -661,12 +769,55 @@ async function submitAllParties() {
     console.error('Submit error:', err);
     toast(t('submitFailed'), 'error');
     btn.disabled = false;
-    btn.textContent = '📨 ' + t('sendContract');
+    btn.innerHTML = originalText;
   }
 }
 
 /* ============================================================
-   المساعدة
+   Draft Storage
+============================================================ */
+function saveDraft() {
+  if (!state.currentContractCode) return;
+  try {
+    localStorage.setItem(
+      'draft_' + state.currentContractCode,
+      JSON.stringify({
+        contractData: state.contractData,
+        contractDate: state.contractDate,
+      })
+    );
+  } catch (e) {}
+}
+
+function restoreDraft() {
+  if (!state.currentContractCode) return false;
+  try {
+    const raw = localStorage.getItem('draft_' + state.currentContractCode);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (saved.contractData) {
+        PARTY_DEFS.forEach(def => {
+          if (saved.contractData[def.key]) {
+            state.contractData[def.key] = { ...emptyParty(), ...saved.contractData[def.key] };
+          }
+        });
+      }
+      if (saved.contractDate) {
+        state.contractDate = { ...state.contractDate, ...saved.contractDate };
+      }
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+function clearDraft() {
+  if (!state.currentContractCode) return;
+  localStorage.removeItem('draft_' + state.currentContractCode);
+}
+
+/* ============================================================
+   Help Modal
 ============================================================ */
 function showHelp() {
   document.getElementById('helpModal').classList.remove('hidden');
@@ -677,50 +828,44 @@ function closeHelpModal() {
 }
 
 /* ============================================================
-   ربط الأحداث الأولية
+   Language Changed Hook
+============================================================ */
+window.onLanguageChanged = function() {
+  if (!document.getElementById('inputScreen').classList.contains('hidden')) {
+    renderPartyForm();
+  }
+  if (!document.getElementById('roleScreen').classList.contains('hidden')) {
+    renderRolePicker();
+    renderContractDateDropdowns();
+  }
+};
+
+/* ============================================================
+   Init
 ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
-  /* زر التحقق */
   const verifyBtn = document.getElementById('verifyBtn');
   if (verifyBtn) verifyBtn.addEventListener('click', verifyCode);
 
-  /* Enter في حقل الكود */
   const codeInput = document.getElementById('contractCodeInput');
   if (codeInput) {
     codeInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') verifyCode();
     });
-    /* تحويل تلقائي لحروف كبيرة */
     codeInput.addEventListener('input', () => {
       codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     });
   }
 
-  /* زر المساعدة */
   const helpBtn = document.getElementById('helpBtn');
   if (helpBtn) helpBtn.addEventListener('click', showHelp);
 
-  /* زر الإرسال */
   const submitBtn = document.getElementById('submitAllBtn');
   if (submitBtn) submitBtn.addEventListener('click', submitAllParties);
 });
 
 /* ============================================================
-   Hook لتغيير اللغة (من i18n.js)
-============================================================ */
-window.onLanguageChanged = function(lang) {
-  /* إعادة رسم النموذج إن كان مفتوحاً */
-  if (!document.getElementById('inputScreen').classList.contains('hidden')) {
-    renderPartyForm();
-  }
-  /* إعادة رسم قائمة الأطراف */
-  if (!document.getElementById('roleScreen').classList.contains('hidden')) {
-    renderRolePicker();
-  }
-};
-
-/* ============================================================
-   تصدير الدوال للاستخدام في onclick
+   Exports
 ============================================================ */
 window.verifyCode = verifyCode;
 window.savePartyAndReturn = savePartyAndReturn;
