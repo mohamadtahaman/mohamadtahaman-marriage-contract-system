@@ -19,17 +19,10 @@ const PARTY_DEFS = [
 ];
 
 const PARTIES_COUNT = 5;
-
-// نطاق العمر: 18 - 100 سنة
 const MIN_AGE = 18;
 const MAX_AGE = 100;
 
-/* ============================================================
-   Language Restriction Patterns
-============================================================ */
-// الألمانية: لاتيني + الأحرف الألمانية الخاصة + مسافات + شرطات + نقاط + فواصل عليا
 const GERMAN_REGEX = /[^a-zA-ZäöüÄÖÜß\s\-\.\',]/g;
-// العربية: كل أحرف Unicode العربية + مسافات + شرطات + نقاط + فواصل عليا
 const ARABIC_REGEX = /[^\u0600-\u06FF\u0750-\u077F\s\-\.\',]/g;
 
 /* ============================================================
@@ -60,6 +53,7 @@ function esc(v) {
 
 function toast(msg, type = '') {
   const container = document.getElementById('toastContainer');
+  if (!container) return;
   const el = document.createElement('div');
   el.className = 'toast ' + type;
   el.textContent = msg;
@@ -86,7 +80,7 @@ function getBirthDate(p) {
 function getContractDateStr() {
   const { day, month, year } = state.contractDate;
   if (!day || !month || !year) return '—';
-  return `${pad2(day)}.${pad2(month)}.${year}`;
+  return `${pad2(day)}.${pad2(month)}.${pad2(year)}`;
 }
 
 /* ============================================================
@@ -137,10 +131,9 @@ function buildYearOptions(selectedYear, isBirth = true) {
   const currentYear = new Date().getFullYear();
   let min, max;
   if (isBirth) {
-    max = currentYear - MIN_AGE;   // أقصى سنة ميلاد (18 سنة)
-    min = currentYear - MAX_AGE;   // أقدم سنة ميلاد (100 سنة)
+    max = currentYear - MIN_AGE;
+    min = currentYear - MAX_AGE;
   } else {
-    // تاريخ العقد: من 2020 إلى currentYear + 1
     min = currentYear - 5;
     max = currentYear + 1;
   }
@@ -152,11 +145,11 @@ function buildYearOptions(selectedYear, isBirth = true) {
 }
 
 /* ============================================================
-   Language Restriction - Filter Input
+   Language Filter
 ============================================================ */
 function applyLanguageFilter(input) {
   const mode = input.dataset.lang;
-  if (!mode) return;
+  if (!mode || mode === 'auto') return;
 
   let original = input.value;
   let filtered;
@@ -170,7 +163,6 @@ function applyLanguageFilter(input) {
   }
 
   if (filtered !== original) {
-    // احفظ موضع المؤشر
     const pos = input.selectionStart;
     const diff = original.length - filtered.length;
     input.value = filtered;
@@ -228,7 +220,6 @@ async function verifyCode() {
     state.contractData = {};
     PARTY_DEFS.forEach(def => { state.contractData[def.key] = emptyParty(); });
 
-    // تاريخ العقد = اليوم افتراضياً
     const today = new Date();
     state.contractDate = {
       day: today.getDate(),
@@ -280,15 +271,22 @@ function renderRolePicker() {
 }
 
 /* ============================================================
-   Party Completion Check
+   Party Completion Check - الحل هنا
 ============================================================ */
 function isPartyComplete(p, def) {
   if (!p) return false;
 
-  if (def.isWali && p.waliIsBride) return true;
-  if (def.isWitness && p.witnessIsCenter) return true;
+  // ✅ الولي: إذا فعّل "الولي هي الزوجة نفسها" → مكتمل فوراً
+  if (def.isWali) {
+    if (p.waliIsBride) return true;
+  }
 
-  // الحقول الإلزامية
+  // ✅ الشاهد: إذا فعّل "الشاهد طرف المركز" → مكتمل فوراً
+  if (def.isWitness) {
+    if (p.witnessIsCenter) return true;
+  }
+
+  // باقي الحالات: التحقق من الحقول الإلزامية
   if (!p.nameDe || !p.nameDe.trim()) return false;
   if (def.isSpouse && (!p.motherNameDe || !p.motherNameDe.trim())) return false;
   if (!p.birthDay || !p.birthMonth || !p.birthYear) return false;
@@ -350,10 +348,12 @@ function renderContractDateDropdowns() {
   if (monthEl) monthEl.innerHTML = buildMonthOptions(month);
   if (yearEl) yearEl.innerHTML = buildYearOptions(year, false);
 
-  if (dayEl) dayEl.onchange = () => { state.contractDate.day = dayEl.value; saveDraft(); };
+  if (dayEl) dayEl.onchange = () => {
+    state.contractDate.day = dayEl.value;
+    saveDraft();
+  };
   if (monthEl) monthEl.onchange = () => {
     state.contractDate.month = monthEl.value;
-    // أعد بناء الأيام (لشهر فبراير)
     dayEl.innerHTML = buildDayOptions(state.contractDate.day, monthEl.value, state.contractDate.year);
     saveDraft();
   };
@@ -498,7 +498,6 @@ function buildPartyForm(def, p) {
     </div>
   `;
 
-  // الأم للزوجين
   if (spouse) {
     html += `
       <div class="section-title">${t('motherData')}</div>
@@ -515,7 +514,6 @@ function buildPartyForm(def, p) {
     `;
   }
 
-  // المهر للزوج
   if (groom) {
     html += `
       <div class="dowry-box">
@@ -540,7 +538,7 @@ function buildPartyForm(def, p) {
     `;
   }
 
-  // خيار الولي
+  // ✅ خيار الولي - موجود في الأعلى (سيتم وضعه بشكل صحيح)
   if (isWali) {
     html += `
       <div class="special-box">
@@ -550,7 +548,6 @@ function buildPartyForm(def, p) {
     `;
   }
 
-  // خيار الشاهد
   if (isWitness) {
     html += `
       <div class="special-box">
@@ -580,22 +577,18 @@ function attachFormHandlers(partyKey) {
   document.querySelectorAll('#partyFormWrap [data-k]').forEach(inp => {
     const key = inp.dataset.k;
 
-    // 1. الحقول الرقمية: منع الأحرف
     if (inp.inputMode === 'numeric' || inp.pattern === '[0-9]*') {
       inp.addEventListener('input', () => {
         inp.value = inp.value.replace(/[^0-9]/g, '');
       });
     }
 
-    // 2. فلتر اللغة
     if (inp.tagName === 'INPUT' && inp.dataset.lang) {
       inp.addEventListener('input', () => applyLanguageFilter(inp));
     }
 
-    // 3. ربط الإدخال
     inp.addEventListener('input', () => {
       party[key] = inp.value;
-      // إزالة الإطار الأحمر عند التصحيح
       inp.classList.remove('error');
       saveDraft();
       updateSaveButtonState(PARTY_DEFS[state.currentPartyIndex], party);
@@ -603,15 +596,14 @@ function attachFormHandlers(partyKey) {
 
     inp.addEventListener('change', () => {
       party[key] = inp.value;
+      inp.classList.remove('error');
       saveDraft();
       updateSaveButtonState(PARTY_DEFS[state.currentPartyIndex], party);
     });
 
-    // 4. قوائم التاريخ
     if (inp.dataset.type === 'birth-date') {
       if (key === 'birthMonth' || key === 'birthYear') {
         inp.addEventListener('change', () => {
-          // أعد بناء قائمة الأيام
           const daySelect = document.querySelector('#partyFormWrap [data-k="birthDay"]');
           if (daySelect) {
             daySelect.innerHTML = buildDayOptions(
@@ -625,23 +617,28 @@ function attachFormHandlers(partyKey) {
     }
   });
 
-  // الولي
+  // ✅ خيار الولي - يعيد رسم النموذج بالكامل
   const waliCheck = document.getElementById('waliIsBrideCheck');
   if (waliCheck) {
     waliCheck.addEventListener('change', () => {
       party.waliIsBride = waliCheck.checked;
       saveDraft();
       renderPartyForm();
+      // تحديث الحالة العامة
+      updateProgress();
+      checkAllDone();
     });
   }
 
-  // الشاهد
+  // ✅ خيار الشاهد - يعيد رسم النموذج بالكامل
   const witnessCheck = document.getElementById('witnessIsCenterCheck');
   if (witnessCheck) {
     witnessCheck.addEventListener('change', () => {
       party.witnessIsCenter = witnessCheck.checked;
       saveDraft();
       renderPartyForm();
+      updateProgress();
+      checkAllDone();
     });
   }
 }
@@ -662,16 +659,34 @@ function updateSaveButtonState(def, party) {
 }
 
 /* ============================================================
-   Save Party
+   Save Party - الحل هنا
 ============================================================ */
 function savePartyAndReturn() {
   const def = PARTY_DEFS[state.currentPartyIndex];
   const party = state.contractData[def.key];
 
-  // مسح الحالات السابقة
+  // ✅ أولاً: تحقق إذا كان الولي/الشاهد بطرف المركز أو الزوجة نفسها
+  // في هذه الحالة، لا نطلب أي حقول إطلاقاً
+  if (def.isWali && party.waliIsBride) {
+    saveDraft();
+    toast('✓ ' + t(def.labelKey), 'success');
+    showScreen('roleScreen');
+    renderRolePicker();
+    return;
+  }
+
+  if (def.isWitness && party.witnessIsCenter) {
+    saveDraft();
+    toast('✓ ' + t(def.labelKey), 'success');
+    showScreen('roleScreen');
+    renderRolePicker();
+    return;
+  }
+
+  // ثانياً: مسح الأخطاء السابقة
   document.querySelectorAll('#partyFormWrap .error').forEach(el => el.classList.remove('error'));
 
-  // تحقق خاص
+  // ثالثاً: تحقق من الحقول الإلزامية
   const errors = [];
 
   if (!party.nameDe || !party.nameDe.trim()) errors.push('nameDe');
@@ -708,7 +723,6 @@ function savePartyAndReturn() {
 async function submitAllParties() {
   const btn = document.getElementById('submitAllBtn');
 
-  // التحقق من تاريخ العقد
   const { day, month, year } = state.contractDate;
   if (!day || !month || !year) {
     toast(t('invalidContractDate'), 'error');
@@ -719,7 +733,6 @@ async function submitAllParties() {
     return;
   }
 
-  // تحقق نهائي
   for (const def of PARTY_DEFS) {
     if (!isPartyComplete(state.contractData[def.key], def)) {
       toast(t('incomplete') + ': ' + t(def.labelKey), 'error');
