@@ -1,14 +1,11 @@
 /* ============================================================
    Cloudflare Function: POST /api/verify
-   التحقق من رقم العقد
+   التحقق من رقم العقد + جلب حالة الأطراف
 ============================================================ */
 
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  /* ---------------------------------------------
-     1. قراءة البيانات من الطلب
-  --------------------------------------------- */
   let body;
   try {
     body = await request.json();
@@ -22,9 +19,7 @@ export async function onRequestPost(context) {
 
   const code = (body.code || '').trim().toUpperCase();
 
-  /* ---------------------------------------------
-     2. التحقق الأساسي من الكود
-  --------------------------------------------- */
+  // التحقق الأساسي
   if (!code) {
     return jsonResponse({
       valid: false,
@@ -41,9 +36,7 @@ export async function onRequestPost(context) {
     }, 400);
   }
 
-  /* ---------------------------------------------
-     3. قراءة الأكواد من KV
-  --------------------------------------------- */
+  // قراءة الأكواد
   let codes;
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
@@ -51,7 +44,7 @@ export async function onRequestPost(context) {
       return jsonResponse({
         valid: false,
         error: 'no_codes',
-        message: 'لم يتم توليد أكواد بعد. تواصل مع المركز.',
+        message: 'لم يتم توليد أكواد بعد',
       }, 404);
     }
     codes = JSON.parse(codesRaw);
@@ -64,9 +57,7 @@ export async function onRequestPost(context) {
     }, 500);
   }
 
-  /* ---------------------------------------------
-     4. التحقق من وجود الكود في القائمة
-  --------------------------------------------- */
+  // التحقق من وجود الكود
   if (!Array.isArray(codes) || !codes.includes(code)) {
     return jsonResponse({
       valid: false,
@@ -75,9 +66,7 @@ export async function onRequestPost(context) {
     }, 404);
   }
 
-  /* ---------------------------------------------
-     5. التحقق هل العقد تم إرساله مسبقاً
-  --------------------------------------------- */
+  // هل تم إرسال العقد؟
   try {
     const finished = await env.CONTRACT_KV.get(`contract_${code}_finished`);
     if (finished === 'true') {
@@ -87,47 +76,48 @@ export async function onRequestPost(context) {
         message: 'هذا العقد تم إرساله مسبقاً',
       }, 409);
     }
-  } catch (err) {
-    console.error('KV read finished error:', err);
-    /* لا نوقف العملية — نستمر */
-  }
+  } catch (e) { /* تجاهل */ }
 
-  /* ---------------------------------------------
-     6. قراءة حالة كل طرف (مكتمل أم لا)
-  --------------------------------------------- */
+  // ✅ حالة كل طرف (هل حفظ بياناته على السيرفر؟)
   const partyStatus = {};
+  const partySavedAt = {};
   const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
 
   try {
-    const statuses = await Promise.all(
+    const results = await Promise.all(
       partyKeys.map(async (key) => {
         const val = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
-        return [key, val !== null];
+        const time = await env.CONTRACT_KV.get(`contract_${code}_saved_${key}`);
+        return { key, has: val !== null, time };
       })
     );
-    statuses.forEach(([key, has]) => {
+
+    results.forEach(({ key, has, time }) => {
       partyStatus[key] = has;
+      partySavedAt[key] = time || null;
     });
   } catch (err) {
-    console.error('KV read parties error:', err);
-    /* نستمر بحالة فارغة */
-    partyKeys.forEach(key => { partyStatus[key] = false; });
+    console.error('KV parties error:', err);
+    partyKeys.forEach(key => {
+      partyStatus[key] = false;
+      partySavedAt[key] = null;
+    });
   }
 
-  /* ---------------------------------------------
-     7. النجاح
-  --------------------------------------------- */
+  const savedCount = Object.values(partyStatus).filter(Boolean).length;
+
   return jsonResponse({
     valid: true,
     code: code,
     partyStatus: partyStatus,
+    partySavedAt: partySavedAt,
+    savedCount: savedCount,
+    totalParties: 5,
+    allSaved: savedCount === 5,
     timestamp: Date.now(),
   }, 200);
 }
 
-/* ============================================================
-   رفض باقي طرق HTTP
-============================================================ */
 export async function onRequestGet() {
   return jsonResponse({
     error: 'method_not_allowed',
@@ -135,16 +125,6 @@ export async function onRequestGet() {
   }, 405);
 }
 
-export async function onRequest(context) {
-  return jsonResponse({
-    error: 'method_not_allowed',
-    message: 'استخدم POST فقط',
-  }, 405);
-}
-
-/* ============================================================
-   دالة مساعدة: إرجاع JSON
-============================================================ */
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
