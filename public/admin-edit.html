@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>تعديل العقد - Arresalah Zentrum</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/admin.css?v=6">
+<link rel="stylesheet" href="./css/admin-edit.css?v=6">
+</head>
+<body>
+
+<!-- شاشة تحميل -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="spinner"></div>
+  <p>جارٍ تحميل العقد...</p>
+</div>
+
+<!-- شاشة خطأ -->
+<div id="errorScreen" class="error-screen hidden">
+  <div class="error-box">
+    <div class="error-icon">⚠️</div>
+    <h2 id="errorTitle">خطأ</h2>
+    <p id="errorMessage">حدث خطأ غير متوقع</p>
+    <button onclick="window.location.href='./admin.html'" class="btn-secondary">
+      ← رجوع للوحة الإدارة
+    </button>
+  </div>
+</div>
+
+<!-- صفحة التعديل -->
+<div id="editScreen" class="edit-wrap hidden">
+
+  <!-- الهيدر -->
+  <div class="edit-header">
+    <div class="edit-header-left">
+      <button onclick="window.location.href='./admin.html'" class="btn-back">
+        ← رجوع
+      </button>
+      <h1>تعديل العقد</h1>
+      <span class="edit-code" id="editCode">—</span>
+      <span class="edit-status" id="editStatus">—</span>
+    </div>
+    <div class="edit-header-right">
+      <button onclick="saveAllChanges()" id="saveBtn" class="btn-save" disabled>
+        💾 حفظ كل التعديلات
+      </button>
+    </div>
+  </div>
+
+  <div class="edit-container">
+
+    <!-- تبويبات -->
+    <div class="edit-tabs">
+      <button class="edit-tab active" data-tab="groom" onclick="switchEditTab('groom')">👨 الزوج</button>
+      <button class="edit-tab" data-tab="bride" onclick="switchEditTab('bride')">👩 الزوجة</button>
+      <button class="edit-tab" data-tab="wali" onclick="switchEditTab('wali')">🧔 الولي</button>
+      <button class="edit-tab" data-tab="witness1" onclick="switchEditTab('witness1')">👤 الشاهد الأول</button>
+      <button class="edit-tab" data-tab="witness2" onclick="switchEditTab('witness2')">👤 الشاهد الثاني</button>
+      <button class="edit-tab" data-tab="dowry" onclick="switchEditTab('dowry')">💰 المهر</button>
+      <button class="edit-tab" data-tab="contract" onclick="switchEditTab('contract')">📋 العقد</button>
+    </div>
+
+    <!-- محتوى التعديل -->
+    <div id="editContent" class="edit-content">
+      <!-- يتم بناؤه بواسطة JS -->
+    </div>
+
+  </div>
+</div>
+
+<!-- رسالة عائمة -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- Modal تأكيد -->
+<div id="confirmModal" class="modal-overlay hidden">
+  <div class="modal-box-small">
+    <h3 id="confirmTitle">تأكيد</h3>
+    <p id="confirmMessage">هل أنت متأكد؟</p>
+    <div class="confirm-actions">
+      <button id="confirmYes" class="btn-primary">نعم</button>
+      <button id="confirmNo" class="btn-secondary">لا</button>
+    </div>
+  </div>
+</div>
+
+<script src="./js/admin-edit.js?v=6"></script>
+</body>
+</html>
