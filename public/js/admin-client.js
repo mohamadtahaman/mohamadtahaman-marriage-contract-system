@@ -1,10 +1,11 @@
 /* ============================================================
-   Admin Client V6 - Full Settings + Users + Export
+   Admin Client V7 - Fix: Send username with every request
 ============================================================ */
 
 const adminState = {
   password: null,
   username: 'admin',
+  role: null,
   codes: [],
   contracts: [],
   filteredContracts: [],
@@ -66,6 +67,17 @@ function formatBirthDate(p) {
 }
 
 /* ============================================================
+   Reset Login Button (helper)
+============================================================ */
+function resetLoginButton() {
+  const btn = $('loginBtn');
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = 'دخول';
+  }
+}
+
+/* ============================================================
    Login
 ============================================================ */
 async function login() {
@@ -84,8 +96,6 @@ async function login() {
 
   btn.disabled = true;
   btn.textContent = 'جارٍ التحقق...';
-  adminState.password = password;
-  adminState.username = username;
 
   try {
     const response = await fetch('/api/admin', {
@@ -100,29 +110,32 @@ async function login() {
       data = JSON.parse(text);
     } catch (e) {
       showMessage('خطأ في استجابة الخادم', 'error');
-      btn.disabled = false;
-      btn.textContent = 'دخول';
+      resetLoginButton();
       return;
     }
 
     if (!response.ok || !data.success) {
       showMessage(data.message || 'فشل الدخول', 'error');
-      btn.disabled = false;
-      btn.textContent = 'دخول';
-      adminState.password = null;
+      resetLoginButton();
       return;
     }
 
+    // ✅ حفظ بيانات المستخدم
+    adminState.password = password;
+    adminState.username = username;
+    adminState.role = data.user?.role || 'user';
+
     sessionStorage.setItem('admin_password', password);
     sessionStorage.setItem('admin_username', username);
+    sessionStorage.setItem('admin_role', adminState.role);
 
     showPanel();
     await loadList();
+    resetLoginButton();
 
   } catch (err) {
     showMessage('خطأ في الاتصال: ' + err.message, 'error');
-    btn.disabled = false;
-    btn.textContent = 'دخول';
+    resetLoginButton();
   }
 }
 
@@ -132,6 +145,7 @@ async function login() {
 function showPanel() {
   $('loginScreen').classList.add('hidden');
   $('adminPanel').classList.remove('hidden');
+  applyRoleRestrictions();
 }
 
 function showLogin() {
@@ -139,26 +153,62 @@ function showLogin() {
   $('adminPanel').classList.add('hidden');
   $('passwordInput').value = '';
   hideMessage();
+  resetLoginButton();
 }
 
 function logout() {
   adminState.password = null;
+  adminState.username = 'admin';
+  adminState.role = null;
   adminState.codes = [];
   adminState.contracts = [];
   adminState.filteredContracts = [];
   sessionStorage.removeItem('admin_password');
   sessionStorage.removeItem('admin_username');
+  sessionStorage.removeItem('admin_role');
   showLogin();
 }
 
 /* ============================================================
-   API
+   Apply Role Restrictions to UI
+============================================================ */
+function applyRoleRestrictions() {
+  const role = adminState.role || 'viewer';
+
+  const canManageUsers = role === 'admin';
+  const canGenerateCodes = role === 'admin';
+  const canDelete = role === 'admin' || role === 'manager';
+  const canExport = role === 'admin' || role === 'manager';
+
+  // إخفاء تبويب الإعدادات لغير الأدمن
+  const settingsTab = document.querySelector('.admin-tab[data-tab="settings"]');
+  if (settingsTab) {
+    settingsTab.classList.toggle('hidden', !canManageUsers);
+  }
+
+  // إخفاء زر توليد الأكواد
+  const generateBtn = document.querySelector('button[onclick="generateNewCodes()"]');
+  if (generateBtn) {
+    const card = generateBtn.closest('.card');
+    if (card) card.classList.toggle('hidden', !canGenerateCodes);
+  }
+
+  // إخفاء منطقة الخطر لغير الأدمن
+  const dangerCard = document.querySelector('.card-danger');
+  if (dangerCard) {
+    dangerCard.classList.toggle('hidden', !canGenerateCodes);
+  }
+}
+
+/* ============================================================
+   API - ✅ الآن يُرسل username مع كل طلب
 ============================================================ */
 async function apiCall(action, extra = {}) {
   const response = await fetch('/api/admin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      username: adminState.username,   // ← الإصلاح!
       password: adminState.password,
       action,
       ...extra,
@@ -244,6 +294,8 @@ function renderTable() {
     return;
   }
 
+  const canDelete = ['admin', 'manager'].includes(adminState.role);
+
   adminState.contracts.forEach((contract, idx) => {
     const tr = document.createElement('tr');
 
@@ -257,7 +309,7 @@ function renderTable() {
       <td>${statusHtml}</td>
       <td>
         <button class="btn-action" onclick="viewContract('${contract.code}')">معاينة</button>
-        ${contract.finished ? `<button class="btn-action danger" onclick="deleteContract('${contract.code}')">حذف</button>` : ''}
+        ${contract.finished && canDelete ? `<button class="btn-action danger" onclick="deleteContract('${contract.code}')">حذف</button>` : ''}
       </td>
     `;
     tbody.appendChild(tr);
@@ -283,6 +335,8 @@ function renderArchive() {
     container.innerHTML = `<div class="loading-cell">لا توجد عقود مُرسلة بعد.</div>`;
     return;
   }
+
+  const canDelete = ['admin', 'manager'].includes(adminState.role);
 
   let html = `
     <table class="archive-table">
@@ -317,7 +371,7 @@ function renderArchive() {
         <td class="date-cell">${escapeHtml(contractDate)}</td>
         <td class="actions-cell">
           <button class="btn-action gold" onclick="viewContract('${contract.code}')">معاينة</button>
-          <button class="btn-action danger" onclick="deleteContract('${contract.code}')">حذف</button>
+          ${canDelete ? `<button class="btn-action danger" onclick="deleteContract('${contract.code}')">حذف</button>` : ''}
         </td>
       </tr>
     `;
@@ -361,9 +415,11 @@ function renderSettings() {
 
   const codesCountEl = $('infoCodesCount');
   const sentCountEl = $('infoSentCount');
+  const roleEl = $('infoRole');
 
   if (codesCountEl) codesCountEl.textContent = adminState.codes.length;
   if (sentCountEl) sentCountEl.textContent = sentCount;
+  if (roleEl) roleEl.textContent = adminState.role || '—';
 }
 
 /* ============================================================
@@ -702,20 +758,48 @@ async function refreshData() {
 document.addEventListener('DOMContentLoaded', async () => {
   const savedPassword = sessionStorage.getItem('admin_password');
   const savedUsername = sessionStorage.getItem('admin_username') || 'admin';
+  const savedRole = sessionStorage.getItem('admin_role');
+
+  // ✅ استرجاع بيانات المستخدم
+  if (savedUsername) {
+    adminState.username = savedUsername;
+    const userInput = $('usernameInput');
+    if (userInput) userInput.value = savedUsername;
+  }
 
   if (savedPassword) {
     adminState.password = savedPassword;
-    adminState.username = savedUsername;
+    adminState.role = savedRole;
+
     try {
-      await apiCall('login');
-      showPanel();
-      await loadList();
-      return;
+      // تحقق من الجلسة
+      const response = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: savedUsername,
+          password: savedPassword,
+          action: 'login',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        adminState.role = data.user?.role || savedRole || 'user';
+        sessionStorage.setItem('admin_role', adminState.role);
+        showPanel();
+        await loadList();
+        return;
+      }
     } catch (err) {
-      adminState.password = null;
-      sessionStorage.removeItem('admin_password');
-      sessionStorage.removeItem('admin_username');
+      console.warn('Auto-login failed:', err);
     }
+
+    // فشل → امسح
+    sessionStorage.removeItem('admin_password');
+    sessionStorage.removeItem('admin_username');
+    sessionStorage.removeItem('admin_role');
   }
 
   showLogin();
