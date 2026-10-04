@@ -1,6 +1,6 @@
 /* ============================================================
-   Print Contract - JS
-   يجلب بيانات العقد ويعرضها في الشهادة
+   Print Contract - JS V3
+   يجلب بيانات العقد ويعرضها في الشهادة الرسمية
 ============================================================ */
 
 const printState = {
@@ -44,24 +44,15 @@ function birthDate(p) {
   return `${pad2(p.birthDay)}.${pad2(p.birthMonth)}.${p.birthYear}`;
 }
 
-function idTypeLabel(type) {
-  return type === 'passport' ? 'Passport / جواز سفر' : 'Personalausweis / هوية';
-}
-
 function fullAddress(p) {
   if (!p) return '—';
-  const parts = [
-    p.addressStreet,
-    p.addressNumber
-  ].filter(Boolean).join(' ');
-
+  const parts = [p.addressStreet, p.addressNumber].filter(Boolean).join(' ');
   const city = [p.postalCode, p.city].filter(Boolean).join(' ');
-
   return [parts, city].filter(Boolean).join(', ') || '—';
 }
 
 /* ============================================================
-   API Call - عام (بدون تسجيل دخول)
+   API
 ============================================================ */
 async function fetchContract(code) {
   const response = await fetch('/api/print', {
@@ -102,17 +93,15 @@ function buildCertificate(contract) {
   const contractDate = contract.contractDate || '—';
 
   return `
-    <!-- Header -->
+    <!-- ============ Header ============ -->
     <div class="cert-header">
       <div class="cert-logo ar">
         <img src="${printState.logoPath}" alt="Arresalah" onerror="this.style.display='none'">
       </div>
 
-      <div class="cert-header-title-de">
-        Islamische Eheschließungsurkunde
-      </div>
-      <div class="cert-header-title-ar">
-        شهادة عقد زواج إسلامي
+      <div class="cert-header-title-wrap">
+        <div class="cert-header-title-de">Islamische Eheschließungsurkunde</div>
+        <div class="cert-header-title-ar">شهادة عقد زواج إسلامي</div>
       </div>
 
       <div class="cert-logo de">
@@ -120,25 +109,46 @@ function buildCertificate(contract) {
       </div>
     </div>
 
-    <!-- Top Info Row -->
+    <!-- ============ Top Info Row (معكوس + صور) ============ -->
     <div class="cert-top-row">
+      <!-- يمين: تاريخ العقد -->
       <div class="cell">
         <div class="cell-label">Datum der Eheschließung</div>
         <div class="cell-label-ar">تاريخ عقد الزواج</div>
         <div class="cell-value-ar">${escapeHtml(contractDate)}</div>
       </div>
+
+      <!-- وسط: مكان -->
       <div class="cell">
         <div class="cell-label">Ort</div>
         <div class="cell-label-ar">مكان</div>
         <div class="cell-value">Arresalah e.V.</div>
       </div>
-      <div class="cell">
-        <div class="cell-label">Turnstraße 83, 10551 Berlin</div>
-        <div class="cell-label-ar">عنوان المركز</div>
+
+      <!-- يسار: عنوان المركز + صورتان -->
+      <div class="cell cell-address">
+        <div class="address-info">
+          <div class="cell-label">Turnstraße 83, 10551 Berlin</div>
+          <div class="cell-label-ar">عنوان المركز</div>
+        </div>
+        <div class="cert-photos">
+          <div class="cert-photo-box" title="صورة الزوج">
+            ${g.photo
+              ? `<img src="${g.photo}" alt="Groom">`
+              : '<span>صورة<br>الزوج</span>'
+            }
+          </div>
+          <div class="cert-photo-box" title="صورة الزوجة">
+            ${b.photo
+              ? `<img src="${b.photo}" alt="Bride">`
+              : '<span>صورة<br>الزوجة</span>'
+            }
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- Groom & Bride -->
+    <!-- ============ Groom & Bride ============ -->
     <div class="cert-two-cols">
       <!-- Groom -->
       <div class="cert-col">
@@ -161,6 +171,10 @@ function buildCertificate(contract) {
         <div class="cert-field">
           <span class="key">Seine Mutter:</span>
           <span class="val">${escapeHtml(g.motherNameDe || '—')}</span>
+        </div>
+        <div class="cert-field mother-ar">
+          <span class="key-ar">اسم الأم:</span>
+          <span class="val">${escapeHtml(g.motherNameAr || '—')}</span>
         </div>
         <div class="cert-field">
           <span class="key">Personalausweis:</span>
@@ -194,6 +208,10 @@ function buildCertificate(contract) {
           <span class="key">Ihre Mutter:</span>
           <span class="val">${escapeHtml(b.motherNameDe || '—')}</span>
         </div>
+        <div class="cert-field mother-ar">
+          <span class="key-ar">اسم الأم:</span>
+          <span class="val">${escapeHtml(b.motherNameAr || '—')}</span>
+        </div>
         <div class="cert-field">
           <span class="key">Personalausweis:</span>
           <span class="val">${escapeHtml(b.idNumber || '—')}</span>
@@ -205,7 +223,7 @@ function buildCertificate(contract) {
       </div>
     </div>
 
-    <!-- Wali + Dowry -->
+    <!-- ============ Wali + Dowry ============ -->
     <div class="cert-wali-row">
       <div class="cert-wali-cell">
         <div class="k">Vertreter der Braut (Wali):</div>
@@ -230,7 +248,7 @@ function buildCertificate(contract) {
       </div>
     </div>
 
-    <!-- Witnesses -->
+    <!-- ============ Witnesses ============ -->
     <div class="cert-witness-row">
       <!-- Zeuge 1 -->
       <div class="cert-witness-box">
@@ -289,39 +307,31 @@ function buildCertificate(contract) {
       </div>
     </div>
 
-    <!-- Documents Row -->
+    <!-- ============ Documents ============ -->
     <div class="cert-docs-row">
       <div class="cert-docs-titles">
-        <div class="col-de">Identitäts- und Ledigkeitsnachweise:</div>
+        <div class="col-de">Identitäts- und Ledigkeitsnachweise: Ausweise/Pässe</div>
         <div class="col-ar">مستندات إثبات الشخصية والحالة الاجتماعية:</div>
-        <div class="col-de">Ausweise/Pässe</div>
       </div>
       <div class="cert-docs-grid">
-        <div class="doc-cell">
-          <b>Ehemann</b>
-          <span class="ar">الزوج</span>
-        </div>
-        <div class="doc-cell">
-          <b>Ehefrau</b>
-          <span class="ar">الزوجة</span>
-        </div>
-        <div class="doc-cell">
-          <b>Wali</b>
-          <span class="ar">الولي</span>
-        </div>
-        <div class="doc-cell">
-          <b>Zeuge 1</b>
-          <span class="ar">الشاهد الأول</span>
-        </div>
-        <div class="doc-cell">
-          <b>Zeuge 2</b>
-          <span class="ar">الشاهد الثاني</span>
-        </div>
+        <div class="doc-cell"><b>Ehemann</b><span class="ar">الزوج</span></div>
+        <div class="doc-cell"><b>Ehefrau</b><span class="ar">الزوجة</span></div>
+        <div class="doc-cell"><b>Wali</b><span class="ar">الولي</span></div>
+        <div class="doc-cell"><b>Zeuge 1</b><span class="ar">الشاهد الأول</span></div>
+        <div class="doc-cell"><b>Zeuge 2</b><span class="ar">الشاهد الثاني</span></div>
       </div>
     </div>
 
-    <!-- Footer -->
+    <!-- ============ Footer (توقيع يمين) ============ -->
     <div class="cert-footer">
+      <!-- التوقيع - يمين -->
+      <div class="cert-footer-sign">
+        <div class="sign-title">Vereinsvorstand / إدارة المركز</div>
+        <div class="sign-area">الإمام</div>
+        <div class="sign-line">التوقيع / Unterschrift</div>
+      </div>
+
+      <!-- النص - يسار -->
       <div class="cert-footer-text">
         <div class="title">صيغة العقد</div>
         <p class="ar">
@@ -338,11 +348,6 @@ function buildCertificate(contract) {
           <strong>ملاحظة:</strong> هذا العقد ليس بديلاً عن التسجيل في الدوائر الألمانية المختصة.<br>
           <em>Dieser Vertrag ist kein Ersatz für eine standesamtliche Erklärung.</em>
         </div>
-      </div>
-      <div class="cert-footer-sign">
-        <div class="sign-title">Vereinsvorstand / إدارة المركز</div>
-        <div class="sign-area">الإمام</div>
-        <div class="sign-line">التوقيع / Unterschrift</div>
       </div>
     </div>
   `;
@@ -362,18 +367,15 @@ function renderContract(contract) {
 }
 
 /* ============================================================
-   Download PDF (Through Browser Print)
+   Download PDF
 ============================================================ */
 function downloadPDF() {
-  // ضبط عنوان الصفحة ليصبح اسم الملف المقترح
   const originalTitle = document.title;
   const code = printState.contract?.code || 'contract';
   document.title = `Ehevertrag_${code}`;
 
-  // استدعاء نافذة الطباعة (المستخدم يختار "حفظ كـ PDF")
   setTimeout(() => {
     window.print();
-    // إعادة العنوان الأصلي
     setTimeout(() => {
       document.title = originalTitle;
     }, 100);
