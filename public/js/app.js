@@ -1,5 +1,5 @@
 /* ============================================================
-   Marriage Contract System V3 - Server-Side Save
+   Marriage Contract System V3 - With Photo Upload
 ============================================================ */
 
 const state = {
@@ -44,6 +44,7 @@ function emptyParty() {
     dowryAdvance: '', dowryDeferred: '', dowryNotes: '',
     waliIsBride: false,
     witnessIsCenter: false,
+    photo: '',  // ✅ الصورة الشخصية
   };
 }
 
@@ -169,6 +170,68 @@ function applyLanguageFilter(input) {
 }
 
 /* ============================================================
+   ✅ Image Compression
+============================================================ */
+async function compressImage(file, maxWidth = 600, maxHeight = 800, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const img = new Image();
+
+      img.onload = () => {
+        let { width, height } = img;
+
+        // احسب الأبعاد الجديدة
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // جودة JPEG
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        // احسب الحجم التقريبي
+        const sizeInBytes = Math.round((dataUrl.length - 'data:image/jpeg;base64,'.length) * 0.75);
+
+        resolve({
+          dataUrl: dataUrl,
+          size: sizeInBytes,
+          width: width,
+          height: height,
+        });
+      };
+
+      img.onerror = () => reject(new Error('فشل تحميل الصورة'));
+      img.src = e.target.result;
+    };
+
+    reader.onerror = () => reject(new Error('فشل قراءة الملف'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+/* ============================================================
    Screens
 ============================================================ */
 function showScreen(name) {
@@ -217,11 +280,9 @@ async function verifyCode() {
     state.partyStatus = data.partyStatus || {};
     state.partySavedAt = data.partySavedAt || {};
 
-    // تهيئة بيانات الأطراف
     state.contractData = {};
     PARTY_DEFS.forEach(def => { state.contractData[def.key] = emptyParty(); });
 
-    // تاريخ العقد = اليوم افتراضياً
     const today = new Date();
     state.contractDate = {
       day: today.getDate(),
@@ -265,14 +326,13 @@ function renderRolePicker() {
 }
 
 /* ============================================================
-   Open Party (load from server)
+   Open Party
 ============================================================ */
 async function openParty(idx) {
   const def = PARTY_DEFS[idx];
   state.currentPartyIndex = idx;
   state.currentPartyKey = def.key;
 
-  // إذا كان مكتملاً على السيرفر، حمّله
   if (state.partyStatus[def.key]) {
     try {
       const response = await fetch('/api/party', {
@@ -334,9 +394,6 @@ function updateProgress() {
   if (sub) sub.textContent = `${done} / ${PARTIES_COUNT}`;
 }
 
-/* ============================================================
-   Check All Done
-============================================================ */
 function checkAllDone() {
   const allDone = PARTY_DEFS.every(d => state.partyStatus[d.key]);
   const sendArea = document.getElementById('sendArea');
@@ -387,6 +444,7 @@ function renderPartyForm() {
 function buildPartyForm(def, p) {
   const isWali = def.isWali;
   const isWitness = def.isWitness;
+  const isSpouse = def.isSpouse;
 
   // الولي = الزوجة
   if (isWali && p.waliIsBride) {
@@ -426,7 +484,6 @@ function buildPartyForm(def, p) {
       </div>`;
   }
 
-  const spouse = def.isSpouse;
   const groom = def.isGroom;
 
   let html = `<div class="form-grid">
@@ -503,7 +560,7 @@ function buildPartyForm(def, p) {
     </div>
   `;
 
-  if (spouse) {
+  if (isSpouse) {
     html += `
       <div class="section-title">${t('motherData')}</div>
       <div class="field">
@@ -537,6 +594,52 @@ function buildPartyForm(def, p) {
           <div class="field field-full">
             <label>${t('dowryNotes')}</label>
             <textarea data-k="dowryNotes" placeholder="${t('dowryNotesPH')}">${esc(p.dowryNotes)}</textarea>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ✅ صورة شخصية للزوجين فقط
+  if (isSpouse) {
+    html += `
+      <div class="photo-section">
+        <div class="section-title">📷 ${t('personalPhoto') || 'الصورة الشخصية'} <small style="font-weight:400;color:#999;">(${t('optional') || 'اختياري'})</small></div>
+        <div class="photo-upload-wrap">
+          <div class="photo-preview" id="photoPreview">
+            ${p.photo
+              ? `<img src="${p.photo}" alt="Preview">`
+              : `<div class="photo-placeholder">
+                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                     <circle cx="12" cy="7" r="4"/>
+                   </svg>
+                   <span>${t('noPhoto') || 'لا توجد صورة'}</span>
+                 </div>`
+            }
+          </div>
+          <div class="photo-actions">
+            <input type="file" id="photoInput" accept="image/*" style="display:none;">
+            <button type="button" class="btn-photo-upload" onclick="document.getElementById('photoInput').click()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              ${p.photo ? (t('changePhoto') || 'تغيير الصورة') : (t('uploadPhoto') || 'رفع صورة')}
+            </button>
+            ${p.photo ? `
+              <button type="button" class="btn-photo-remove" onclick="removePhoto()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                </svg>
+                ${t('removePhoto') || 'حذف'}
+              </button>
+            ` : ''}
+          </div>
+          <div class="photo-hint">
+            ${t('photoHint') || 'سيتم ضغط الصورة تلقائياً قبل الرفع'}
           </div>
         </div>
       </div>
@@ -627,6 +730,55 @@ function attachFormHandlers(partyKey) {
       renderPartyForm();
     });
   }
+
+  // ✅ معالج رفع الصورة
+  const photoInput = document.getElementById('photoInput');
+  if (photoInput) {
+    photoInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // تحقق أولي
+      if (!file.type.startsWith('image/')) {
+        toast(t('invalidImage') || 'الملف ليس صورة', 'error');
+        return;
+      }
+
+      toast(t('compressing') || 'جارٍ ضغط الصورة...', '');
+
+      try {
+        const result = await compressImage(file);
+
+        // تحقق من الحجم بعد الضغط
+        if (result.size > 500 * 1024) {
+          toast(t('imageTooLarge') || 'الصورة كبيرة جداً حتى بعد الضغط', 'error');
+          return;
+        }
+
+        party.photo = result.dataUrl;
+        toast(`✓ ${t('photoUploaded') || 'تم رفع الصورة'} (${formatBytes(result.size)})`, 'success');
+        renderPartyForm();
+
+      } catch (err) {
+        console.error('Compress error:', err);
+        toast(t('photoError') || 'فشل معالجة الصورة', 'error');
+      }
+    });
+  }
+}
+
+/* ============================================================
+   Remove Photo
+============================================================ */
+function removePhoto() {
+  const def = PARTY_DEFS[state.currentPartyIndex];
+  const party = state.contractData[def.key];
+
+  if (!confirm(t('confirmRemovePhoto') || 'حذف الصورة؟')) return;
+
+  party.photo = '';
+  renderPartyForm();
+  toast(t('photoRemoved') || 'تم حذف الصورة', 'success');
 }
 
 /* ============================================================
@@ -645,7 +797,7 @@ function updateSaveButtonState(def, party) {
 }
 
 /* ============================================================
-   Save Party (server)
+   Save Party
 ============================================================ */
 async function savePartyAndReturn() {
   if (state.saving) return;
@@ -683,15 +835,13 @@ async function savePartyAndReturn() {
       throw new Error(result.message || 'Save failed');
     }
 
-    // ✅ تحديث الحالة
     state.partyStatus[def.key] = true;
     state.partySavedAt[def.key] = new Date().toISOString();
 
-    // ✅ رسالة التهنئة للزوجين
+    // رسالة التهنئة للزوجين
     const isSpouse = def.key === 'groom' || def.key === 'bride';
     if (isSpouse) {
       showBlessingMessage(def.key);
-      // انتظر حتى تتلاشى الرسالة
       await new Promise(resolve => setTimeout(resolve, 3500));
     } else {
       toast('✓ ' + t(def.labelKey), 'success');
@@ -713,10 +863,9 @@ async function savePartyAndReturn() {
 }
 
 /* ============================================================
-   Blessing Message (للزوجين)
+   Blessing Message
 ============================================================ */
 function showBlessingMessage(role) {
-  // امسح أي رسالة سابقة
   const existing = document.getElementById('blessingOverlay');
   if (existing) existing.remove();
 
@@ -730,159 +879,10 @@ function showBlessingMessage(role) {
   overlay.innerHTML = `
     <div class="blessing-content">
       <div class="blessing-line-top"></div>
-
       <div class="blessing-arabic">
         بَارَكَ اللَّهُ لَكُمَا وَبَارَكَ عَلَيْكُمَا وَجَمَعَ بَيْنَكُمَا فِي خَيْرٍ
       </div>
-
       <div class="blessing-line-bottom"></div>
-
       <div class="blessing-label">${title}</div>
-
       <div class="blessing-check">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"></polyline>
-        </svg>
-        تم الحفظ
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-
-  // اضبط الـ opacity إلى 1 بعد الإضافة مباشرة
-  requestAnimationFrame(() => {
-    overlay.classList.add('visible');
-  });
-
-  // تلاشي تدريجي بعد 2.5 ثانية
-  setTimeout(() => {
-    overlay.classList.remove('visible');
-    overlay.classList.add('fading');
-    setTimeout(() => overlay.remove(), 800);
-  }, 2500);
-}
-
-/* ============================================================
-   Submit All
-============================================================ */
-async function submitAllParties() {
-  const btn = document.getElementById('submitAllBtn');
-
-  const { day, month, year } = state.contractDate;
-  if (!day || !month || !year) {
-    toast(t('invalidContractDate'), 'error');
-    return;
-  }
-  if (!isValidDate(day, month, year)) {
-    toast(t('invalidContractDate'), 'error');
-    return;
-  }
-
-  // تحقق من اكتمال الجميع
-  if (!PARTY_DEFS.every(d => state.partyStatus[d.key])) {
-    toast(t('incomplete'), 'error');
-    return;
-  }
-
-  btn.disabled = true;
-  const originalText = btn.innerHTML;
-  btn.textContent = t('submitting');
-
-  try {
-    const response = await fetch('/api/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        code: state.currentContractCode,
-        contractDate: getContractDateStr(),
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(result.message || 'Submit failed');
-    }
-
-    toast(t('submitSuccess'), 'success');
-
-    document.getElementById('roleScreen').innerHTML = `
-      <div class="success-box">
-        <span class="big-check">✓</span>
-        <div class="success-title">${t('submitSuccess')}</div>
-        <div class="success-code">${state.currentContractCode}</div>
-        <small>${t('contractDateTitle')}: ${getContractDateStr()}</small>
-        <div style="margin-top:24px;">
-          <button class="btn btn-primary btn-small" onclick="location.reload()">
-            ${t('newContract')}
-          </button>
-        </div>
-      </div>`;
-    scrollToTop();
-
-  } catch (err) {
-    console.error('Submit error:', err);
-    toast(t('submitFailed'), 'error');
-    btn.disabled = false;
-    btn.innerHTML = originalText;
-  }
-}
-
-/* ============================================================
-   Help Modal
-============================================================ */
-function showHelp() {
-  document.getElementById('helpModal').classList.remove('hidden');
-}
-
-function closeHelpModal() {
-  document.getElementById('helpModal').classList.add('hidden');
-}
-
-/* ============================================================
-   Language Hook
-============================================================ */
-window.onLanguageChanged = function() {
-  if (!document.getElementById('inputScreen').classList.contains('hidden')) {
-    renderPartyForm();
-  }
-  if (!document.getElementById('roleScreen').classList.contains('hidden')) {
-    renderRolePicker();
-    renderContractDateDropdowns();
-  }
-};
-
-/* ============================================================
-   Init
-============================================================ */
-document.addEventListener('DOMContentLoaded', () => {
-  const verifyBtn = document.getElementById('verifyBtn');
-  if (verifyBtn) verifyBtn.addEventListener('click', verifyCode);
-
-  const codeInput = document.getElementById('contractCodeInput');
-  if (codeInput) {
-    codeInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') verifyCode();
-    });
-    codeInput.addEventListener('input', () => {
-      codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    });
-  }
-
-  const helpBtn = document.getElementById('helpBtn');
-  if (helpBtn) helpBtn.addEventListener('click', showHelp);
-
-  const submitBtn = document.getElementById('submitAllBtn');
-  if (submitBtn) submitBtn.addEventListener('click', submitAllParties);
-});
-
-/* ============================================================
-   Exports
-============================================================ */
-window.verifyCode = verifyCode;
-window.savePartyAndReturn = savePartyAndReturn;
-window.submitAllParties = submitAllParties;
-window.showHelp = showHelp;
-window.closeHelpModal = closeHelpModal;
-window.openParty = openParty;
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke
