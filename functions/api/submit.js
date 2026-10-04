@@ -1,6 +1,6 @@
 /* ============================================================
-   Cloudflare Function: POST /api/submit
-   استقبال بيانات العقد + إرسال بريد عبر EmailJS
+   Cloudflare Function: POST /api/submit (v2 - D1)
+   استقبال بيانات العقد + حفظ في D1 + إرسال بريد
 ============================================================ */
 
 export async function onRequestPost(context) {
@@ -29,6 +29,7 @@ export async function onRequestPost(context) {
     }, 400);
   }
 
+  // التحقق من الكود في KV
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
     if (!codesRaw) {
@@ -47,7 +48,6 @@ export async function onRequestPost(context) {
       }, 404);
     }
   } catch (err) {
-    console.error('KV codes read error:', err);
     return jsonResponse({
       success: false,
       error: 'kv_error',
@@ -55,9 +55,13 @@ export async function onRequestPost(context) {
     }, 500);
   }
 
+  // التحقق: هل العقد موجود في D1؟
   try {
-    const finished = await env.CONTRACT_KV.get(`contract_${code}_finished`);
-    if (finished === 'true') {
+    const existing = await env.DB.prepare(
+      'SELECT id FROM contracts WHERE code = ?'
+    ).bind(code).first();
+
+    if (existing) {
       return jsonResponse({
         success: false,
         error: 'already_sent',
@@ -65,9 +69,10 @@ export async function onRequestPost(context) {
       }, 409);
     }
   } catch (err) {
-    console.error('KV finished read error:', err);
+    // تجاهل — ربما جدول جديد
   }
 
+  // التحقق من اكتمال البيانات
   const requiredParties = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
   const missing = [];
 
@@ -99,23 +104,92 @@ export async function onRequestPost(context) {
     }, 400);
   }
 
+  // ============================================================
+  // الحفظ في D1
+  // ============================================================
+  let contractId;
+
   try {
-    const saves = [];
-    for (const key of requiredParties) {
-      const partyData = JSON.stringify(data[key]);
-      saves.push(env.CONTRACT_KV.put(`contract_${code}_${key}`, partyData));
+    // 1. إدراج العقد في contracts
+    const insertResult = await env.DB.prepare(
+      `INSERT INTO contracts (code, contract_date, status, sent_at)
+       VALUES (?, ?, 'sent', ?)`
+    ).bind(
+      code,
+      contractDate || null,
+      Math.floor(Date.now() / 1000)
+    ).run();
+
+    contractId = insertResult.meta.last_row_id;
+
+    if (!contractId) {
+      throw new Error('Failed to get contract ID');
     }
-    saves.push(env.CONTRACT_KV.put(`contract_${code}_date`, contractDate || '—'));
-    await Promise.all(saves);
+
+    // 2. إدراج الأطراف
+    for (const role of requiredParties) {
+      const p = data[role];
+      if (!p) continue;
+
+      await env.DB.prepare(
+        `INSERT INTO parties (
+          contract_id, role,
+          name_de, name_ar,
+          birth_day, birth_month, birth_year,
+          birth_country, birth_region,
+          id_type, id_number,
+          address_number, address_street, postal_code, city,
+          mother_name_de, mother_name_ar,
+          wali_is_bride, witness_is_center
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        contractId, role,
+        p.nameDe || null, p.nameAr || null,
+        p.birthDay ? parseInt(p.birthDay, 10) : null,
+        p.birthMonth ? parseInt(p.birthMonth, 10) : null,
+        p.birthYear ? parseInt(p.birthYear, 10) : null,
+        p.birthCountry || null, p.birthRegion || null,
+        p.idType || null, p.idNumber || null,
+        p.addressNumber || null, p.addressStreet || null,
+        p.postalCode || null, p.city || null,
+        p.motherNameDe || null, p.motherNameAr || null,
+        p.waliIsBride ? 1 : 0, p.witnessIsCenter ? 1 : 0
+      ).run();
+    }
+
+    // 3. إدراج المهر (إن وُجد)
+    const groom = data.groom || {};
+    if (groom.dowryAdvance || groom.dowryDeferred || groom.dowryNotes) {
+      await env.DB.prepare(
+        `INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes)
+         VALUES (?, ?, ?, ?)`
+      ).bind(
+        contractId,
+        groom.dowryAdvance ? parseFloat(groom.dowryAdvance) : null,
+        groom.dowryDeferred ? parseFloat(groom.dowryDeferred) : null,
+        groom.dowryNotes || null
+      ).run();
+    }
+
+    // 4. تسجيل في audit_log
+    await env.DB.prepare(
+      `INSERT INTO audit_log (action, entity_type, entity_id, details)
+       VALUES ('submit', 'contract', ?, ?)`
+    ).bind(contractId, `Contract ${code} submitted`).run();
+
   } catch (err) {
-    console.error('KV save error:', err);
+    console.error('D1 insert error:', err);
     return jsonResponse({
       success: false,
-      error: 'kv_save_error',
-      message: 'فشل حفظ البيانات',
+      error: 'db_error',
+      message: 'فشل حفظ البيانات في قاعدة البيانات',
+      details: err.message,
     }, 500);
   }
 
+  // ============================================================
+  // إرسال البريد
+  // ============================================================
   try {
     const emailSent = await sendEmailViaEmailJS(env, code, data, contractDate);
     if (!emailSent.success) {
@@ -125,17 +199,20 @@ export async function onRequestPost(context) {
     console.error('Email error:', err);
   }
 
+  // ============================================================
+  // وضع علامة "finished" في KV (للتوافق مع النظام القديم)
+  // ============================================================
   try {
     await env.CONTRACT_KV.put(`contract_${code}_finished`, 'true');
-    await env.CONTRACT_KV.put(`contract_${code}_finished_at`,
-      new Date().toISOString());
+    await env.CONTRACT_KV.put(`contract_${code}_finished_at`, new Date().toISOString());
   } catch (err) {
-    console.error('KV finish error:', err);
+    // تجاهل
   }
 
   return jsonResponse({
     success: true,
     code: code,
+    contractId: contractId,
     message: 'تم استلام العقد بنجاح',
     timestamp: Date.now(),
   }, 200);
@@ -163,9 +240,7 @@ async function sendEmailViaEmailJS(env, code, data, contractDate) {
     template_params: params,
   };
 
-  if (privateKey) {
-    payload.accessToken = privateKey;
-  }
+  if (privateKey) payload.accessToken = privateKey;
 
   const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
     method: 'POST',
@@ -182,7 +257,7 @@ async function sendEmailViaEmailJS(env, code, data, contractDate) {
 }
 
 /* ============================================================
-   تجهيز متغيرات قالب البريد
+   تجهيز متغيرات البريد
 ============================================================ */
 function buildEmailParams(code, data, contractDate) {
   const g = data.groom || {};
@@ -208,7 +283,6 @@ function buildEmailParams(code, data, contractDate) {
     contract_code: code,
     contract_date: contractDate || '—',
     sent_at: new Date().toLocaleString('de-DE'),
-
     groom_name_de: g.nameDe || '—',
     groom_name_ar: g.nameAr || '—',
     groom_birth: birthDate(g),
@@ -221,11 +295,9 @@ function buildEmailParams(code, data, contractDate) {
     groom_city: g.city || '—',
     groom_mother_de: g.motherNameDe || '—',
     groom_mother_ar: g.motherNameAr || '—',
-
     groom_dowry_advance: g.dowryAdvance || '—',
     groom_dowry_deferred: g.dowryDeferred || '—',
     groom_dowry_notes: g.dowryNotes || '—',
-
     bride_name_de: b.nameDe || '—',
     bride_name_ar: b.nameAr || '—',
     bride_birth: birthDate(b),
@@ -238,7 +310,6 @@ function buildEmailParams(code, data, contractDate) {
     bride_city: b.city || '—',
     bride_mother_de: b.motherNameDe || '—',
     bride_mother_ar: b.motherNameAr || '—',
-
     wali_status: waliIsBride ? 'Bride is her own Wali' : 'Wali present',
     wali_name_de: waliIsBride ? '—' : (w.nameDe || '—'),
     wali_name_ar: waliIsBride ? '—' : (w.nameAr || '—'),
@@ -250,7 +321,6 @@ function buildEmailParams(code, data, contractDate) {
     wali_address: waliIsBride ? '—' : `${w.addressStreet || ''} ${w.addressNumber || ''}`.trim() || '—',
     wali_postal: waliIsBride ? '—' : (w.postalCode || '—'),
     wali_city: waliIsBride ? '—' : (w.city || '—'),
-
     w1_status: w1IsCenter ? 'Center Witness' : 'Witness present',
     w1_name_de: w1IsCenter ? '—' : (w1.nameDe || '—'),
     w1_name_ar: w1IsCenter ? '—' : (w1.nameAr || '—'),
@@ -262,7 +332,6 @@ function buildEmailParams(code, data, contractDate) {
     w1_address: w1IsCenter ? '—' : `${w1.addressStreet || ''} ${w1.addressNumber || ''}`.trim() || '—',
     w1_postal: w1IsCenter ? '—' : (w1.postalCode || '—'),
     w1_city: w1IsCenter ? '—' : (w1.city || '—'),
-
     w2_status: w2IsCenter ? 'Center Witness' : 'Witness present',
     w2_name_de: w2IsCenter ? '—' : (w2.nameDe || '—'),
     w2_name_ar: w2IsCenter ? '—' : (w2.nameAr || '—'),
