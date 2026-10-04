@@ -1,5 +1,5 @@
 /* ============================================================
-   Cloudflare Function: POST /api/admin (v2 - D1)
+   Cloudflare Function: POST /api/admin (v3 - D1 + Users + Settings)
 ============================================================ */
 
 export async function onRequestPost(context) {
@@ -27,16 +27,34 @@ export async function onRequestPost(context) {
     }, 401);
   }
 
-  const adminPassword = env.ADMIN_PASSWORD;
-  if (!adminPassword) {
-    return jsonResponse({
-      success: false,
-      error: 'server_misconfigured',
-      message: 'خطأ في إعداد الخادم',
-    }, 500);
+  // استثناء: login له معالج خاص
+  if (action === 'login') {
+    return await handleLogin(env, body);
   }
 
-  if (password !== adminPassword) {
+  // التحقق من كلمة المرور
+  const adminPassword = env.ADMIN_PASSWORD;
+  let validPassword = false;
+
+  // 1. تحقق من env
+  if (adminPassword && password === adminPassword) {
+    validPassword = true;
+  }
+
+  // 2. تحقق من D1
+  if (!validPassword) {
+    try {
+      const user = await env.DB.prepare(
+        'SELECT id, role, is_active FROM users WHERE password_hash = ? AND is_active = 1 LIMIT 1'
+      ).bind(password).first();
+
+      if (user) validPassword = true;
+    } catch (e) {
+      // تجاهل
+    }
+  }
+
+  if (!validPassword) {
     return jsonResponse({
       success: false,
       error: 'wrong_password',
@@ -45,13 +63,17 @@ export async function onRequestPost(context) {
   }
 
   switch (action) {
-    case 'login':      return await handleLogin(env);
-    case 'list':       return await handleList(env);
-    case 'generate':   return await handleGenerate(env);
-    case 'delete':     return await handleDelete(env, body.code);
-    case 'view':       return await handleView(env, body.code);
-    case 'search':     return await handleSearch(env, body.query);
-    case 'clear_drafts': return await handleClearDrafts(env);
+    case 'list':           return await handleList(env);
+    case 'generate':       return await handleGenerate(env);
+    case 'delete':         return await handleDelete(env, body.code);
+    case 'view':           return await handleView(env, body.code);
+    case 'search':         return await handleSearch(env, body.query);
+    case 'clear_drafts':   return await handleClearDrafts(env);
+    case 'change_password': return await handleChangePassword(env, body);
+    case 'list_users':     return await handleListUsers(env);
+    case 'create_user':    return await handleCreateUser(env, body);
+    case 'delete_user':    return await handleDeleteUser(env, body);
+    case 'export':         return await handleExport(env);
     default:
       return jsonResponse({
         success: false,
@@ -64,12 +86,67 @@ export async function onRequestPost(context) {
 /* ============================================================
    Login
 ============================================================ */
-async function handleLogin(env) {
-  return jsonResponse({ success: true, message: 'تم تسجيل الدخول' }, 200);
+async function handleLogin(env, body) {
+  const username = (body.username || 'admin').trim().toLowerCase();
+  const password = (body.password || '').trim();
+
+  // 1. تحقق من D1 أولاً
+  try {
+    const user = await env.DB.prepare(
+      'SELECT id, username, password_hash, role, is_active FROM users WHERE username = ?'
+    ).bind(username).first();
+
+    if (user) {
+      if (!user.is_active) {
+        return jsonResponse({
+          success: false,
+          error: 'inactive',
+          message: 'الحساب معطّل',
+        }, 403);
+      }
+
+      if (user.password_hash !== password) {
+        return jsonResponse({
+          success: false,
+          error: 'wrong_password',
+          message: 'كلمة المرور خاطئة',
+        }, 401);
+      }
+
+      await env.DB.prepare(
+        'UPDATE users SET last_login = ? WHERE id = ?'
+      ).bind(Math.floor(Date.now() / 1000), user.id).run();
+
+      return jsonResponse({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+        },
+      }, 200);
+    }
+  } catch (e) {
+    console.error('Login D1 error:', e);
+  }
+
+  // 2. Fallback: env variable (admin)
+  if (username === 'admin' && password === env.ADMIN_PASSWORD) {
+    return jsonResponse({
+      success: true,
+      user: { username: 'admin', role: 'admin' },
+    }, 200);
+  }
+
+  return jsonResponse({
+    success: false,
+    error: 'wrong_password',
+    message: 'بيانات غير صحيحة',
+  }, 401);
 }
 
 /* ============================================================
-   List - الأكواد من KV + العقود من D1
+   List
 ============================================================ */
 async function handleList(env) {
   try {
@@ -79,22 +156,17 @@ async function handleList(env) {
     const contracts = [];
 
     for (const code of codes) {
-      // هل العقد موجود في D1؟
       let contractRow = null;
       try {
         contractRow = await env.DB.prepare(
           'SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?'
         ).bind(code).first();
-      } catch (e) {
-        // تجاهل
-      }
+      } catch (e) { /* تجاهل */ }
 
-      // جلب ملخص الأطراف
       const partySummary = {};
       const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
 
       if (contractRow) {
-        // من D1
         try {
           const parties = await env.DB.prepare(
             'SELECT role, name_de, name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?'
@@ -108,11 +180,8 @@ async function handleList(env) {
               witnessIsCenter: !!p.witness_is_center,
             };
           }
-        } catch (e) {
-          // تجاهل
-        }
+        } catch (e) { /* تجاهل */ }
       } else {
-        // من KV (لم يُنقل بعد)
         for (const key of partyKeys) {
           const partyRaw = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
           if (partyRaw) {
@@ -159,7 +228,7 @@ async function handleList(env) {
 }
 
 /* ============================================================
-   Generate - توليد 5 أكواد جديدة (يمسح كل شيء)
+   Generate - توليد 5 أكواد جديدة
 ============================================================ */
 async function handleGenerate(env) {
   try {
@@ -174,13 +243,13 @@ async function handleGenerate(env) {
       }
     }
 
-    // 1. مسح كل مفاتيح KV
+    // مسح KV
     const listResult = await env.CONTRACT_KV.list({ prefix: 'contract_' });
     const deletes = listResult.keys.map(k => env.CONTRACT_KV.delete(k.name));
     deletes.push(env.CONTRACT_KV.delete('codes'));
     await Promise.all(deletes);
 
-    // 2. مسح العقود من D1 (كل شيء بما فيها المُرسلة)
+    // مسح D1
     try {
       await env.DB.prepare('DELETE FROM audit_log').run();
       await env.DB.prepare('DELETE FROM dowries').run();
@@ -190,7 +259,7 @@ async function handleGenerate(env) {
       console.error('D1 clear error:', e);
     }
 
-    // 3. كتابة الأكواد الجديدة
+    // كتابة الأكواد الجديدة
     await env.CONTRACT_KV.put('codes', JSON.stringify(newCodes));
 
     return jsonResponse({
@@ -210,7 +279,7 @@ async function handleGenerate(env) {
 }
 
 /* ============================================================
-   Delete - حذف عقد واحد
+   Delete Contract
 ============================================================ */
 async function handleDelete(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
@@ -265,7 +334,6 @@ async function handleDelete(env, code) {
     deletes.push(env.CONTRACT_KV.delete(`contract_${code}_finished_at`));
     deletes.push(env.CONTRACT_KV.delete(`contract_${code}_date`));
 
-    // إزالة الكود من القائمة
     const newCodes = codes.filter(c => c !== code);
     deletes.push(env.CONTRACT_KV.put('codes', JSON.stringify(newCodes)));
 
@@ -287,7 +355,7 @@ async function handleDelete(env, code) {
 }
 
 /* ============================================================
-   View - عرض عقد من D1
+   View Contract
 ============================================================ */
 async function handleView(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
@@ -307,7 +375,6 @@ async function handleView(env, code) {
       parties: {},
     };
 
-    // جلب العقد من D1
     const contractRow = await env.DB.prepare(
       'SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?'
     ).bind(code).first();
@@ -319,7 +386,6 @@ async function handleView(env, code) {
         contract.finishedAt = new Date(contractRow.sent_at * 1000).toISOString();
       }
 
-      // جلب الأطراف
       const parties = await env.DB.prepare(
         `SELECT role, name_de, name_ar, birth_day, birth_month, birth_year,
                 birth_country, birth_region, id_type, id_number,
@@ -351,17 +417,14 @@ async function handleView(env, code) {
         };
       }
 
-      // جلب المهر
       const dowry = await env.DB.prepare(
         'SELECT amount_advance, amount_deferred, notes FROM dowries WHERE contract_id = ?'
       ).bind(contractRow.id).first();
 
-      if (dowry) {
-        if (contract.parties.groom) {
-          contract.parties.groom.dowryAdvance = dowry.amount_advance;
-          contract.parties.groom.dowryDeferred = dowry.amount_deferred;
-          contract.parties.groom.dowryNotes = dowry.notes;
-        }
+      if (dowry && contract.parties.groom) {
+        contract.parties.groom.dowryAdvance = dowry.amount_advance;
+        contract.parties.groom.dowryDeferred = dowry.amount_deferred;
+        contract.parties.groom.dowryNotes = dowry.notes;
       }
     }
 
@@ -381,14 +444,11 @@ async function handleView(env, code) {
 }
 
 /* ============================================================
-   Search - بحث في D1
+   Search
 ============================================================ */
 async function handleSearch(env, query) {
   if (!query || !query.trim()) {
-    return jsonResponse({
-      success: true,
-      results: [],
-    }, 200);
+    return jsonResponse({ success: true, results: [] }, 200);
   }
 
   const q = '%' + query.trim() + '%';
@@ -423,7 +483,7 @@ async function handleSearch(env, query) {
 }
 
 /* ============================================================
-   Clear Drafts - حذف العقود غير المُرسلة
+   Clear Drafts
 ============================================================ */
 async function handleClearDrafts(env) {
   try {
@@ -445,7 +505,269 @@ async function handleClearDrafts(env) {
 }
 
 /* ============================================================
-   Helper
+   Change Password
+============================================================ */
+async function handleChangePassword(env, body) {
+  const oldPw = (body.old_password || '').trim();
+  const newPw = (body.new_password || '').trim();
+  const confirm = (body.confirm_password || '').trim();
+
+  if (!oldPw || !newPw || !confirm) {
+    return jsonResponse({
+      success: false,
+      error: 'missing_fields',
+      message: 'جميع الحقول مطلوبة',
+    }, 400);
+  }
+
+  if (newPw !== confirm) {
+    return jsonResponse({
+      success: false,
+      error: 'mismatch',
+      message: 'كلمتا المرور غير متطابقتين',
+    }, 400);
+  }
+
+  if (newPw.length < 6) {
+    return jsonResponse({
+      success: false,
+      error: 'too_short',
+      message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل',
+    }, 400);
+  }
+
+  try {
+    const user = await env.DB.prepare(
+      'SELECT id, password_hash FROM users WHERE username = ?'
+    ).bind('admin').first();
+
+    if (!user) {
+      return jsonResponse({
+        success: false,
+        error: 'no_user',
+        message: 'المستخدم غير موجود',
+      }, 404);
+    }
+
+    // تحقق من كلمة المرور القديمة (إما D1 أو env)
+    let validOld = false;
+    if (user.password_hash === oldPw) validOld = true;
+    if (env.ADMIN_PASSWORD === oldPw) validOld = true;
+
+    if (!validOld) {
+      return jsonResponse({
+        success: false,
+        error: 'wrong_old',
+        message: 'كلمة المرور القديمة غير صحيحة',
+      }, 401);
+    }
+
+    await env.DB.prepare(
+      'UPDATE users SET password_hash = ? WHERE id = ?'
+    ).bind(newPw, user.id).run();
+
+    await env.DB.prepare(
+      'INSERT INTO audit_log (action, entity_type, entity_id, details) VALUES (?, ?, ?, ?)'
+    ).bind('change_password', 'user', user.id, 'Password changed').run();
+
+    return jsonResponse({
+      success: true,
+      message: 'تم تغيير كلمة المرور بنجاح',
+    }, 200);
+  } catch (err) {
+    console.error('changePassword error:', err);
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل التغيير',
+    }, 500);
+  }
+}
+
+/* ============================================================
+   List Users
+============================================================ */
+async function handleListUsers(env) {
+  try {
+    const users = await env.DB.prepare(
+      'SELECT id, username, full_name, email, role, is_active, created_at, last_login FROM users ORDER BY created_at DESC'
+    ).all();
+
+    return jsonResponse({
+      success: true,
+      users: users.results || [],
+    }, 200);
+  } catch (err) {
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل جلب المستخدمين',
+    }, 500);
+  }
+}
+
+/* ============================================================
+   Create User
+============================================================ */
+async function handleCreateUser(env, body) {
+  const username = (body.username || '').trim().toLowerCase();
+  const password = (body.user_password || '').trim();
+  const fullName = (body.full_name || '').trim();
+  const email = (body.user_email || '').trim();
+  const role = (body.role || 'user').trim();
+
+  if (!username || !password) {
+    return jsonResponse({
+      success: false,
+      error: 'missing',
+      message: 'اسم المستخدم وكلمة المرور مطلوبان',
+    }, 400);
+  }
+
+  if (!/^[a-z0-9_]{3,20}$/.test(username)) {
+    return jsonResponse({
+      success: false,
+      error: 'invalid_username',
+      message: 'اسم المستخدم: 3-20 حرف إنجليزي أو رقم',
+    }, 400);
+  }
+
+  if (password.length < 4) {
+    return jsonResponse({
+      success: false,
+      error: 'too_short',
+      message: 'كلمة المرور قصيرة',
+    }, 400);
+  }
+
+  const validRoles = ['admin', 'manager', 'user', 'viewer'];
+  if (!validRoles.includes(role)) {
+    return jsonResponse({
+      success: false,
+      error: 'invalid_role',
+      message: 'صلاحية غير صحيحة',
+    }, 400);
+  }
+
+  try {
+    await env.DB.prepare(
+      'INSERT INTO users (username, password_hash, full_name, email, role) VALUES (?, ?, ?, ?, ?)'
+    ).bind(username, password, fullName || null, email || null, role).run();
+
+    return jsonResponse({
+      success: true,
+      message: 'تم إنشاء المستخدم',
+    }, 200);
+  } catch (err) {
+    if (err.message && err.message.includes('UNIQUE')) {
+      return jsonResponse({
+        success: false,
+        error: 'duplicate',
+        message: 'اسم المستخدم موجود مسبقاً',
+      }, 409);
+    }
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل الإنشاء',
+    }, 500);
+  }
+}
+
+/* ============================================================
+   Delete User
+============================================================ */
+async function handleDeleteUser(env, body) {
+  const userId = parseInt(body.user_id, 10);
+
+  if (!userId) {
+    return jsonResponse({
+      success: false,
+      error: 'invalid_id',
+      message: 'معرّف المستخدم مطلوب',
+    }, 400);
+  }
+
+  try {
+    const user = await env.DB.prepare(
+      'SELECT username FROM users WHERE id = ?'
+    ).bind(userId).first();
+
+    if (!user) {
+      return jsonResponse({
+        success: false,
+        error: 'not_found',
+        message: 'المستخدم غير موجود',
+      }, 404);
+    }
+
+    if (user.username === 'admin') {
+      return jsonResponse({
+        success: false,
+        error: 'protected',
+        message: 'لا يمكن حذف المشرف الرئيسي',
+      }, 403);
+    }
+
+    await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+
+    return jsonResponse({
+      success: true,
+      message: 'تم حذف المستخدم',
+    }, 200);
+  } catch (err) {
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل الحذف',
+    }, 500);
+  }
+}
+
+/* ============================================================
+   Export
+============================================================ */
+async function handleExport(env) {
+  try {
+    const contracts = await env.DB.prepare(
+      'SELECT * FROM contracts ORDER BY id DESC'
+    ).all();
+
+    const result = [];
+
+    for (const c of contracts.results || []) {
+      const parties = await env.DB.prepare(
+        'SELECT * FROM parties WHERE contract_id = ?'
+      ).bind(c.id).all();
+
+      const dowry = await env.DB.prepare(
+        'SELECT * FROM dowries WHERE contract_id = ?'
+      ).bind(c.id).first();
+
+      result.push({
+        contract: c,
+        parties: parties.results || [],
+        dowry: dowry || null,
+      });
+    }
+
+    return jsonResponse({
+      success: true,
+      exported_at: new Date().toISOString(),
+      total: result.length,
+      data: result,
+    }, 200);
+  } catch (err) {
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل التصدير',
+    }, 500);
+  }
+}
+
+/* ============================================================
+   Helpers
 ============================================================ */
 function generateRandomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
