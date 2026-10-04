@@ -1,6 +1,6 @@
 /* ============================================================
-   Print Contract - JS V3
-   يجلب بيانات العقد ويعرضها في الشهادة الرسمية
+   Print Contract - JS V4 (Final Fix)
+   يحل جميع مشاكل التاريخ + الصور + RTL + الشعار
 ============================================================ */
 
 const printState = {
@@ -38,6 +38,52 @@ function showError(title, msg) {
   $('errorMessage').textContent = msg;
 }
 
+/* ============================================================
+   ✅ تنسيق التاريخ — حل جميع الصيغ
+============================================================ */
+function formatDate(input) {
+  if (!input) return '—';
+
+  const str = String(input).trim();
+  if (!str || str === '—' || str === 'undefined') return '—';
+
+  let day, month, year;
+
+  // 1. صيغة يوم.شهر.سنة (04.05.2026)
+  if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(str)) {
+    const parts = str.split('.');
+    day = parts[0];
+    month = parts[1];
+    year = parts[2];
+  }
+  // 2. صيغة سنة.شهر.يوم (2026.5.4)
+  else if (/^\d{4}\.\d{1,2}\.\d{1,2}$/.test(str)) {
+    const parts = str.split('.');
+    year = parts[0];
+    month = parts[1];
+    day = parts[2];
+  }
+  // 3. صيغة ISO (2026-05-04)
+  else if (/^\d{4}-\d{1,2}-\d{1,2}/.test(str)) {
+    const parts = str.split('T')[0].split('-');
+    year = parts[0];
+    month = parts[1];
+    day = parts[2];
+  }
+  // 4. صيغة يوم/شهر/سنة (04/05/2026)
+  else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
+    const parts = str.split('/');
+    day = parts[0];
+    month = parts[1];
+    year = parts[2];
+  }
+  else {
+    return str;
+  }
+
+  return `${pad2(day)}.${pad2(month)}.${year}`;
+}
+
 function birthDate(p) {
   if (!p) return '—';
   if (!p.birthDay || !p.birthMonth || !p.birthYear) return '—';
@@ -49,6 +95,17 @@ function fullAddress(p) {
   const parts = [p.addressStreet, p.addressNumber].filter(Boolean).join(' ');
   const city = [p.postalCode, p.city].filter(Boolean).join(' ');
   return [parts, city].filter(Boolean).join(', ') || '—';
+}
+
+/* ============================================================
+   ✅ التحقق من الصورة
+============================================================ */
+function hasPhoto(dataUrl) {
+  if (!dataUrl) return false;
+  if (typeof dataUrl !== 'string') return false;
+  if (dataUrl.length < 100) return false;
+  if (!dataUrl.startsWith('data:image')) return false;
+  return true;
 }
 
 /* ============================================================
@@ -90,13 +147,17 @@ function buildCertificate(contract) {
   const w1IsCenter = !!w1.witnessIsCenter;
   const w2IsCenter = !!w2.witnessIsCenter;
 
-  const contractDate = contract.contractDate || '—';
+  const contractDate = formatDate(contract.contractDate);
+
+  const groomHasPhoto = hasPhoto(g.photo);
+  const brideHasPhoto = hasPhoto(b.photo);
 
   return `
     <!-- ============ Header ============ -->
     <div class="cert-header">
       <div class="cert-logo ar">
-        <img src="${printState.logoPath}" alt="Arresalah" onerror="this.style.display='none'">
+        <img src="${printState.logoPath}" alt="Arresalah"
+             onerror="this.parentElement.innerHTML='<span style=\\'font-family:Amiri;font-size:14px;color:#1a4d8a;font-weight:700;\\'>الرسالة</span>'">
       </div>
 
       <div class="cert-header-title-wrap">
@@ -105,27 +166,28 @@ function buildCertificate(contract) {
       </div>
 
       <div class="cert-logo de">
-        <img src="${printState.logoPath}" alt="Arresalah" onerror="this.style.display='none'">
+        <img src="${printState.logoPath}" alt="Arresalah"
+             onerror="this.parentElement.innerHTML='<span style=\\'font-family:Amiri;font-size:14px;color:#1a4d8a;font-weight:700;\\'>الرسالة</span>'">
       </div>
     </div>
 
-    <!-- ============ Top Info Row (معكوس + صور) ============ -->
+    <!-- ============ Top Info Row ============ -->
     <div class="cert-top-row">
-      <!-- يمين: تاريخ العقد -->
+      <!-- ✅ يمين: تاريخ العقد -->
       <div class="cell">
         <div class="cell-label">Datum der Eheschließung</div>
         <div class="cell-label-ar">تاريخ عقد الزواج</div>
         <div class="cell-value-ar">${escapeHtml(contractDate)}</div>
       </div>
 
-      <!-- وسط: مكان -->
+      <!-- ✅ وسط: مكان -->
       <div class="cell">
         <div class="cell-label">Ort</div>
         <div class="cell-label-ar">مكان</div>
         <div class="cell-value">Arresalah e.V.</div>
       </div>
 
-      <!-- يسار: عنوان المركز + صورتان -->
+      <!-- ✅ يسار: عنوان + صور -->
       <div class="cell cell-address">
         <div class="address-info">
           <div class="cell-label">Turnstraße 83, 10551 Berlin</div>
@@ -133,14 +195,14 @@ function buildCertificate(contract) {
         </div>
         <div class="cert-photos">
           <div class="cert-photo-box" title="صورة الزوج">
-            ${g.photo
-              ? `<img src="${g.photo}" alt="Groom">`
+            ${groomHasPhoto
+              ? `<img src="${g.photo}" alt="Groom" loading="eager">`
               : '<span>صورة<br>الزوج</span>'
             }
           </div>
           <div class="cert-photo-box" title="صورة الزوجة">
-            ${b.photo
-              ? `<img src="${b.photo}" alt="Bride">`
+            ${brideHasPhoto
+              ? `<img src="${b.photo}" alt="Bride" loading="eager">`
               : '<span>صورة<br>الزوجة</span>'
             }
           </div>
@@ -158,11 +220,11 @@ function buildCertificate(contract) {
         </div>
         <div class="cert-field">
           <span class="key">Name:</span>
-          <span class="val">${escapeHtml(g.nameDe || '—')}</span>
+          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(g.nameDe || '—')}</span>
         </div>
         <div class="cert-field">
           <span class="key-ar">الاسم:</span>
-          <span class="val">${escapeHtml(g.nameAr || '—')}</span>
+          <span class="val" style="direction:rtl;text-align:right;">${escapeHtml(g.nameAr || '—')}</span>
         </div>
         <div class="cert-field">
           <span class="key">Geburtsdatum, Ort:</span>
@@ -170,19 +232,19 @@ function buildCertificate(contract) {
         </div>
         <div class="cert-field">
           <span class="key">Seine Mutter:</span>
-          <span class="val">${escapeHtml(g.motherNameDe || '—')}</span>
+          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(g.motherNameDe || '—')}</span>
         </div>
         <div class="cert-field mother-ar">
           <span class="key-ar">اسم الأم:</span>
-          <span class="val">${escapeHtml(g.motherNameAr || '—')}</span>
+          <span class="val" style="direction:rtl;text-align:right;">${escapeHtml(g.motherNameAr || '—')}</span>
         </div>
         <div class="cert-field">
           <span class="key">Personalausweis:</span>
-          <span class="val">${escapeHtml(g.idNumber || '—')}</span>
+          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(g.idNumber || '—')}</span>
         </div>
         <div class="cert-field">
           <span class="key">Anschrift:</span>
-          <span class="val">${escapeHtml(fullAddress(g))}</span>
+          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(fullAddress(g))}</span>
         </div>
       </div>
 
@@ -194,11 +256,11 @@ function buildCertificate(contract) {
         </div>
         <div class="cert-field">
           <span class="key">Name:</span>
-          <span class="val">${escapeHtml(b.nameDe || '—')}</span>
+          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(b.nameDe || '—')}</span>
         </div>
         <div class="cert-field">
           <span class="key-ar">الاسم:</span>
-          <span class="val">${escapeHtml(b.nameAr || '—')}</span>
+          <span class="val" style="direction:rtl;text-align:right;">${escapeHtml(b.nameAr || '—')}</span>
         </div>
         <div class="cert-field">
           <span class="key">Geburtsdatum, Ort:</span>
@@ -206,19 +268,19 @@ function buildCertificate(contract) {
         </div>
         <div class="cert-field">
           <span class="key">Ihre Mutter:</span>
-          <span class="val">${escapeHtml(b.motherNameDe || '—')}</span>
+          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(b.motherNameDe || '—')}</span>
         </div>
         <div class="cert-field mother-ar">
           <span class="key-ar">اسم الأم:</span>
-          <span class="val">${escapeHtml(b.motherNameAr || '—')}</span>
+          <span class="val" style="direction:rtl;text-align:right;">${escapeHtml(b.motherNameAr || '—')}</span>
         </div>
         <div class="cert-field">
           <span class="key">Personalausweis:</span>
-          <span class="val">${escapeHtml(b.idNumber || '—')}</span>
+          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(b.idNumber || '—')}</span>
         </div>
         <div class="cert-field">
           <span class="key">Anschrift:</span>
-          <span class="val">${escapeHtml(fullAddress(b))}</span>
+          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(fullAddress(b))}</span>
         </div>
       </div>
     </div>
@@ -322,31 +384,31 @@ function buildCertificate(contract) {
       </div>
     </div>
 
-    <!-- ============ Footer (توقيع يمين) ============ -->
+    <!-- ============ Footer ============ -->
     <div class="cert-footer">
-      <!-- التوقيع - يمين -->
+      <!-- ✅ التوقيع - يمين -->
       <div class="cert-footer-sign">
         <div class="sign-title">Vereinsvorstand / إدارة المركز</div>
         <div class="sign-area">الإمام</div>
         <div class="sign-line">التوقيع / Unterschrift</div>
       </div>
 
-      <!-- النص - يسار -->
+      <!-- ✅ النص - يسار -->
       <div class="cert-footer-text">
         <div class="title">صيغة العقد</div>
-        <p class="ar">
+        <p class="ar" style="direction:rtl;text-align:right;">
           نشهد نحن الموقعين أدناه أن عقد الزواج قد تم بين الزوجين المذكورين أعلاه،
           وقد تمّ التعريف بهما وبموافقتهما، وتمّ الاتفاق على المهر المذكور أعلاه،
           وأن الزوجة قد رضيت بذلك رضاءً تاماً، وشهد على ذلك الشهود المذكورون أعلاه.
         </p>
-        <p class="de">
+        <p class="de" style="direction:ltr;text-align:left;">
           Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen
           und von allen Beteiligten angenommen. Beide Ehepartner bekundeten
           ihr Einverständnis vor Zeugen.
         </p>
-        <div class="note">
+        <div class="note" style="direction:rtl;text-align:right;">
           <strong>ملاحظة:</strong> هذا العقد ليس بديلاً عن التسجيل في الدوائر الألمانية المختصة.<br>
-          <em>Dieser Vertrag ist kein Ersatz für eine standesamtliche Erklärung.</em>
+          <em style="direction:ltr;display:inline-block;">Dieser Vertrag ist kein Ersatz für eine standesamtliche Erklärung.</em>
         </div>
       </div>
     </div>
@@ -354,7 +416,7 @@ function buildCertificate(contract) {
 }
 
 /* ============================================================
-   Render Contract
+   Render
 ============================================================ */
 function renderContract(contract) {
   const cert = $('certificate');
