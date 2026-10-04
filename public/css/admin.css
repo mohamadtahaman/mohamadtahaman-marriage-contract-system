@@ -501,4 +501,106 @@ body {
   .code-value { font-size: 14px; letter-spacing: 1px; }
   .contract-row { flex-direction: column; gap: 2px; }
   .contract-row strong { min-width: auto; }
+
+   /* ============================================================
+   Archive - تنسيق جديد
+============================================================ */
+.archive-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+.archive-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  padding: 18px 22px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.archive-item:last-child { border-bottom: none; }
+.archive-item:hover { background: #fafafa; }
+
+.archive-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.archive-item-code {
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: #2d6a4f;
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.archive-item-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-size: 13.5px;
+  color: #1a1a1a;
+}
+
+.archive-item-names .name-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.archive-item-names .name-label {
+  color: #999;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.archive-item-names .name-value {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.archive-item-meta {
+  font-size: 12px;
+  color: #999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.archive-item-meta .status-dot {
+  color: #2d6a4f;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.archive-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .archive-item {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .archive-item-actions {
+    justify-content: flex-start;
+  }
+
+  .archive-item-names {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
 }
