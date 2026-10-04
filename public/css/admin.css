@@ -706,4 +706,25 @@ body {
   .search-bar input { min-width: 100%; }
 
   .form-grid { grid-template-columns: 1fr; }
+   /* ============================================================
+   Icon Buttons - Archive & Table
+============================================================ */
+.action-icons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #ebebeb;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
