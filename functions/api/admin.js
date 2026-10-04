@@ -1,7 +1,36 @@
 /* ============================================================
-   Cloudflare Function: POST /api/admin (v3 - D1 + Users + Settings)
+   Cloudflare Function: POST /api/admin (v4 - With Permissions)
 ============================================================ */
 
+/* ============================================================
+   نظام الصلاحيات
+============================================================ */
+const PERMISSIONS = {
+  // قراءة
+  list:          ['admin', 'manager', 'user', 'viewer'],
+  view:          ['admin', 'manager', 'user', 'viewer'],
+  search:        ['admin', 'manager', 'user', 'viewer'],
+  export:        ['admin', 'manager'],
+  login:         ['all'],
+
+  // كتابة
+  submit:        ['admin', 'manager', 'user'],
+  delete:        ['admin', 'manager'],
+  generate:      ['admin'],
+  clear_drafts:  ['admin'],
+
+  // إدارة مستخدمين
+  list_users:    ['admin'],
+  create_user:   ['admin'],
+  delete_user:   ['admin'],
+
+  // كلمة المرور
+  change_password: ['admin', 'manager', 'user'],
+};
+
+/* ============================================================
+   Entry Point
+============================================================ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -27,53 +56,55 @@ export async function onRequestPost(context) {
     }, 401);
   }
 
-  // استثناء: login له معالج خاص
-  if (action === 'login') {
-    return await handleLogin(env, body);
-  }
+  // 1. جلب المستخدم بناءً على كلمة المرور
+  const auth = await authenticate(env, body.username, password);
 
-  // التحقق من كلمة المرور
-  const adminPassword = env.ADMIN_PASSWORD;
-  let validPassword = false;
-
-  // 1. تحقق من env
-  if (adminPassword && password === adminPassword) {
-    validPassword = true;
-  }
-
-  // 2. تحقق من D1
-  if (!validPassword) {
-    try {
-      const user = await env.DB.prepare(
-        'SELECT id, role, is_active FROM users WHERE password_hash = ? AND is_active = 1 LIMIT 1'
-      ).bind(password).first();
-
-      if (user) validPassword = true;
-    } catch (e) {
-      // تجاهل
-    }
-  }
-
-  if (!validPassword) {
+  if (!auth.success) {
     return jsonResponse({
       success: false,
       error: 'wrong_password',
-      message: 'كلمة المرور خاطئة',
+      message: 'بيانات الدخول غير صحيحة',
     }, 401);
   }
 
+  const userRole = auth.role;
+
+  // 2. login له معالج خاص
+  if (action === 'login') {
+    return jsonResponse({
+      success: true,
+      user: {
+        id: auth.userId,
+        username: auth.username,
+        role: auth.role,
+      },
+    }, 200);
+  }
+
+  // 3. التحقق من الصلاحية
+  const allowedRoles = PERMISSIONS[action] || [];
+
+  if (!allowedRoles.includes('all') && !allowedRoles.includes(userRole)) {
+    return jsonResponse({
+      success: false,
+      error: 'forbidden',
+      message: 'ليس لديك صلاحية لهذا الإجراء',
+    }, 403);
+  }
+
+  // 4. تنفيذ الإجراء
   switch (action) {
-    case 'list':           return await handleList(env);
-    case 'generate':       return await handleGenerate(env);
-    case 'delete':         return await handleDelete(env, body.code);
-    case 'view':           return await handleView(env, body.code);
-    case 'search':         return await handleSearch(env, body.query);
-    case 'clear_drafts':   return await handleClearDrafts(env);
-    case 'change_password': return await handleChangePassword(env, body);
-    case 'list_users':     return await handleListUsers(env);
-    case 'create_user':    return await handleCreateUser(env, body);
-    case 'delete_user':    return await handleDeleteUser(env, body);
-    case 'export':         return await handleExport(env);
+    case 'list':             return await handleList(env);
+    case 'generate':         return await handleGenerate(env);
+    case 'delete':           return await handleDelete(env, body.code);
+    case 'view':             return await handleView(env, body.code);
+    case 'search':           return await handleSearch(env, body.query);
+    case 'clear_drafts':     return await handleClearDrafts(env);
+    case 'change_password':  return await handleChangePassword(env, auth, body);
+    case 'list_users':       return await handleListUsers(env);
+    case 'create_user':      return await handleCreateUser(env, body);
+    case 'delete_user':      return await handleDeleteUser(env, body);
+    case 'export':           return await handleExport(env);
     default:
       return jsonResponse({
         success: false,
@@ -84,13 +115,12 @@ export async function onRequestPost(context) {
 }
 
 /* ============================================================
-   Login
+   Authentication
 ============================================================ */
-async function handleLogin(env, body) {
-  const username = (body.username || 'admin').trim().toLowerCase();
-  const password = (body.password || '').trim();
+async function authenticate(env, username, password) {
+  username = (username || 'admin').trim().toLowerCase();
 
-  // 1. تحقق من D1 أولاً
+  // 1. جرب D1
   try {
     const user = await env.DB.prepare(
       'SELECT id, username, password_hash, role, is_active FROM users WHERE username = ?'
@@ -98,51 +128,41 @@ async function handleLogin(env, body) {
 
     if (user) {
       if (!user.is_active) {
-        return jsonResponse({
-          success: false,
-          error: 'inactive',
-          message: 'الحساب معطّل',
-        }, 403);
+        return { success: false, error: 'inactive' };
       }
-
       if (user.password_hash !== password) {
-        return jsonResponse({
-          success: false,
-          error: 'wrong_password',
-          message: 'كلمة المرور خاطئة',
-        }, 401);
+        return { success: false, error: 'wrong_password' };
       }
 
-      await env.DB.prepare(
-        'UPDATE users SET last_login = ? WHERE id = ?'
-      ).bind(Math.floor(Date.now() / 1000), user.id).run();
+      // تحديث آخر دخول
+      try {
+        await env.DB.prepare(
+          'UPDATE users SET last_login = ? WHERE id = ?'
+        ).bind(Math.floor(Date.now() / 1000), user.id).run();
+      } catch (e) { /* تجاهل */ }
 
-      return jsonResponse({
+      return {
         success: true,
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-        },
-      }, 200);
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+      };
     }
   } catch (e) {
-    console.error('Login D1 error:', e);
+    console.error('DB auth error:', e);
   }
 
-  // 2. Fallback: env variable (admin)
+  // 2. Fallback: env (admin الرئيسي)
   if (username === 'admin' && password === env.ADMIN_PASSWORD) {
-    return jsonResponse({
+    return {
       success: true,
-      user: { username: 'admin', role: 'admin' },
-    }, 200);
+      userId: null,
+      username: 'admin',
+      role: 'admin',
+    };
   }
 
-  return jsonResponse({
-    success: false,
-    error: 'wrong_password',
-    message: 'بيانات غير صحيحة',
-  }, 401);
+  return { success: false, error: 'not_found' };
 }
 
 /* ============================================================
@@ -228,7 +248,7 @@ async function handleList(env) {
 }
 
 /* ============================================================
-   Generate - توليد 5 أكواد جديدة
+   Generate
 ============================================================ */
 async function handleGenerate(env) {
   try {
@@ -243,13 +263,11 @@ async function handleGenerate(env) {
       }
     }
 
-    // مسح KV
     const listResult = await env.CONTRACT_KV.list({ prefix: 'contract_' });
     const deletes = listResult.keys.map(k => env.CONTRACT_KV.delete(k.name));
     deletes.push(env.CONTRACT_KV.delete('codes'));
     await Promise.all(deletes);
 
-    // مسح D1
     try {
       await env.DB.prepare('DELETE FROM audit_log').run();
       await env.DB.prepare('DELETE FROM dowries').run();
@@ -259,13 +277,12 @@ async function handleGenerate(env) {
       console.error('D1 clear error:', e);
     }
 
-    // كتابة الأكواد الجديدة
     await env.CONTRACT_KV.put('codes', JSON.stringify(newCodes));
 
     return jsonResponse({
       success: true,
       codes: newCodes,
-      message: 'تم توليد 5 أكواد جديدة وحذف كل العقود السابقة',
+      message: 'تم توليد 5 أكواد جديدة',
     }, 200);
 
   } catch (err) {
@@ -279,7 +296,7 @@ async function handleGenerate(env) {
 }
 
 /* ============================================================
-   Delete Contract
+   Delete
 ============================================================ */
 async function handleDelete(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
@@ -309,7 +326,6 @@ async function handleDelete(env, code) {
       }, 404);
     }
 
-    // حذف من D1
     try {
       const contractRow = await env.DB.prepare(
         'SELECT id FROM contracts WHERE code = ?'
@@ -324,7 +340,6 @@ async function handleDelete(env, code) {
       console.error('D1 delete error:', e);
     }
 
-    // حذف من KV
     const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
     const deletes = [];
     for (const key of partyKeys) {
@@ -355,7 +370,7 @@ async function handleDelete(env, code) {
 }
 
 /* ============================================================
-   View Contract
+   View
 ============================================================ */
 async function handleView(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
@@ -507,7 +522,7 @@ async function handleClearDrafts(env) {
 /* ============================================================
    Change Password
 ============================================================ */
-async function handleChangePassword(env, body) {
+async function handleChangePassword(env, auth, body) {
   const oldPw = (body.old_password || '').trim();
   const newPw = (body.new_password || '').trim();
   const confirm = (body.confirm_password || '').trim();
@@ -536,44 +551,46 @@ async function handleChangePassword(env, body) {
     }, 400);
   }
 
+  if (oldPw !== auth.password_hash) {
+    // يعمل فقط إذا كان في D1
+  }
+
   try {
-    const user = await env.DB.prepare(
-      'SELECT id, password_hash FROM users WHERE username = ?'
-    ).bind('admin').first();
+    // إذا كان المستخدم في D1
+    if (auth.userId) {
+      const user = await env.DB.prepare(
+        'SELECT password_hash FROM users WHERE id = ?'
+      ).bind(auth.userId).first();
 
-    if (!user) {
+      if (!user || user.password_hash !== oldPw) {
+        return jsonResponse({
+          success: false,
+          error: 'wrong_old',
+          message: 'كلمة المرور القديمة غير صحيحة',
+        }, 401);
+      }
+
+      await env.DB.prepare(
+        'UPDATE users SET password_hash = ? WHERE id = ?'
+      ).bind(newPw, auth.userId).run();
+
+      await env.DB.prepare(
+        'INSERT INTO audit_log (action, entity_type, entity_id, details) VALUES (?, ?, ?, ?)'
+      ).bind('change_password', 'user', auth.userId, 'Password changed').run();
+
       return jsonResponse({
-        success: false,
-        error: 'no_user',
-        message: 'المستخدم غير موجود',
-      }, 404);
+        success: true,
+        message: 'تم تغيير كلمة المرور',
+      }, 200);
     }
 
-    // تحقق من كلمة المرور القديمة (إما D1 أو env)
-    let validOld = false;
-    if (user.password_hash === oldPw) validOld = true;
-    if (env.ADMIN_PASSWORD === oldPw) validOld = true;
-
-    if (!validOld) {
-      return jsonResponse({
-        success: false,
-        error: 'wrong_old',
-        message: 'كلمة المرور القديمة غير صحيحة',
-      }, 401);
-    }
-
-    await env.DB.prepare(
-      'UPDATE users SET password_hash = ? WHERE id = ?'
-    ).bind(newPw, user.id).run();
-
-    await env.DB.prepare(
-      'INSERT INTO audit_log (action, entity_type, entity_id, details) VALUES (?, ?, ?, ?)'
-    ).bind('change_password', 'user', user.id, 'Password changed').run();
-
+    // admin من env → يجب تعديل env يدوياً
     return jsonResponse({
-      success: true,
-      message: 'تم تغيير كلمة المرور بنجاح',
-    }, 200);
+      success: false,
+      error: 'env_admin',
+      message: 'لتغيير كلمة مرور الأدمن الرئيسي، عدّلها من Cloudflare',
+    }, 403);
+
   } catch (err) {
     console.error('changePassword error:', err);
     return jsonResponse({
@@ -632,11 +649,11 @@ async function handleCreateUser(env, body) {
     }, 400);
   }
 
-  if (password.length < 4) {
+  if (password.length < 6) {
     return jsonResponse({
       success: false,
       error: 'too_short',
-      message: 'كلمة المرور قصيرة',
+      message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل',
     }, 400);
   }
 
