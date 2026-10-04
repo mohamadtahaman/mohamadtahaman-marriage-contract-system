@@ -1,8 +1,7 @@
 /* ============================================================
-   Cloudflare Function: POST /api/submit (v3)
-   - تحديث status إلى 'sent'
-   - تنسيق التاريخ بشكل موحّد (DD.MM.YYYY)
-   - إرسال البريد
+   Cloudflare Function: POST /api/submit (v4 - Final)
+   - تنسيق التاريخ DD.MM.YYYY
+   - تحديث D1 + إرسال البريد
 ============================================================ */
 
 export async function onRequestPost(context) {
@@ -31,7 +30,7 @@ export async function onRequestPost(context) {
   }
 
   /* ============================================================
-     ✅ تنسيق التاريخ بشكل موحّد DD.MM.YYYY
+     تنسيق التاريخ بشكل موحّد DD.MM.YYYY
   ============================================================ */
   const contractDate = normalizeDate(rawDate);
 
@@ -44,7 +43,7 @@ export async function onRequestPost(context) {
   }
 
   /* ============================================================
-     التحقق من الكود
+     التحقق من الكود في KV
   ============================================================ */
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
@@ -71,7 +70,7 @@ export async function onRequestPost(context) {
     }, 500);
   }
 
-  // التحقق من عدم الإرسال المسبق
+  // هل تم الإرسال مسبقاً؟
   try {
     const finished = await env.CONTRACT_KV.get(`contract_${code}_finished`);
     if (finished === 'true') {
@@ -113,7 +112,7 @@ export async function onRequestPost(context) {
   }
 
   /* ============================================================
-     تحديث D1: contracts → status = 'sent' + contract_date
+     تحديث D1: status = 'sent' + contract_date
   ============================================================ */
   let contractId;
 
@@ -123,7 +122,7 @@ export async function onRequestPost(context) {
     ).bind(code).first();
 
     if (!contractRow) {
-      // لم يُنشأ بعد → أنشئه كاملاً
+      // لم يُنشأ بعد → أنشئه
       const insertResult = await env.DB.prepare(
         `INSERT INTO contracts (code, contract_date, status, sent_at)
          VALUES (?, ?, 'sent', ?)`
@@ -149,8 +148,9 @@ export async function onRequestPost(context) {
             id_type, id_number,
             address_number, address_street, postal_code, city,
             mother_name_de, mother_name_ar,
-            wali_is_bride, witness_is_center
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            wali_is_bride, witness_is_center,
+            photo
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).bind(
           contractId, role,
           p.nameDe || null, p.nameAr || null,
@@ -162,7 +162,8 @@ export async function onRequestPost(context) {
           p.addressNumber || null, p.addressStreet || null,
           p.postalCode || null, p.city || null,
           p.motherNameDe || null, p.motherNameAr || null,
-          p.waliIsBride ? 1 : 0, p.witnessIsCenter ? 1 : 0
+          p.waliIsBride ? 1 : 0, p.witnessIsCenter ? 1 : 0,
+          p.photo || null
         ).run();
       }
 
@@ -183,7 +184,7 @@ export async function onRequestPost(context) {
     } else {
       contractId = contractRow.id;
 
-      // ✅ تحديث status + التاريخ
+      // ✅ تحديث الحالة والتاريخ
       await env.DB.prepare(
         `UPDATE contracts
          SET status = 'sent', sent_at = ?, contract_date = ?
@@ -200,7 +201,10 @@ export async function onRequestPost(context) {
       await env.DB.prepare(
         `INSERT INTO audit_log (action, entity_type, entity_id, details)
          VALUES ('submit', 'contract', ?, ?)`
-      ).bind(contractId, `Contract ${code} finalized with date ${contractDate}`).run();
+      ).bind(
+        contractId,
+        `Contract ${code} finalized with date ${contractDate}`
+      ).run();
     } catch (e) { /* تجاهل */ }
 
   } catch (err) {
@@ -245,12 +249,12 @@ export async function onRequestPost(context) {
 }
 
 /* ============================================================
-   ✅ normalizeDate: يقبل أي صيغة → يرجع DD.MM.YYYY
+   normalizeDate: أي صيغة → DD.MM.YYYY
 ============================================================ */
 function normalizeDate(input) {
   if (!input) return null;
 
-  // إذا كان كائن { day, month, year }
+  // كائن { day, month, year }
   if (typeof input === 'object' && input !== null) {
     const { day, month, year } = input;
     const d = parseInt(day, 10);
@@ -261,7 +265,7 @@ function normalizeDate(input) {
     return `${pad2(d)}.${pad2(m)}.${y}`;
   }
 
-  // إذا كان نصاً
+  // نص
   const str = String(input).trim();
   if (!str || str === '—' || str === 'undefined' || str === 'null') return null;
 
@@ -311,7 +315,9 @@ function isValidDateParts(d, m, y) {
   if (y < 1900 || y > 2100) return false;
 
   const test = new Date(y, m - 1, d);
-  return test.getDate() === d && test.getMonth() === m - 1 && test.getFullYear() === y;
+  return test.getDate() === d &&
+         test.getMonth() === m - 1 &&
+         test.getFullYear() === y;
 }
 
 function pad2(n) {
@@ -357,7 +363,7 @@ async function sendEmailViaEmailJS(env, code, data, contractDate) {
 }
 
 /* ============================================================
-   تجهيز متغيرات البريد
+   متغيرات البريد
 ============================================================ */
 function buildEmailParams(code, data, contractDate) {
   const g = data.groom || {};
