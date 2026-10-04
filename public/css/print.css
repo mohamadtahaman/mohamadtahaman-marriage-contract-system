@@ -1,16 +1,20 @@
 /* ============================================================
-   Print Contract - Certificate Styles V2
-   مطابق لتصميم شهادة الزواج الرسمية (مع الإصلاحات)
+   Print Contract - CSS V5
+   - Arial Font Everywhere
+   - Husband photo top-left, Wife top-right
+   - Logo centered
+   - Labels left, Values right
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: 'Tajawal', 'Noto Naskh Arabic', sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   background: #f0f0f0;
   color: #000;
   min-height: 100vh;
   padding: 20px;
+  direction: rtl;
 }
 
 .hidden { display: none !important; }
@@ -26,6 +30,7 @@ body {
   justify-content: center;
   gap: 20px;
   color: #666;
+  font-family: Arial, sans-serif;
 }
 
 .spinner {
@@ -53,16 +58,11 @@ body {
   padding: 40px;
   max-width: 450px;
   text-align: center;
+  font-family: Arial, sans-serif;
 }
 
 .error-icon { font-size: 48px; margin-bottom: 15px; }
-
-.error-box h2 {
-  color: #c0392b;
-  margin-bottom: 10px;
-  font-size: 20px;
-}
-
+.error-box h2 { color: #c0392b; margin-bottom: 10px; font-size: 20px; }
 .error-box p { color: #666; margin-bottom: 25px; }
 
 .btn-back {
@@ -71,7 +71,7 @@ body {
   color: #fff;
   border: none;
   border-radius: 8px;
-  font-family: inherit;
+  font-family: Arial, sans-serif;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
@@ -95,6 +95,7 @@ body {
   gap: 12px;
   z-index: 100;
   box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  font-family: Arial, sans-serif;
 }
 
 .toolbar-left, .toolbar-right { display: flex; gap: 10px; }
@@ -111,7 +112,7 @@ body {
   padding: 9px 18px;
   border: none;
   border-radius: 8px;
-  font-family: inherit;
+  font-family: Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -119,11 +120,9 @@ body {
 }
 
 .btn-print { background: #c9a961; color: #1b4332; }
-.btn-print:hover { background: #e9d5a1; transform: translateY(-1px); }
-
+.btn-print:hover { background: #e9d5a1; }
 .btn-pdf { background: #fff; color: #2d6a4f; }
 .btn-pdf:hover { background: #e8f3ed; }
-
 .btn-close { background: rgba(255,255,255,0.15); color: #fff; }
 .btn-close:hover { background: rgba(255,255,255,0.25); }
 
@@ -131,76 +130,68 @@ body {
    Certificate Wrapper
 ============================================================ */
 .certificate-wrap {
-  max-width: 800px;
+  max-width: 820px;
   margin: 80px auto 40px;
   background: #fff;
   box-shadow: 0 4px 24px rgba(0,0,0,0.1);
 }
 
 .certificate {
-  font-family: 'Tajawal', 'Noto Naskh Arabic', sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   background: #fff;
   color: #000;
-  padding: 12px;
+  padding: 10px;
   border: 3px solid #1a4d8a;
+  direction: rtl;
 }
 
 /* ============================================================
-   ✅ Header - مدمج مع الشعارين
+   ✅ HEADER
+   Layout: [Husband photo] [Logo + Titles] [Wife photo]
 ============================================================ */
 .cert-header {
-  text-align: center;
+  display: grid;
+  grid-template-columns: 90px 1fr 90px;
+  gap: 10px;
+  align-items: center;
   border-bottom: 2px solid #1a4d8a;
   padding-bottom: 8px;
-  margin-bottom: 8px;
-  position: relative;
-  min-height: 70px;
+  margin-bottom: 6px;
+  min-height: 110px;
+}
+
+/* Husband photo - LEFT side */
+.cert-header-photo {
   display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.cert-header-photo:first-child {
+  justify-content: flex-end;
+}
+
+.cert-header-photo:last-child {
+  justify-content: flex-start;
+}
+
+/* Center */
+.cert-header-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-}
-
-.cert-header-title-wrap {
-  flex: 1;
-  padding: 0 90px;
-}
-
-.cert-header-title-de {
-  font-family: 'Tajawal', sans-serif;
-  font-size: 19px;
-  font-weight: 900;
-  color: #000;
-  margin-bottom: 2px;
-  letter-spacing: 0.2px;
-}
-
-.cert-header-title-ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 22px;
-  font-weight: 700;
-  color: #000;
-}
-
-.cert-header-subtitle {
-  font-size: 10px;
-  color: #666;
-  font-style: italic;
-  margin-top: 2px;
+  gap: 3px;
 }
 
 .cert-logo {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 75px;
-  height: 60px;
+  width: 55px;
+  height: 45px;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 2px;
 }
-
-.cert-logo.ar { right: 0; }
-.cert-logo.de { left: 0; }
 
 .cert-logo img {
   max-width: 100%;
@@ -209,86 +200,40 @@ body {
   display: block;
 }
 
-/* ============================================================
-   ✅ Top Info Row - مع عكس الترتيب + صور شخصية
-============================================================ */
-.cert-top-row {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 1.5fr;
-  gap: 0;
-  border: 1.5px solid #1a4d8a;
-  margin-bottom: 6px;
-  font-size: 11px;
-  min-height: 60px;
-}
-
-.cert-top-row .cell {
-  padding: 6px 10px;
-  border-left: 1px solid #1a4d8a;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.cert-top-row .cell:last-child { border-left: none; }
-
-/* الخلية الأخيرة (اليسرى) = عنوان المركز + صورتان */
-.cert-top-row .cell-address {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.cert-top-row .address-info { text-align: right; }
-
-.cert-top-row .cell-label {
-  font-weight: 700;
-  font-size: 10.5px;
-  margin-bottom: 3px;
-  color: #000;
-}
-
-.cert-top-row .cell-label-ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 11.5px;
-  font-weight: 700;
+.cert-logo-fallback {
+  font-family: Arial, sans-serif;
+  font-size: 12px;
   color: #1a4d8a;
-  margin-bottom: 4px;
+  font-weight: 700;
 }
 
-.cert-top-row .cell-value {
-  font-size: 12.5px;
+.cert-header-title-de {
+  font-family: Arial, sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  color: #000;
+  margin-bottom: 2px;
+  letter-spacing: 0.1px;
+}
+
+.cert-header-title-ar {
+  font-family: Arial, sans-serif;
+  font-size: 19px;
   font-weight: 700;
   color: #000;
 }
 
-.cert-top-row .cell-value-ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 12.5px;
-  font-weight: 700;
-}
-
-/* ✅ مكان الصور الشخصية */
-.cert-photos {
-  display: flex;
-  gap: 6px;
-}
-
+/* Photo boxes */
 .cert-photo-box {
-  width: 45px;
-  height: 55px;
-  border: 1px dashed #1a4d8a;
-  border-radius: 3px;
+  width: 80px;
+  height: 100px;
+  border: 1.5px dashed #1a4d8a;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8px;
-  color: #1a4d8a;
-  text-align: center;
-  line-height: 1.2;
-  background: #f8faff;
   overflow: hidden;
+  background: #f8faff;
   flex-shrink: 0;
 }
 
@@ -296,15 +241,83 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
+}
+
+.cert-photo-box span {
+  font-family: Arial, sans-serif;
+  font-size: 9px;
+  color: #1a4d8a;
+  text-align: center;
+  line-height: 1.2;
+  padding: 4px;
 }
 
 /* ============================================================
-   Two Columns (Groom/Bride)
+   ✅ INFO STRIP
+   Layout: [Date] [Place] [Address]
+   Order in RTL: Date appears LEFT, Address appears RIGHT
+============================================================ */
+.cert-info-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  border: 1.5px solid #1a4d8a;
+  margin-bottom: 6px;
+  font-size: 11px;
+  min-height: 55px;
+}
+
+.cert-info-cell {
+  padding: 6px 10px;
+  border-left: 1px solid #1a4d8a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+
+.cert-info-cell:last-child { border-left: none; }
+
+.cert-info-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cert-info-labels .label-de {
+  font-family: Arial, sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #000;
+  direction: ltr;
+  text-align: right;
+}
+
+.cert-info-labels .label-ar {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1a4d8a;
+  direction: rtl;
+  text-align: right;
+}
+
+.cert-info-value {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  color: #000;
+  text-align: right;
+  direction: ltr;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   ✅ TWO COLUMNS (Groom / Bride)
 ============================================================ */
 .cert-two-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0;
   border: 1.5px solid #1a4d8a;
   border-top: none;
   margin-bottom: 6px;
@@ -314,199 +327,191 @@ body {
   padding: 8px 10px;
   border-left: 1px solid #1a4d8a;
   font-size: 11px;
-  line-height: 1.5;
 }
 
 .cert-col:last-child { border-left: none; }
 
 .cert-col-title {
+  font-family: Arial, sans-serif;
   font-weight: 900;
-  font-size: 12px;
+  font-size: 12.5px;
   margin-bottom: 6px;
-  padding-bottom: 3px;
+  padding-bottom: 4px;
   border-bottom: 1px dashed #999;
   display: flex;
   justify-content: space-between;
 }
 
 .cert-col-title .ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
   color: #1a4d8a;
 }
 
-.cert-field {
+/* ============================================================
+   ✅ COMMON: LABEL-VALUE ROW
+   Layout: [Label at LEFT] [Value at RIGHT]
+   In RTL: Label appears RIGHT (first), Value appears LEFT
+   BUT visually we want: label on left side, value on right side
+   Solution: force direction LTR inside row, and use flex-direction: row
+============================================================ */
+.cv-row {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-bottom: 2px;
-  font-size: 11px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  direction: ltr;
+  padding: 2px 0;
 }
 
-.cert-field .key {
-  font-weight: 700;
-  color: #1a4d8a;
-  white-space: nowrap;
+/* Label - LEFT side (fixed width) */
+.cv-label {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 130px;
+  flex-shrink: 0;
+  direction: rtl;
+  text-align: right;
+}
+
+.cv-label-de {
+  font-family: Arial, sans-serif;
   font-size: 10.5px;
-  min-width: 95px;
+  font-weight: 700;
+  color: #000;
+  direction: ltr;
+  text-align: right;
+  line-height: 1.2;
 }
 
-.cert-field .key-ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+.cv-label-ar {
+  font-family: Arial, sans-serif;
+  font-size: 11px;
   font-weight: 700;
   color: #1a4d8a;
-  font-size: 11px;
-  min-width: 70px;
+  direction: rtl;
+  text-align: right;
+  line-height: 1.2;
 }
 
-.cert-field .val {
+/* Value - RIGHT side */
+.v-value {
   flex: 1;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
   font-weight: 600;
   color: #000;
-  font-size: 12px;
   border-bottom: 1px dotted #999;
-  padding: 0 4px 1px;
-  min-height: 15px;
+  padding: 2px 6px 3px;
+  min-height: 16px;
+  direction: ltr;
+  text-align: left;
+  word-break: break-word;
 }
 
-/* ✅ صف اسم الأم بالعربي (جديد) */
-.cert-field.mother-ar {
-  margin-top: 2px;
-}
-
-/* ============================================================
-   Wali Row
-============================================================ */
-.cert-wali-row {
-  display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr 0.9fr;
-  gap: 0;
-  border: 1.5px solid #1a4d8a;
-  border-top: none;
-  margin-bottom: 6px;
-}
-
-.cert-wali-cell {
-  padding: 8px 10px;
-  border-left: 1px solid #1a4d8a;
-  font-size: 11px;
-}
-
-.cert-wali-cell:last-child { border-left: none; }
-
-.cert-wali-cell .k {
-  font-weight: 700;
-  color: #1a4d8a;
-  font-size: 10px;
-  margin-bottom: 2px;
-}
-
-.cert-wali-cell .k-ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-weight: 700;
-  color: #1a4d8a;
-  font-size: 11px;
-  margin-bottom: 2px;
-}
-
-.cert-wali-cell .v {
-  font-weight: 700;
-  color: #000;
-  font-size: 12.5px;
-  margin-bottom: 4px;
-  min-height: 14px;
-  padding: 0 2px 1px;
-  border-bottom: 1px dotted #999;
-}
-
-.cert-wali-cell .v-gold {
+.v-value.v-gold {
   color: #8b6f1e;
   font-weight: 900;
-  font-size: 14px;
+  font-size: 13.5px;
+  border-bottom-color: #c9a961;
+}
+
+/* Separator line inside big boxes */
+.cv-separator {
+  height: 1px;
+  background: #999;
+  margin: 8px 0;
 }
 
 /* ============================================================
-   Witness Row
+   ✅ WALI + DOWRY BOX (merged)
 ============================================================ */
-.cert-witness-row {
+.cert-wali-box {
+  border: 1.5px solid #1a4d8a;
+  border-top: none;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+}
+
+/* ============================================================
+   ✅ WITNESSES
+============================================================ */
+.cert-witness-box {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0;
   border: 1.5px solid #1a4d8a;
   border-top: none;
   margin-bottom: 6px;
 }
 
-.cert-witness-box {
-  padding: 8px 10px;
+.cert-witness-col {
+  padding: 8px 12px;
   border-left: 1px solid #1a4d8a;
-  font-size: 11px;
-  line-height: 1.5;
 }
 
-.cert-witness-box:last-child { border-left: none; }
+.cert-witness-col:last-child { border-left: none; }
 
 .cert-witness-title {
+  font-family: Arial, sans-serif;
   font-weight: 900;
-  font-size: 12px;
+  font-size: 12.5px;
   margin-bottom: 6px;
-  padding-bottom: 3px;
+  padding-bottom: 4px;
   border-bottom: 1px dashed #999;
   display: flex;
   justify-content: space-between;
 }
 
 .cert-witness-title .ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
   color: #1a4d8a;
 }
 
 /* ============================================================
-   Documents Row
+   ✅ DOCUMENTS
 ============================================================ */
-.cert-docs-row {
+.cert-docs-box {
   border: 1.5px solid #1a4d8a;
   border-top: none;
-  margin-bottom: 6px;
   padding: 6px 10px;
-  font-size: 11px;
+  margin-bottom: 6px;
 }
 
-.cert-docs-titles {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 12px;
-  margin-bottom: 8px;
+.cert-docs-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
   padding-bottom: 4px;
+  margin-bottom: 6px;
   border-bottom: 1px dashed #999;
-  font-weight: 700;
+  font-family: Arial, sans-serif;
   font-size: 10.5px;
+  font-weight: 700;
+  direction: ltr;
 }
 
-.cert-docs-titles .col-de { font-family: 'Tajawal', sans-serif; }
-.cert-docs-titles .col-ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+.cert-docs-title .ar {
   color: #1a4d8a;
-  font-size: 11px;
-  text-align: center;
+  direction: rtl;
 }
 
 .cert-docs-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  text-align: center;
+  gap: 6px;
 }
 
 .cert-docs-grid .doc-cell {
   border: 1px solid #1a4d8a;
   border-radius: 3px;
-  padding: 5px 6px;
+  padding: 5px 4px;
   font-size: 10px;
   min-height: 34px;
   background: #f8faff;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-family: Arial, sans-serif;
 }
 
 .cert-docs-grid .doc-cell b {
@@ -514,117 +519,131 @@ body {
   color: #1a4d8a;
   font-size: 10.5px;
   margin-bottom: 2px;
+  direction: ltr;
 }
 
-.cert-docs-grid .doc-cell .ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 11px;
+.cert-docs-grid .doc-cell span {
+  direction: rtl;
+  color: #000;
   font-weight: 700;
 }
 
 /* ============================================================
-   ✅ Footer - توقيع على اليمين + تصغير الإمام
+   ✅ FOOTER
+   Layout: [Contract Text] [Signature]
+   In RTL: Text is RIGHT, Signature is LEFT
+   But we want: Signature at RIGHT side
+   Solution: use grid with explicit ordering
 ============================================================ */
 .cert-footer {
   display: grid;
-  grid-template-columns: 1fr 2.2fr;  /* ✅ عكس: التوقيع أولاً (يمين) */
-  gap: 0;
+  grid-template-columns: 1.4fr 1fr;
   border: 1.5px solid #1a4d8a;
   border-top: none;
+  min-height: 200px;
+  direction: rtl;
 }
 
-/* ✅ صندوق التوقيع - على اليمين */
+/* Signature - RIGHT side (first in RTL) */
 .cert-footer-sign {
-  padding: 8px 12px;
-  border-left: 1.5px solid #1a4d8a;  /* الحد يفصله عن النص */
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
+  border-left: 1.5px solid #1a4d8a;
   text-align: center;
+  font-family: Arial, sans-serif;
 }
 
-.cert-footer-sign .sign-title {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #1a4d8a;
-  border-bottom: 1px dashed #999;
-  padding-bottom: 4px;
-  margin-bottom: 4px;
+.sign-box {
   width: 100%;
-}
-
-.cert-footer-sign .sign-ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 10px;
-  color: #1a4d8a;
-  font-weight: 700;
-}
-
-/* ✅ الإمام - خط صغير */
-.cert-footer-sign .sign-area {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 14px;  /* ← كان 22px، الآن 14px */
-  color: #1a4d8a;
-  font-weight: 700;
-  margin: 10px 0;
-  min-height: 30px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-bottom: none;
+  margin-bottom: 8px;
 }
 
-.cert-footer-sign .sign-line {
-  width: 100%;
+.sign-box-inner {
+  width: 80%;
+  height: 100%;
+  border-bottom: 1px dashed #999;
+}
+
+.sign-label-bottom {
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a4d8a;
+  margin-bottom: 4px;
+}
+
+.sign-line {
+  width: 90%;
   border-top: 1px solid #000;
-  margin-top: 4px;
-  padding-top: 4px;
-  font-size: 9px;
+  margin: 4px 0;
+}
+
+.sign-caption {
+  font-family: Arial, sans-serif;
+  font-size: 9.5px;
   color: #666;
 }
 
-/* النص - على اليسار */
+/* Contract text - LEFT side */
 .cert-footer-text {
-  padding: 8px 12px;
-  font-size: 11px;
-  line-height: 1.7;
+  padding: 10px 12px;
+  font-family: Arial, sans-serif;
+  font-size: 10.5px;
+  line-height: 1.6;
 }
 
-.cert-footer-text .title {
+.footer-title {
   text-align: center;
   font-weight: 900;
   font-size: 12px;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   color: #1a4d8a;
+  font-family: Arial, sans-serif;
 }
 
 .cert-footer-text p {
   margin-bottom: 6px;
   text-align: justify;
-  font-size: 11px;
-}
-
-.cert-footer-text .ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.8;
-}
-
-.cert-footer-text .de {
-  font-family: 'Tajawal', sans-serif;
   font-size: 10.5px;
+  font-family: Arial, sans-serif;
+}
+
+.cert-footer-text p.ar {
+  direction: rtl;
+  text-align: right;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.cert-footer-text p.de {
+  direction: ltr;
+  text-align: left;
+  font-size: 10px;
   font-style: italic;
-  line-height: 1.5;
   color: #333;
 }
 
-.cert-footer-text .note {
+.footer-note {
   margin-top: 6px;
-  padding-top: 6px;
+  padding-top: 5px;
   border-top: 1px dotted #999;
-  font-size: 10px;
+  font-size: 9.5px;
   color: #555;
+  direction: rtl;
+  text-align: right;
+}
+
+.footer-note em {
+  direction: ltr;
+  display: inline-block;
 }
 
 /* ============================================================
@@ -633,13 +652,14 @@ body {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 8mm;
+    margin: 6mm;
   }
 
   body {
     background: #fff;
     padding: 0;
     margin: 0;
+    font-family: Arial, sans-serif;
   }
 
   .toolbar, .loading-screen, .error-screen {
@@ -655,16 +675,16 @@ body {
 
   .certificate {
     border: 3px solid #1a4d8a;
-    padding: 10px;
+    padding: 8px;
     background: #fff;
   }
 
   .cert-header,
-  .cert-top-row,
+  .cert-info-strip,
   .cert-two-cols,
-  .cert-wali-row,
-  .cert-witness-row,
-  .cert-docs-row,
+  .cert-wali-box,
+  .cert-witness-box,
+  .cert-docs-box,
   .cert-footer {
     page-break-inside: avoid;
   }
@@ -676,42 +696,38 @@ body {
 }
 
 /* ============================================================
-   Responsive - الجوال
+   Responsive - Mobile
 ============================================================ */
 @media (max-width: 720px) {
   body { padding: 10px; }
-
   .toolbar { padding: 10px 12px; }
   .toolbar-center { display: none; }
   .toolbar button { padding: 7px 12px; font-size: 12px; }
-
   .certificate-wrap { margin: 70px auto 20px; }
   .certificate { padding: 8px; }
 
-  .cert-header { min-height: 60px; padding-bottom: 6px; }
-  .cert-header-title-wrap { padding: 0 65px; }
+  .cert-header { grid-template-columns: 70px 1fr 70px; min-height: 90px; }
   .cert-header-title-de { font-size: 13px; }
   .cert-header-title-ar { font-size: 15px; }
-  .cert-logo { width: 55px; height: 50px; }
+  .cert-logo { width: 45px; height: 38px; }
+  .cert-photo-box { width: 60px; height: 75px; }
+  .cert-photo-box span { font-size: 8px; }
 
-  .cert-top-row { grid-template-columns: 1fr; }
-  .cert-top-row .cell { border-left: none; border-bottom: 1px solid #1a4d8a; }
-  .cert-top-row .cell:last-child { border-bottom: none; }
-  .cert-top-row .cell-address { grid-template-columns: 1fr; text-align: center; }
-  .cert-photos { justify-content: center; }
+  .cert-info-strip { grid-template-columns: 1fr; }
+  .cert-info-cell { border-left: none; border-bottom: 1px solid #1a4d8a; }
+  .cert-info-cell:last-child { border-bottom: none; }
 
   .cert-two-cols,
-  .cert-witness-row { grid-template-columns: 1fr; }
-
-  .cert-col, .cert-witness-box {
+  .cert-witness-box { grid-template-columns: 1fr; }
+  .cert-col, .cert-witness-col {
     border-left: none;
     border-bottom: 1px solid #1a4d8a;
   }
-  .cert-col:last-child, .cert-witness-box:last-child { border-bottom: none; }
+  .cert-col:last-child, .cert-witness-col:last-child { border-bottom: none; }
 
-  .cert-wali-row { grid-template-columns: 1fr; }
-  .cert-wali-cell { border-left: none; border-bottom: 1px solid #1a4d8a; }
-  .cert-wali-cell:last-child { border-bottom: none; }
+  .cv-row { flex-direction: column; gap: 2px; align-items: stretch; }
+  .cv-label { min-width: auto; }
+  .v-value { text-align: right; }
 
   .cert-docs-grid { grid-template-columns: repeat(2, 1fr); }
 
