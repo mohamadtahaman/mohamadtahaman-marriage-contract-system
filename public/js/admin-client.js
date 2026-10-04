@@ -1,5 +1,5 @@
 /* ============================================================
-   Admin Client V8 - Fixed: create_user uses user_username
+   Admin Client V10 - Icons + Permissions
 ============================================================ */
 
 const adminState = {
@@ -11,6 +11,16 @@ const adminState = {
   filteredContracts: [],
   currentTab: 'codes',
   currentContract: null,
+};
+
+/* ============================================================
+   Icons (SVG)
+============================================================ */
+const ICONS = {
+  eye: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  pencil: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`,
+  print: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>`,
 };
 
 /* ============================================================
@@ -72,6 +82,22 @@ function resetLoginButton() {
     btn.disabled = false;
     btn.textContent = 'دخول';
   }
+}
+
+/* ============================================================
+   Permissions
+============================================================ */
+function can(permission) {
+  const role = adminState.role || 'viewer';
+  const permissions = {
+    view:   ['admin', 'manager', 'user', 'viewer'],
+    edit:   ['admin', 'manager'],
+    delete: ['admin', 'manager'],
+    export: ['admin', 'manager'],
+    manage_users: ['admin'],
+    generate_codes: ['admin'],
+  };
+  return (permissions[permission] || []).includes(role);
 }
 
 /* ============================================================
@@ -169,25 +195,23 @@ function logout() {
    Apply Role Restrictions
 ============================================================ */
 function applyRoleRestrictions() {
-  const role = adminState.role || 'viewer';
-
-  const canManageUsers = role === 'admin';
-  const canGenerateCodes = role === 'admin';
-
+  // تبويب الإعدادات لـ admin فقط
   const settingsTab = document.querySelector('.admin-tab[data-tab="settings"]');
   if (settingsTab) {
-    settingsTab.classList.toggle('hidden', !canManageUsers);
+    settingsTab.classList.toggle('hidden', !can('manage_users'));
   }
 
+  // زر توليد الأكواد
   const generateBtn = document.querySelector('button[onclick="generateNewCodes()"]');
   if (generateBtn) {
     const card = generateBtn.closest('.card');
-    if (card) card.classList.toggle('hidden', !canGenerateCodes);
+    if (card) card.classList.toggle('hidden', !can('generate_codes'));
   }
 
+  // منطقة الخطر
   const dangerCard = document.querySelector('.card-danger');
   if (dangerCard) {
-    dangerCard.classList.toggle('hidden', !canGenerateCodes);
+    dangerCard.classList.toggle('hidden', !can('generate_codes'));
   }
 }
 
@@ -285,22 +309,29 @@ function renderTable() {
     return;
   }
 
-  const canDelete = ['admin', 'manager'].includes(adminState.role);
-
   adminState.contracts.forEach((contract, idx) => {
     const tr = document.createElement('tr');
 
     const statusHtml = contract.finished
       ? '<span class="status-sent">● مُرسل</span>'
-      : '<span class="status-available">○ متاح</span>';
+      : `<span class="status-available">○ متاح (${contract.savedCount || 0}/5)</span>`;
 
     tr.innerHTML = `
       <td>${idx + 1}</td>
       <td><span class="code-value">${escapeHtml(contract.code)}</span></td>
       <td>${statusHtml}</td>
-      <td>
-        <button class="btn-action" onclick="viewContract('${contract.code}')">معاينة</button>
-        ${contract.finished && canDelete ? `<button class="btn-action danger" onclick="deleteContract('${contract.code}')">حذف</button>` : ''}
+      <td class="action-icons">
+        <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">
+          ${ICONS.eye}
+        </button>
+        ${contract.inD1 ? `
+          <button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">
+            ${ICONS.pencil}
+          </button>` : ''}
+        ${contract.finished && can('delete') ? `
+          <button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">
+            ${ICONS.trash}
+          </button>` : ''}
       </td>
     `;
     tbody.appendChild(tr);
@@ -327,8 +358,6 @@ function renderArchive() {
     return;
   }
 
-  const canDelete = ['admin', 'manager'].includes(adminState.role);
-
   let html = `
     <table class="archive-table">
       <thead>
@@ -337,7 +366,7 @@ function renderArchive() {
           <th>الزوج</th>
           <th>الزوجة</th>
           <th style="width:140px;">تاريخ العقد</th>
-          <th style="width:170px;">إجراءات</th>
+          <th style="width:150px;">إجراءات</th>
         </tr>
       </thead>
       <tbody>
@@ -360,9 +389,18 @@ function renderArchive() {
         <td class="name-cell">${escapeHtml(groomName)}</td>
         <td class="name-cell">${escapeHtml(brideName)}</td>
         <td class="date-cell">${escapeHtml(contractDate)}</td>
-        <td class="actions-cell">
-          <button class="btn-action gold" onclick="viewContract('${contract.code}')">معاينة</button>
-          ${canDelete ? `<button class="btn-action danger" onclick="deleteContract('${contract.code}')">حذف</button>` : ''}
+        <td class="action-icons">
+          <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">
+            ${ICONS.eye}
+          </button>
+          ${can('edit') ? `
+            <button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">
+              ${ICONS.pencil}
+            </button>` : ''}
+          ${can('delete') ? `
+            <button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">
+              ${ICONS.trash}
+            </button>` : ''}
         </td>
       </tr>
     `;
@@ -399,20 +437,18 @@ function filterArchive() {
 }
 
 /* ============================================================
-   Settings - Info
+   Settings
 ============================================================ */
 function renderSettings() {
   const sentCount = adminState.contracts.filter(c => c.finished).length;
-
   const codesCountEl = $('infoCodesCount');
   const sentCountEl = $('infoSentCount');
-
   if (codesCountEl) codesCountEl.textContent = adminState.codes.length;
   if (sentCountEl) sentCountEl.textContent = sentCount;
 }
 
 /* ============================================================
-   Settings - Change Password
+   Change Password
 ============================================================ */
 async function changePassword() {
   const oldPw = $('oldPassword').value.trim();
@@ -423,12 +459,10 @@ async function changePassword() {
     showSystemMessage('جميع الحقول مطلوبة', 'error');
     return;
   }
-
   if (newPw !== confirm) {
     showSystemMessage('كلمتا المرور غير متطابقتين', 'error');
     return;
   }
-
   if (newPw.length < 6) {
     showSystemMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
     return;
@@ -440,12 +474,10 @@ async function changePassword() {
       new_password: newPw,
       confirm_password: confirm,
     });
-
     showSystemMessage('✓ تم تغيير كلمة المرور بنجاح', 'success');
     $('oldPassword').value = '';
     $('newPassword').value = '';
     $('confirmPassword').value = '';
-
     adminState.password = newPw;
     sessionStorage.setItem('admin_password', newPw);
   } catch (err) {
@@ -454,12 +486,11 @@ async function changePassword() {
 }
 
 /* ============================================================
-   Settings - Users
+   Users
 ============================================================ */
 async function loadUsers() {
   const tbody = $('usersBody');
   if (!tbody) return;
-
   tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ التحميل...</td></tr>';
 
   try {
@@ -490,7 +521,7 @@ async function loadUsers() {
         <td>${user.is_active ? '<span style="color:#2d6a4f;">✓ نشط</span>' : '<span style="color:#c0392b;">✗ معطّل</span>'}</td>
         <td>
           ${!isAdmin
-            ? `<button class="btn-action danger" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">حذف</button>`
+            ? `<button class="icon-btn delete" title="حذف" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">${ICONS.trash}</button>`
             : '<span style="color:#999;font-size:12px;">محمي</span>'}
         </td>
       `;
@@ -501,9 +532,6 @@ async function loadUsers() {
   }
 }
 
-/* ============================================================
-   Create User - ✅ الآن يرسل user_username (لا يتعارض مع username)
-============================================================ */
 async function createUser() {
   const username = $('newUsername').value.trim().toLowerCase();
   const password = $('newUserPassword').value.trim();
@@ -517,18 +545,16 @@ async function createUser() {
 
   try {
     await apiCall('create_user', {
-      user_username: username,     // ← الإصلاح الأساسي
+      user_username: username,
       user_password: password,
       full_name: fullName,
       role: role,
     });
-
     showSystemMessage('✓ تم إنشاء المستخدم', 'success');
     $('newUsername').value = '';
     $('newUserPassword').value = '';
     $('newFullName').value = '';
     $('newRole').value = 'manager';
-
     await loadUsers();
   } catch (err) {
     showSystemMessage('فشل: ' + err.message, 'error');
@@ -537,7 +563,6 @@ async function createUser() {
 
 async function deleteUser(userId, username) {
   if (!confirm(`حذف المستخدم "${username}"؟`)) return;
-
   try {
     await apiCall('delete_user', { user_id: userId });
     showSystemMessage('✓ تم الحذف', 'success');
@@ -548,17 +573,12 @@ async function deleteUser(userId, username) {
 }
 
 /* ============================================================
-   Settings - Export
+   Export
 ============================================================ */
 async function exportBackup() {
   try {
     const data = await apiCall('export');
-
-    const blob = new Blob(
-      [JSON.stringify(data, null, 2)],
-      { type: 'application/json' }
-    );
-
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -567,7 +587,6 @@ async function exportBackup() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
     showSystemMessage(`✓ تم تصدير ${data.total} عقد`, 'success');
   } catch (err) {
     showSystemMessage('فشل: ' + err.message, 'error');
@@ -613,7 +632,6 @@ function renderContractModal(contract) {
 
   ['groom', 'bride', 'wali', 'witness1', 'witness2'].forEach(key => {
     const p = contract.parties[key];
-
     html += `<div class="contract-block">
       <div class="contract-block-title">${partyLabels[key]}</div>
       <div class="contract-block-body">`;
@@ -673,13 +691,32 @@ function closeModal() {
 }
 
 function printContract() {
+  // سيتم تحديثها بنسخة الشهادة الرسمية
   window.print();
 }
 
 /* ============================================================
-   Delete Contract
+   Edit Contract
+============================================================ */
+async function editContract(code) {
+  if (!can('edit')) {
+    alert('ليس لديك صلاحية التعديل');
+    return;
+  }
+
+  // افتح صفحة التعديل
+  window.location.href = `./admin-edit.html?code=${encodeURIComponent(code)}`;
+}
+
+/* ============================================================
+   Delete
 ============================================================ */
 async function deleteContract(code) {
+  if (!can('delete')) {
+    alert('ليس لديك صلاحية الحذف');
+    return;
+  }
+
   if (!confirm('حذف العقد ' + code + ' نهائياً؟\n\nلا يمكن التراجع.')) return;
 
   try {
@@ -693,7 +730,7 @@ async function deleteContract(code) {
 }
 
 /* ============================================================
-   Generate New Codes
+   Generate Codes
 ============================================================ */
 async function generateNewCodes() {
   const sentCount = adminState.contracts.filter(c => c.finished).length;
@@ -715,20 +752,47 @@ async function generateNewCodes() {
 }
 
 /* ============================================================
-   Clear Local Drafts
+   Clear Drafts
 ============================================================ */
-function clearLocalDrafts() {
-  if (!confirm('مسح المسودات المحفوظة على هذا المتصفح؟')) return;
+async function clearDraftForCode() {
+  const input = $('clearDraftCode');
+  if (!input) return;
 
-  let count = 0;
-  Object.keys(localStorage).forEach(k => {
-    if (k.startsWith('draft_')) {
-      localStorage.removeItem(k);
-      count++;
-    }
-  });
+  const code = input.value.trim().toUpperCase();
 
-  showSystemMessage('✓ تم مسح ' + count + ' مسودة', 'success');
+  if (!code) {
+    showSystemMessage('أدخل رقم العقد', 'error');
+    return;
+  }
+
+  if (!/^[A-Z0-9]{6}$/.test(code)) {
+    showSystemMessage('رقم العقد يجب أن يكون 6 خانات بالضبط', 'error');
+    return;
+  }
+
+  if (!confirm(`مسح كل مسودات العقد ${code}؟\n\n(لن يُحذف العقد إن كان مُرسلاً)`)) return;
+
+  try {
+    const data = await apiCall('clear_drafts', { code: code });
+    showSystemMessage('✓ ' + data.message, 'success');
+    input.value = '';
+    await loadList();
+  } catch (err) {
+    showSystemMessage('فشل: ' + err.message, 'error');
+  }
+}
+
+async function clearAllDrafts() {
+  if (!confirm('⚠️ تحذير خطير\n\nمسح كل المسودات من السيرفر؟\n\n(لن تُحذف العقود المُرسلة)\n\nهل أنت متأكد؟')) return;
+  if (!confirm('تأكيد نهائي: مسح كل المسودات؟')) return;
+
+  try {
+    const data = await apiCall('clear_drafts', { all: true });
+    showSystemMessage('✓ ' + data.message, 'success');
+    await loadList();
+  } catch (err) {
+    showSystemMessage('فشل: ' + err.message, 'error');
+  }
 }
 
 /* ============================================================
@@ -816,9 +880,11 @@ window.refreshData = refreshData;
 window.viewContract = viewContract;
 window.closeModal = closeModal;
 window.printContract = printContract;
+window.editContract = editContract;
 window.deleteContract = deleteContract;
 window.generateNewCodes = generateNewCodes;
-window.clearLocalDrafts = clearLocalDrafts;
+window.clearDraftForCode = clearDraftForCode;
+window.clearAllDrafts = clearAllDrafts;
 window.filterArchive = filterArchive;
 window.changePassword = changePassword;
 window.loadUsers = loadUsers;
