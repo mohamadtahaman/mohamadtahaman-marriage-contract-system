@@ -727,4 +727,70 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.18s ease;
+  padding: 0;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.icon-btn svg {
+  display: block;
+}
+
+/* معاينة - أخضر */
+.icon-btn.view {
+  color: #2d6a4f;
+  border-color: #c8e0d3;
+  background: #f5faf7;
+}
+
+.icon-btn.view:hover {
+  background: #2d6a4f;
+  color: #fff;
+  border-color: #2d6a4f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(45,106,79,0.25);
+}
+
+/* تعديل - ذهبي */
+.icon-btn.edit {
+  color: #8b6f1e;
+  border-color: #e9d5a1;
+  background: #fdf9ef;
+}
+
+.icon-btn.edit:hover {
+  background: #c9a961;
+  color: #fff;
+  border-color: #c9a961;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(201,169,97,0.3);
+}
+
+/* حذف - أحمر */
+.icon-btn.delete {
+  color: #c0392b;
+  border-color: #f5d5d0;
+  background: #fdf2f0;
+}
+
+.icon-btn.delete:hover {
+  background: #c0392b;
+  color: #fff;
+  border-color: #c0392b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(192,57,43,0.25);
+}
+
+/* تعديل الأعمدة في الجداول */
+.codes-table td.action-icons,
+.archive-table td.action-icons {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+@media (max-width: 640px) {
+  .icon-btn { width: 30px; height: 30px; }
+  .action-icons { gap: 4px; }
+}
 }
