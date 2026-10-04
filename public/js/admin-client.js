@@ -1,9 +1,10 @@
 /* ============================================================
-   Admin Client V5 - Archive Table
+   Admin Client V6 - Full Settings + Users + Export
 ============================================================ */
 
 const adminState = {
   password: null,
+  username: 'admin',
   codes: [],
   contracts: [],
   filteredContracts: [],
@@ -68,8 +69,10 @@ function formatBirthDate(p) {
    Login
 ============================================================ */
 async function login() {
+  const userInput = $('usernameInput');
   const input = $('passwordInput');
   const btn = $('loginBtn');
+  const username = (userInput?.value || 'admin').trim().toLowerCase();
   const password = input.value.trim();
 
   hideMessage();
@@ -82,12 +85,13 @@ async function login() {
   btn.disabled = true;
   btn.textContent = 'جارٍ التحقق...';
   adminState.password = password;
+  adminState.username = username;
 
   try {
     const response = await fetch('/api/admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password, action: 'login' }),
+      body: JSON.stringify({ username, password, action: 'login' }),
     });
 
     const text = await response.text();
@@ -110,6 +114,8 @@ async function login() {
     }
 
     sessionStorage.setItem('admin_password', password);
+    sessionStorage.setItem('admin_username', username);
+
     showPanel();
     await loadList();
 
@@ -121,7 +127,7 @@ async function login() {
 }
 
 /* ============================================================
-   Show/Hide Panel
+   Show/Hide
 ============================================================ */
 function showPanel() {
   $('loginScreen').classList.add('hidden');
@@ -141,6 +147,7 @@ function logout() {
   adminState.contracts = [];
   adminState.filteredContracts = [];
   sessionStorage.removeItem('admin_password');
+  sessionStorage.removeItem('admin_username');
   showLogin();
 }
 
@@ -194,7 +201,10 @@ function switchTab(tab) {
   if (target) target.classList.remove('hidden');
 
   if (tab === 'archive') renderArchive();
-  if (tab === 'settings') renderSettings();
+  if (tab === 'settings') {
+    renderSettings();
+    loadUsers();
+  }
 }
 
 /* ============================================================
@@ -220,7 +230,7 @@ async function loadList() {
 }
 
 /* ============================================================
-   Render Codes Table
+   Codes Table
 ============================================================ */
 function renderTable() {
   const tbody = $('codesBody');
@@ -255,7 +265,7 @@ function renderTable() {
 }
 
 /* ============================================================
-   Archive - Count
+   Archive
 ============================================================ */
 function updateArchiveCount() {
   const sentCount = adminState.contracts.filter(c => c.finished).length;
@@ -263,9 +273,6 @@ function updateArchiveCount() {
   if (el) el.textContent = sentCount;
 }
 
-/* ============================================================
-   Archive - Render Table
-============================================================ */
 function renderArchive() {
   const container = $('archiveBody');
   if (!container) return;
@@ -316,17 +323,10 @@ function renderArchive() {
     `;
   });
 
-  html += `
-      </tbody>
-    </table>
-  `;
-
+  html += `</tbody></table>`;
   container.innerHTML = html;
 }
 
-/* ============================================================
-   Archive - Filter
-============================================================ */
 function filterArchive() {
   const query = ($('archiveSearch')?.value || '').trim().toLowerCase();
   const statusFilter = $('archiveFilterStatus')?.value || 'all';
@@ -354,7 +354,7 @@ function filterArchive() {
 }
 
 /* ============================================================
-   Settings
+   Settings - Info
 ============================================================ */
 function renderSettings() {
   const sentCount = adminState.contracts.filter(c => c.finished).length;
@@ -364,6 +364,166 @@ function renderSettings() {
 
   if (codesCountEl) codesCountEl.textContent = adminState.codes.length;
   if (sentCountEl) sentCountEl.textContent = sentCount;
+}
+
+/* ============================================================
+   Settings - Change Password
+============================================================ */
+async function changePassword() {
+  const oldPw = $('oldPassword').value.trim();
+  const newPw = $('newPassword').value.trim();
+  const confirm = $('confirmPassword').value.trim();
+
+  if (!oldPw || !newPw || !confirm) {
+    showSystemMessage('جميع الحقول مطلوبة', 'error');
+    return;
+  }
+
+  if (newPw !== confirm) {
+    showSystemMessage('كلمتا المرور غير متطابقتين', 'error');
+    return;
+  }
+
+  if (newPw.length < 6) {
+    showSystemMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
+    return;
+  }
+
+  try {
+    await apiCall('change_password', {
+      old_password: oldPw,
+      new_password: newPw,
+      confirm_password: confirm,
+    });
+
+    showSystemMessage('✓ تم تغيير كلمة المرور بنجاح', 'success');
+    $('oldPassword').value = '';
+    $('newPassword').value = '';
+    $('confirmPassword').value = '';
+
+    adminState.password = newPw;
+    sessionStorage.setItem('admin_password', newPw);
+  } catch (err) {
+    showSystemMessage('فشل: ' + err.message, 'error');
+  }
+}
+
+/* ============================================================
+   Settings - Users
+============================================================ */
+async function loadUsers() {
+  const tbody = $('usersBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ التحميل...</td></tr>';
+
+  try {
+    const data = await apiCall('list_users');
+    const users = data.users || [];
+
+    if (users.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا يوجد مستخدمون</td></tr>';
+      return;
+    }
+
+    const roleLabels = {
+      admin: 'مشرف',
+      manager: 'مدير',
+      user: 'مستخدم',
+      viewer: 'مشاهدة',
+    };
+
+    tbody.innerHTML = '';
+    users.forEach(user => {
+      const tr = document.createElement('tr');
+      const isAdmin = user.username === 'admin';
+
+      tr.innerHTML = `
+        <td><code style="font-family:'Courier New',monospace; font-weight:700; color:#2d6a4f;">${escapeHtml(user.username)}</code></td>
+        <td>${escapeHtml(user.full_name || '—')}</td>
+        <td>${roleLabels[user.role] || user.role}</td>
+        <td>${user.is_active ? '<span style="color:#2d6a4f;">✓ نشط</span>' : '<span style="color:#c0392b;">✗ معطّل</span>'}</td>
+        <td>
+          ${!isAdmin
+            ? `<button class="btn-action danger" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">حذف</button>`
+            : '<span style="color:#999;font-size:12px;">محمي</span>'}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function createUser() {
+  const username = $('newUsername').value.trim().toLowerCase();
+  const password = $('newUserPassword').value.trim();
+  const fullName = $('newFullName').value.trim();
+  const role = $('newRole').value;
+
+  if (!username || !password) {
+    showSystemMessage('اسم المستخدم وكلمة المرور مطلوبان', 'error');
+    return;
+  }
+
+  try {
+    await apiCall('create_user', {
+      username: username,
+      user_password: password,
+      full_name: fullName,
+      role: role,
+    });
+
+    showSystemMessage('✓ تم إنشاء المستخدم', 'success');
+    $('newUsername').value = '';
+    $('newUserPassword').value = '';
+    $('newFullName').value = '';
+    $('newRole').value = 'manager';
+
+    await loadUsers();
+  } catch (err) {
+    showSystemMessage('فشل: ' + err.message, 'error');
+  }
+}
+
+async function deleteUser(userId, username) {
+  if (!confirm(`حذف المستخدم "${username}"؟`)) return;
+
+  try {
+    await apiCall('delete_user', { user_id: userId });
+    showSystemMessage('✓ تم الحذف', 'success');
+    await loadUsers();
+  } catch (err) {
+    showSystemMessage('فشل: ' + err.message, 'error');
+  }
+}
+
+/* ============================================================
+   Settings - Export
+============================================================ */
+async function exportBackup() {
+  try {
+    const data = await apiCall('export');
+
+    const blob = new Blob(
+      [JSON.stringify(data, null, 2)],
+      { type: 'application/json' }
+    );
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `contracts-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showSystemMessage(`✓ تم تصدير ${data.total} عقد`, 'success');
+  } catch (err) {
+    showSystemMessage('فشل: ' + err.message, 'error');
+  }
 }
 
 /* ============================================================
@@ -529,7 +689,10 @@ function clearLocalDrafts() {
 async function refreshData() {
   await loadList();
   if (adminState.currentTab === 'archive') renderArchive();
-  if (adminState.currentTab === 'settings') renderSettings();
+  if (adminState.currentTab === 'settings') {
+    renderSettings();
+    loadUsers();
+  }
   showSystemMessage('✓ تم التحديث', 'success');
 }
 
@@ -538,9 +701,11 @@ async function refreshData() {
 ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
   const savedPassword = sessionStorage.getItem('admin_password');
+  const savedUsername = sessionStorage.getItem('admin_username') || 'admin';
 
   if (savedPassword) {
     adminState.password = savedPassword;
+    adminState.username = savedUsername;
     try {
       await apiCall('login');
       showPanel();
@@ -549,6 +714,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       adminState.password = null;
       sessionStorage.removeItem('admin_password');
+      sessionStorage.removeItem('admin_username');
     }
   }
 
@@ -581,3 +747,8 @@ window.deleteContract = deleteContract;
 window.generateNewCodes = generateNewCodes;
 window.clearLocalDrafts = clearLocalDrafts;
 window.filterArchive = filterArchive;
+window.changePassword = changePassword;
+window.loadUsers = loadUsers;
+window.createUser = createUser;
+window.deleteUser = deleteUser;
+window.exportBackup = exportBackup;
