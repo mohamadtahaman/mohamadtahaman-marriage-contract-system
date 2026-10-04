@@ -1,6 +1,6 @@
 /* ============================================================
-   Cloudflare Function: POST /api/party (v2)
-   يحفظ في KV + يضيف في D1 فوراً
+   Cloudflare Function: POST /api/party (v3)
+   يحفظ في KV + D1 فوراً + يدعم الصور الشخصية
 ============================================================ */
 
 const VALID_ROLES = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
@@ -33,7 +33,7 @@ export async function onRequestPost(context) {
     }, 400);
   }
 
-  // التحقق من الكود
+  // التحقق من الكود في KV
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
     if (!codesRaw) {
@@ -216,6 +216,23 @@ export async function onRequestPost(context) {
       }
     }
 
+    // التحقق من حجم الصورة (إن وُجدت)
+    let photoData = null;
+    if (isSpouse && data.photo) {
+      const photoSize = Math.round((data.photo.length - 'data:image/jpeg;base64,'.length) * 0.75);
+      const MAX_PHOTO_SIZE = 500 * 1024; // 500 KB
+
+      if (photoSize > MAX_PHOTO_SIZE) {
+        return jsonResponse({
+          success: false,
+          error: 'photo_too_large',
+          message: `الصورة كبيرة جداً (${Math.round(photoSize / 1024)} KB). الحد الأقصى 500 KB.`,
+        }, 400);
+      }
+
+      photoData = data.photo;
+    }
+
     /* ============================================
        1. حفظ في KV (draft)
     ============================================ */
@@ -250,7 +267,6 @@ export async function onRequestPost(context) {
       let contractId;
 
       if (!contractRow) {
-        // أنشئ عقد جديد بحالة 'draft'
         const insertResult = await env.DB.prepare(
           `INSERT INTO contracts (code, contract_date, status, sent_at)
            VALUES (?, ?, 'draft', ?)`
@@ -269,11 +285,12 @@ export async function onRequestPost(context) {
         throw new Error('Failed to get contract id');
       }
 
-      // 2.2 احذف الطرف القديم (إن وُجد) وأضف الجديد
+      // 2.2 احذف الطرف القديم (إن وُجد)
       await env.DB.prepare(
         'DELETE FROM parties WHERE contract_id = ? AND role = ?'
       ).bind(contractId, role).run();
 
+      // 2.3 أضف الطرف الجديد
       await env.DB.prepare(
         `INSERT INTO parties (
           contract_id, role,
@@ -283,8 +300,9 @@ export async function onRequestPost(context) {
           id_type, id_number,
           address_number, address_street, postal_code, city,
           mother_name_de, mother_name_ar,
-          wali_is_bride, witness_is_center
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          wali_is_bride, witness_is_center,
+          photo
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         contractId, role,
         data.nameDe || null, data.nameAr || null,
@@ -296,17 +314,16 @@ export async function onRequestPost(context) {
         data.addressNumber || null, data.addressStreet || null,
         data.postalCode || null, data.city || null,
         data.motherNameDe || null, data.motherNameAr || null,
-        data.waliIsBride ? 1 : 0, data.witnessIsCenter ? 1 : 0
+        data.waliIsBride ? 1 : 0, data.witnessIsCenter ? 1 : 0,
+        photoData
       ).run();
 
-      // 2.3 المهر (للزوج فقط)
+      // 2.4 المهر (للزوج فقط)
       if (role === 'groom') {
-        // احذف المهر القديم
         await env.DB.prepare(
           'DELETE FROM dowries WHERE contract_id = ?'
         ).bind(contractId).run();
 
-        // أضف الجديد (إن وُجد)
         if (data.dowryAdvance || data.dowryDeferred || data.dowryNotes) {
           await env.DB.prepare(
             `INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes)
@@ -320,18 +337,18 @@ export async function onRequestPost(context) {
         }
       }
 
-      // 2.4 تسجيل في audit_log
+      // 2.5 تسجيل في audit_log
       try {
         await env.DB.prepare(
           `INSERT INTO audit_log (action, entity_type, entity_id, details)
            VALUES ('party_save', 'party', ?, ?)`
         ).bind(
           contractId,
-          `Saved ${role} for contract ${code}`
+          `Saved ${role} for contract ${code}${photoData ? ' (with photo)' : ''}`
         ).run();
       } catch (e) { /* تجاهل */ }
 
-      // 2.5 هل اكتمل الجميع؟
+      // 2.6 هل اكتمل الجميع؟
       const countResult = await env.DB.prepare(
         'SELECT COUNT(*) as cnt FROM parties WHERE contract_id = ?'
       ).bind(contractId).first();
@@ -373,7 +390,6 @@ export async function onRequestPost(context) {
       await env.CONTRACT_KV.delete(`contract_${code}_${role}`);
       await env.CONTRACT_KV.delete(`contract_${code}_saved_${role}`);
 
-      // احذف من D1 أيضاً
       try {
         const contractRow = await env.DB.prepare(
           'SELECT id FROM contracts WHERE code = ?'
