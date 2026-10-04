@@ -1,19 +1,20 @@
 /* ============================================================
-   Admin Client - Simple & Debuggable
+   Admin Client V3 - With D1 Support & Bug Fixes
 ============================================================ */
 
 const adminState = {
   password: null,
   codes: [],
   contracts: [],
+  filteredContracts: [],
+  currentTab: 'codes',
+  currentContract: null,
 };
 
 /* ============================================================
-   أدوات مساعدة
+   Helpers
 ============================================================ */
-function $(id) {
-  return document.getElementById(id);
-}
+function $(id) { return document.getElementById(id); }
 
 function showMessage(text, type) {
   const msg = $('loginMessage');
@@ -34,14 +35,34 @@ function showSystemMessage(text, type) {
   msg.textContent = text;
   msg.className = 'system-message ' + type;
   msg.classList.remove('hidden');
-
   if (type === 'success') {
-    setTimeout(() => msg.classList.add('hidden'), 3000);
+    setTimeout(() => msg.classList.add('hidden'), 3500);
   }
 }
 
+function escapeHtml(s) {
+  if (s === undefined || s === null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ✅ إصلاح: تحويل أي قيمة إلى String قبل padStart
+function pad2(n) {
+  if (n === undefined || n === null || n === '') return '—';
+  return String(n).padStart(2, '0');
+}
+
+function formatBirthDate(p) {
+  if (!p) return '—';
+  if (!p.birthDay || !p.birthMonth || !p.birthYear) return '—';
+  return `${pad2(p.birthDay)}.${pad2(p.birthMonth)}.${p.birthYear}`;
+}
+
 /* ============================================================
-   تسجيل الدخول
+   Login
 ============================================================ */
 async function login() {
   const input = $('passwordInput');
@@ -63,33 +84,28 @@ async function login() {
     const response = await fetch('/api/admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        password: password,
-        action: 'login',
-      }),
+      body: JSON.stringify({ password, action: 'login' }),
     });
 
     const text = await response.text();
     let data;
-
     try {
       data = JSON.parse(text);
     } catch (e) {
-      showMessage('خطأ: الخادم لم يُرجع JSON صالح. الرد: ' + text.substring(0, 100), 'error');
+      showMessage('خطأ في استجابة الخادم', 'error');
       btn.disabled = false;
       btn.textContent = 'دخول';
       return;
     }
 
     if (!response.ok || !data.success) {
-      showMessage(data.message || 'فشل الدخول (كود ' + response.status + ')', 'error');
+      showMessage(data.message || 'فشل الدخول', 'error');
       btn.disabled = false;
       btn.textContent = 'دخول';
       adminState.password = null;
       return;
     }
 
-    /* نجاح */
     sessionStorage.setItem('admin_password', password);
     showPanel();
     await loadList();
@@ -102,7 +118,7 @@ async function login() {
 }
 
 /* ============================================================
-   العرض
+   Show/Hide Panel
 ============================================================ */
 function showPanel() {
   $('loginScreen').classList.add('hidden');
@@ -116,19 +132,17 @@ function showLogin() {
   hideMessage();
 }
 
-/* ============================================================
-   خروج
-============================================================ */
 function logout() {
   adminState.password = null;
   adminState.codes = [];
   adminState.contracts = [];
+  adminState.filteredContracts = [];
   sessionStorage.removeItem('admin_password');
   showLogin();
 }
 
 /* ============================================================
-   الاتصال بالـ API
+   API
 ============================================================ */
 async function apiCall(action, extra = {}) {
   const response = await fetch('/api/admin', {
@@ -136,18 +150,17 @@ async function apiCall(action, extra = {}) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       password: adminState.password,
-      action: action,
+      action,
       ...extra,
     }),
   });
 
   const text = await response.text();
   let data;
-
   try {
     data = JSON.parse(text);
   } catch (e) {
-    throw new Error('رد غير صالح من الخادم: ' + text.substring(0, 100));
+    throw new Error('استجابة غير صالحة');
   }
 
   if (!response.ok || !data.success) {
@@ -161,7 +174,28 @@ async function apiCall(action, extra = {}) {
 }
 
 /* ============================================================
-   تحميل قائمة الأكواد
+   Tabs
+============================================================ */
+function switchTab(tab) {
+  adminState.currentTab = tab;
+
+  document.querySelectorAll('.admin-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+
+  document.querySelectorAll('.tab-content').forEach(c => {
+    c.classList.add('hidden');
+  });
+
+  const target = $('tab-' + tab);
+  if (target) target.classList.remove('hidden');
+
+  if (tab === 'archive') renderArchive();
+  if (tab === 'settings') renderSettings();
+}
+
+/* ============================================================
+   Load List
 ============================================================ */
 async function loadList() {
   const tbody = $('codesBody');
@@ -171,17 +205,19 @@ async function loadList() {
     const data = await apiCall('list');
     adminState.codes = data.codes || [];
     adminState.contracts = data.contracts || [];
+    adminState.filteredContracts = [...adminState.contracts];
     renderTable();
+    updateArchiveCount();
   } catch (err) {
     tbody.innerHTML = `
-      <tr><td colspan="4" class="loading-cell" style="color:#a8332a;">
-        خطأ: ${err.message}
+      <tr><td colspan="4" class="loading-cell" style="color:#c0392b;">
+        خطأ: ${escapeHtml(err.message)}
       </td></tr>`;
   }
 }
 
 /* ============================================================
-   رسم الجدول
+   Render Codes Table
 ============================================================ */
 function renderTable() {
   const tbody = $('codesBody');
@@ -204,7 +240,7 @@ function renderTable() {
 
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      <td><span class="code-value">${contract.code}</span></td>
+      <td><span class="code-value">${escapeHtml(contract.code)}</span></td>
       <td>${statusHtml}</td>
       <td>
         <button class="btn-action" onclick="viewContract('${contract.code}')">معاينة</button>
@@ -216,11 +252,104 @@ function renderTable() {
 }
 
 /* ============================================================
-   عرض عقد
+   Archive
+============================================================ */
+function updateArchiveCount() {
+  const sentCount = adminState.contracts.filter(c => c.finished).length;
+  const el = $('archiveCount');
+  if (el) el.textContent = sentCount;
+}
+
+function renderArchive() {
+  const container = $('archiveBody');
+  if (!container) return;
+
+  const sentContracts = adminState.filteredContracts.filter(c => c.finished);
+
+  if (sentContracts.length === 0) {
+    container.innerHTML = `<div class="loading-cell">لا توجد عقود مُرسلة بعد.</div>`;
+    return;
+  }
+
+  let html = '<div class="archive-grid">';
+
+  sentContracts.forEach(contract => {
+    const groom = contract.parties?.groom;
+    const bride = contract.parties?.bride;
+
+    const groomName = groom?.nameDe || groom?.nameAr || '—';
+    const brideName = bride?.nameDe || bride?.nameAr || '—';
+
+    html += `
+      <div class="archive-item">
+        <div class="archive-item-info">
+          <div class="archive-item-code">${escapeHtml(contract.code)}</div>
+          <div class="archive-item-names">
+            <strong>الزوج:</strong> ${escapeHtml(groomName)}<br>
+            <strong>الزوجة:</strong> ${escapeHtml(brideName)}
+          </div>
+          <div class="archive-item-meta">
+            ● مُرسل${contract.contractDate ? ' — ' + escapeHtml(contract.contractDate) : ''}
+          </div>
+        </div>
+        <div class="archive-item-actions">
+          <button class="btn-action gold" onclick="viewContract('${contract.code}')">معاينة</button>
+          <button class="btn-action danger" onclick="deleteContract('${contract.code}')">حذف</button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function filterArchive() {
+  const query = ($('archiveSearch')?.value || '').trim().toLowerCase();
+  const statusFilter = $('archiveFilterStatus')?.value || 'all';
+
+  adminState.filteredContracts = adminState.contracts.filter(contract => {
+    if (statusFilter === 'sent' && !contract.finished) return false;
+    if (statusFilter === 'pending' && contract.finished) return false;
+
+    if (!query) return true;
+
+    if (contract.code.toLowerCase().includes(query)) return true;
+
+    const parties = contract.parties || {};
+    for (const key of Object.keys(parties)) {
+      const p = parties[key];
+      if (!p) continue;
+      if (p.nameDe && String(p.nameDe).toLowerCase().includes(query)) return true;
+      if (p.nameAr && String(p.nameAr).toLowerCase().includes(query)) return true;
+    }
+
+    return false;
+  });
+
+  renderArchive();
+}
+
+/* ============================================================
+   Settings
+============================================================ */
+function renderSettings() {
+  const sentCount = adminState.contracts.filter(c => c.finished).length;
+
+  const codesCountEl = $('infoCodesCount');
+  const sentCountEl = $('infoSentCount');
+
+  if (codesCountEl) codesCountEl.textContent = adminState.codes.length;
+  if (sentCountEl) sentCountEl.textContent = sentCount;
+}
+
+/* ============================================================
+   View Contract
 ============================================================ */
 async function viewContract(code) {
   try {
     const data = await apiCall('view', { code });
+    adminState.currentContract = data.contract;
     renderContractModal(data.contract);
   } catch (err) {
     alert('فشل العرض: ' + err.message);
@@ -240,17 +369,17 @@ function renderContractModal(contract) {
 
   let html = '';
 
-  /* معلومات العقد */
-  html += `<div class="contract-block">
-    <div class="contract-block-title">معلومات العقد</div>
-    <div class="contract-block-body">
-      <div class="contract-row"><strong>الكود:</strong><span>${contract.code}</span></div>
-      <div class="contract-row"><strong>الحالة:</strong><span>${contract.finished ? 'مُرسل' : 'قيد الانتظار'}</span></div>
-      ${contract.finishedAt ? `<div class="contract-row"><strong>تاريخ الإرسال:</strong><span>${new Date(contract.finishedAt).toLocaleString('de-DE')}</span></div>` : ''}
-    </div>
-  </div>`;
+  html += `
+    <div class="contract-block">
+      <div class="contract-block-title">معلومات العقد</div>
+      <div class="contract-block-body">
+        <div class="contract-row"><strong>الكود:</strong><span>${escapeHtml(contract.code)}</span></div>
+        <div class="contract-row"><strong>الحالة:</strong><span>${contract.finished ? 'مُرسل' : 'قيد الانتظار'}</span></div>
+        ${contract.contractDate ? `<div class="contract-row"><strong>تاريخ العقد:</strong><span>${escapeHtml(contract.contractDate)}</span></div>` : ''}
+        ${contract.finishedAt ? `<div class="contract-row"><strong>تاريخ الإرسال:</strong><span>${new Date(contract.finishedAt).toLocaleString('de-DE')}</span></div>` : ''}
+      </div>
+    </div>`;
 
-  /* الأطراف */
   ['groom', 'bride', 'wali', 'witness1', 'witness2'].forEach(key => {
     const p = contract.parties[key];
 
@@ -271,15 +400,14 @@ function renderContractModal(contract) {
     html += `</div></div>`;
   });
 
-  /* المهر */
   const groom = contract.parties.groom;
   if (groom && (groom.dowryAdvance || groom.dowryDeferred || groom.dowryNotes)) {
-    html += `<div class="contract-block">
+    html += `<div class="contract-block gold">
       <div class="contract-block-title">المهر (Brautgabe)</div>
       <div class="contract-block-body">
-        <div class="contract-row"><strong>المقدم:</strong><span>${groom.dowryAdvance || '—'} €</span></div>
-        <div class="contract-row"><strong>المؤخر:</strong><span>${groom.dowryDeferred || '—'} €</span></div>
-        <div class="contract-row"><strong>ملاحظات:</strong><span>${groom.dowryNotes || '—'}</span></div>
+        <div class="contract-row"><strong>المقدم:</strong><span>${escapeHtml(groom.dowryAdvance || '—')} €</span></div>
+        <div class="contract-row"><strong>المؤخر:</strong><span>${escapeHtml(groom.dowryDeferred || '—')} €</span></div>
+        <div class="contract-row"><strong>ملاحظات:</strong><span>${escapeHtml(groom.dowryNotes || '—')}</span></div>
       </div>
     </div>`;
   }
@@ -290,21 +418,19 @@ function renderContractModal(contract) {
 
 function renderPartyFields(p, key) {
   const idType = p.idType === 'passport' ? 'جواز سفر' : 'بطاقة هوية';
-  const birth = ((p.birthDay || '').padStart(2, '0')) + '.' +
-                ((p.birthMonth || '').padStart(2, '0')) + '.' +
-                (p.birthYear || '');
+  const birth = formatBirthDate(p);
 
   let html = '';
-  html += `<div class="contract-row"><strong>الاسم (DE):</strong><span>${p.nameDe || '—'}</span></div>`;
-  html += `<div class="contract-row"><strong>الاسم (AR):</strong><span>${p.nameAr || '—'}</span></div>`;
-  html += `<div class="contract-row"><strong>الميلاد:</strong><span>${birth === '..' ? '—' : birth}</span></div>`;
-  html += `<div class="contract-row"><strong>مكان الميلاد:</strong><span>${p.birthRegion || '—'}, ${p.birthCountry || '—'}</span></div>`;
-  html += `<div class="contract-row"><strong>الهوية:</strong><span>${idType} — ${p.idNumber || '—'}</span></div>`;
-  html += `<div class="contract-row"><strong>العنوان:</strong><span>${p.addressStreet || ''} ${p.addressNumber || ''}, ${p.postalCode || ''} ${p.city || ''}</span></div>`;
+  html += `<div class="contract-row"><strong>الاسم (DE):</strong><span>${escapeHtml(p.nameDe || '—')}</span></div>`;
+  html += `<div class="contract-row"><strong>الاسم (AR):</strong><span>${escapeHtml(p.nameAr || '—')}</span></div>`;
+  html += `<div class="contract-row"><strong>الميلاد:</strong><span>${birth}</span></div>`;
+  html += `<div class="contract-row"><strong>مكان الميلاد:</strong><span>${escapeHtml(p.birthRegion || '—')}, ${escapeHtml(p.birthCountry || '—')}</span></div>`;
+  html += `<div class="contract-row"><strong>الهوية:</strong><span>${idType} — ${escapeHtml(p.idNumber || '—')}</span></div>`;
+  html += `<div class="contract-row"><strong>العنوان:</strong><span>${escapeHtml(p.addressStreet || '')} ${escapeHtml(p.addressNumber || '')}, ${escapeHtml(p.postalCode || '')} ${escapeHtml(p.city || '')}</span></div>`;
 
   if (key === 'groom' || key === 'bride') {
-    html += `<div class="contract-row"><strong>الأم (DE):</strong><span>${p.motherNameDe || '—'}</span></div>`;
-    html += `<div class="contract-row"><strong>الأم (AR):</strong><span>${p.motherNameAr || '—'}</span></div>`;
+    html += `<div class="contract-row"><strong>الأم (DE):</strong><span>${escapeHtml(p.motherNameDe || '—')}</span></div>`;
+    html += `<div class="contract-row"><strong>الأم (AR):</strong><span>${escapeHtml(p.motherNameAr || '—')}</span></div>`;
   }
 
   return html;
@@ -312,42 +438,53 @@ function renderPartyFields(p, key) {
 
 function closeModal() {
   $('viewModal').classList.add('hidden');
+  adminState.currentContract = null;
+}
+
+function printContract() {
+  window.print();
 }
 
 /* ============================================================
-   حذف عقد
+   Delete Contract
 ============================================================ */
 async function deleteContract(code) {
-  if (!confirm('حذف العقد ' + code + ' نهائياً؟')) return;
+  if (!confirm('حذف العقد ' + code + ' نهائياً؟\n\nلا يمكن التراجع.')) return;
 
   try {
     await apiCall('delete', { code });
-    showSystemMessage('تم حذف العقد بنجاح', 'success');
+    showSystemMessage('✓ تم حذف العقد', 'success');
     await loadList();
+    if (adminState.currentTab === 'archive') renderArchive();
   } catch (err) {
     alert('فشل الحذف: ' + err.message);
   }
 }
 
 /* ============================================================
-   توليد أكواد جديدة
+   Generate New Codes
 ============================================================ */
 async function generateNewCodes() {
-  if (!confirm('سيتم حذف الأكواد الحالية وكل العقود المرتبطة بها.\n\nهل أنت متأكد؟')) {
-    return;
+  const sentCount = adminState.contracts.filter(c => c.finished).length;
+
+  if (sentCount > 0) {
+    if (!confirm(`⚠️ تحذير: يوجد ${sentCount} عقد مُرسل.\n\nتوليد أكواد جديدة سيمسح كل العقود السابقة (من KV و D1).\n\nهل أنت متأكد؟`)) return;
   }
+
+  if (!confirm('⚠️ سيتم حذف الأكواد الحالية وكل العقود المرتبطة بها من قاعدة البيانات.\n\nهل أنت متأكد؟')) return;
 
   try {
     const data = await apiCall('generate');
     showSystemMessage('✓ ' + (data.message || 'تم توليد 5 أكواد جديدة'), 'success');
     await loadList();
+    if (adminState.currentTab === 'archive') renderArchive();
   } catch (err) {
     alert('فشل التوليد: ' + err.message);
   }
 }
 
 /* ============================================================
-   مسح المسودات المحلية
+   Clear Local Drafts
 ============================================================ */
 function clearLocalDrafts() {
   if (!confirm('مسح المسودات المحفوظة على هذا المتصفح؟')) return;
@@ -364,15 +501,17 @@ function clearLocalDrafts() {
 }
 
 /* ============================================================
-   تحديث
+   Refresh
 ============================================================ */
 async function refreshData() {
   await loadList();
+  if (adminState.currentTab === 'archive') renderArchive();
+  if (adminState.currentTab === 'settings') renderSettings();
   showSystemMessage('✓ تم التحديث', 'success');
 }
 
 /* ============================================================
-   التهيئة
+   Init
 ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
   const savedPassword = sessionStorage.getItem('admin_password');
@@ -406,13 +545,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /* ============================================================
-   تصدير
+   Exports
 ============================================================ */
 window.login = login;
 window.logout = logout;
+window.switchTab = switchTab;
 window.refreshData = refreshData;
 window.viewContract = viewContract;
 window.closeModal = closeModal;
+window.printContract = printContract;
 window.deleteContract = deleteContract;
 window.generateNewCodes = generateNewCodes;
 window.clearLocalDrafts = clearLocalDrafts;
+window.filterArchive = filterArchive;
