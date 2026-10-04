@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>شهادة عقد زواج - Arresalah Zentrum</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/print.css?v=1">
+</head>
+<body>
+
+<!-- شاشة التحميل -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="spinner"></div>
+  <p>جارٍ تحضير الشهادة للطباعة...</p>
+</div>
+
+<!-- شاشة الخطأ -->
+<div id="errorScreen" class="error-screen hidden">
+  <div class="error-box">
+    <div class="error-icon">⚠️</div>
+    <h2 id="errorTitle">خطأ</h2>
+    <p id="errorMessage">حدث خطأ غير متوقع</p>
+    <button onclick="window.close()" class="btn-back">إغلاق</button>
+  </div>
+</div>
+
+<!-- شريط الأدوات (لا يُطبع) -->
+<div id="toolbar" class="toolbar hidden">
+  <div class="toolbar-left">
+    <button onclick="window.print()" class="btn-print">
+      🖨 طباعة
+    </button>
+    <button onclick="downloadPDF()" class="btn-pdf">
+      📄 تحميل PDF
+    </button>
+  </div>
+  <div class="toolbar-center">
+    <span class="toolbar-code">رقم العقد: <strong id="toolbarCode">—</strong></span>
+  </div>
+  <div class="toolbar-right">
+    <button onclick="window.close()" class="btn-close">
+      ✕ إغلاق
+    </button>
+  </div>
+</div>
+
+<!-- الشهادة -->
+<div id="certificateWrap" class="certificate-wrap hidden">
+  <div class="certificate" id="certificate">
+    <!-- سيتم بناؤه بواسطة JS -->
+  </div>
+</div>
+
+<script src="./js/print.js?v=1"></script>
+</body>
+</html>
