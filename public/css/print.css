@@ -1,6 +1,6 @@
 /* ============================================================
-   Print Contract - Certificate Styles
-   مطابق لتصميم شهادة الزواج الرسمية
+   Print Contract - Certificate Styles V2
+   مطابق لتصميم شهادة الزواج الرسمية (مع الإصلاحات)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -16,7 +16,7 @@ body {
 .hidden { display: none !important; }
 
 /* ============================================================
-   Loading
+   Loading & Error
 ============================================================ */
 .loading-screen {
   min-height: 100vh;
@@ -37,13 +37,8 @@ body {
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* ============================================================
-   Error
-============================================================ */
 .error-screen {
   min-height: 100vh;
   display: flex;
@@ -68,10 +63,7 @@ body {
   font-size: 20px;
 }
 
-.error-box p {
-  color: #666;
-  margin-bottom: 25px;
-}
+.error-box p { color: #666; margin-bottom: 25px; }
 
 .btn-back {
   padding: 10px 24px;
@@ -86,7 +78,7 @@ body {
 }
 
 /* ============================================================
-   Toolbar (لا يُطبع)
+   Toolbar
 ============================================================ */
 .toolbar {
   position: fixed;
@@ -105,16 +97,8 @@ body {
   box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
 
-.toolbar-left,
-.toolbar-right {
-  display: flex;
-  gap: 10px;
-}
-
-.toolbar-center {
-  font-size: 13px;
-  opacity: 0.9;
-}
+.toolbar-left, .toolbar-right { display: flex; gap: 10px; }
+.toolbar-center { font-size: 13px; opacity: 0.9; }
 
 .toolbar-code strong {
   color: #c9a961;
@@ -134,33 +118,14 @@ body {
   transition: all 0.2s;
 }
 
-.btn-print {
-  background: #c9a961;
-  color: #1b4332;
-}
+.btn-print { background: #c9a961; color: #1b4332; }
+.btn-print:hover { background: #e9d5a1; transform: translateY(-1px); }
 
-.btn-print:hover {
-  background: #e9d5a1;
-  transform: translateY(-1px);
-}
+.btn-pdf { background: #fff; color: #2d6a4f; }
+.btn-pdf:hover { background: #e8f3ed; }
 
-.btn-pdf {
-  background: #fff;
-  color: #2d6a4f;
-}
-
-.btn-pdf:hover {
-  background: #e8f3ed;
-}
-
-.btn-close {
-  background: rgba(255,255,255,0.15);
-  color: #fff;
-}
-
-.btn-close:hover {
-  background: rgba(255,255,255,0.25);
-}
+.btn-close { background: rgba(255,255,255,0.15); color: #fff; }
+.btn-close:hover { background: rgba(255,255,255,0.25); }
 
 /* ============================================================
    Certificate Wrapper
@@ -176,21 +141,28 @@ body {
   font-family: 'Tajawal', 'Noto Naskh Arabic', sans-serif;
   background: #fff;
   color: #000;
-  padding: 14px;
+  padding: 12px;
   border: 3px solid #1a4d8a;
-  position: relative;
 }
 
 /* ============================================================
-   Certificate Header - الترويسة
+   ✅ Header - مدمج مع الشعارين
 ============================================================ */
 .cert-header {
   text-align: center;
   border-bottom: 2px solid #1a4d8a;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
   position: relative;
-  min-height: 75px;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cert-header-title-wrap {
+  flex: 1;
+  padding: 0 90px;
 }
 
 .cert-header-title-de {
@@ -198,7 +170,7 @@ body {
   font-size: 19px;
   font-weight: 900;
   color: #000;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   letter-spacing: 0.2px;
 }
 
@@ -207,32 +179,28 @@ body {
   font-size: 22px;
   font-weight: 700;
   color: #000;
-  margin-bottom: 2px;
 }
 
 .cert-header-subtitle {
-  font-size: 11px;
+  font-size: 10px;
   color: #666;
   font-style: italic;
+  margin-top: 2px;
 }
 
 .cert-logo {
   position: absolute;
-  top: 0;
-  width: 80px;
-  height: 70px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 75px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.cert-logo.ar {
-  right: 0;
-}
-
-.cert-logo.de {
-  left: 0;
-}
+.cert-logo.ar { right: 0; }
+.cert-logo.de { left: 0; }
 
 .cert-logo img {
   max-width: 100%;
@@ -242,55 +210,96 @@ body {
 }
 
 /* ============================================================
-   Top Info Row - تاريخ العقد + المكان
+   ✅ Top Info Row - مع عكس الترتيب + صور شخصية
 ============================================================ */
 .cert-top-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr;
+  grid-template-columns: 1.2fr 1fr 1.5fr;
   gap: 0;
   border: 1.5px solid #1a4d8a;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-size: 11px;
+  min-height: 60px;
 }
 
 .cert-top-row .cell {
   padding: 6px 10px;
   border-left: 1px solid #1a4d8a;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
-.cert-top-row .cell:last-child {
-  border-left: none;
+.cert-top-row .cell:last-child { border-left: none; }
+
+/* الخلية الأخيرة (اليسرى) = عنوان المركز + صورتان */
+.cert-top-row .cell-address {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
 }
+
+.cert-top-row .address-info { text-align: right; }
 
 .cert-top-row .cell-label {
   font-weight: 700;
-  font-size: 11px;
+  font-size: 10.5px;
   margin-bottom: 3px;
   color: #000;
 }
 
 .cert-top-row .cell-label-ar {
   font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #1a4d8a;
   margin-bottom: 4px;
 }
 
 .cert-top-row .cell-value {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #000;
 }
 
 .cert-top-row .cell-value-ar {
   font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
 }
 
+/* ✅ مكان الصور الشخصية */
+.cert-photos {
+  display: flex;
+  gap: 6px;
+}
+
+.cert-photo-box {
+  width: 45px;
+  height: 55px;
+  border: 1px dashed #1a4d8a;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: #1a4d8a;
+  text-align: center;
+  line-height: 1.2;
+  background: #f8faff;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cert-photo-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* ============================================================
-   Two Column Row (Groom/Bride, Wali, Witnesses)
+   Two Columns (Groom/Bride)
 ============================================================ */
 .cert-two-cols {
   display: grid;
@@ -298,7 +307,7 @@ body {
   gap: 0;
   border: 1.5px solid #1a4d8a;
   border-top: none;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .cert-col {
@@ -308,9 +317,7 @@ body {
   line-height: 1.5;
 }
 
-.cert-col:last-child {
-  border-left: none;
-}
+.cert-col:last-child { border-left: none; }
 
 .cert-col-title {
   font-weight: 900;
@@ -340,14 +347,14 @@ body {
   color: #1a4d8a;
   white-space: nowrap;
   font-size: 10.5px;
-  min-width: 90px;
+  min-width: 95px;
 }
 
 .cert-field .key-ar {
   font-family: 'Noto Naskh Arabic', 'Amiri', serif;
   font-weight: 700;
   color: #1a4d8a;
-  font-size: 11.5px;
+  font-size: 11px;
   min-width: 70px;
 }
 
@@ -361,8 +368,13 @@ body {
   min-height: 15px;
 }
 
+/* ✅ صف اسم الأم بالعربي (جديد) */
+.cert-field.mother-ar {
+  margin-top: 2px;
+}
+
 /* ============================================================
-   Wali Row - 4 columns
+   Wali Row
 ============================================================ */
 .cert-wali-row {
   display: grid;
@@ -370,7 +382,7 @@ body {
   gap: 0;
   border: 1.5px solid #1a4d8a;
   border-top: none;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .cert-wali-cell {
@@ -379,9 +391,7 @@ body {
   font-size: 11px;
 }
 
-.cert-wali-cell:last-child {
-  border-left: none;
-}
+.cert-wali-cell:last-child { border-left: none; }
 
 .cert-wali-cell .k {
   font-weight: 700;
@@ -423,7 +433,7 @@ body {
   gap: 0;
   border: 1.5px solid #1a4d8a;
   border-top: none;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .cert-witness-box {
@@ -433,9 +443,7 @@ body {
   line-height: 1.5;
 }
 
-.cert-witness-box:last-child {
-  border-left: none;
-}
+.cert-witness-box:last-child { border-left: none; }
 
 .cert-witness-title {
   font-weight: 900;
@@ -453,19 +461,19 @@ body {
 }
 
 /* ============================================================
-   Documents Row - مستندات
+   Documents Row
 ============================================================ */
 .cert-docs-row {
   border: 1.5px solid #1a4d8a;
   border-top: none;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   padding: 6px 10px;
   font-size: 11px;
 }
 
 .cert-docs-titles {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 0.6fr;
+  grid-template-columns: 1.5fr 1fr;
   gap: 12px;
   margin-bottom: 8px;
   padding-bottom: 4px;
@@ -474,14 +482,12 @@ body {
   font-size: 10.5px;
 }
 
-.cert-docs-titles .col-de {
-  font-family: 'Tajawal', sans-serif;
-}
-
+.cert-docs-titles .col-de { font-family: 'Tajawal', sans-serif; }
 .cert-docs-titles .col-ar {
   font-family: 'Noto Naskh Arabic', 'Amiri', serif;
   color: #1a4d8a;
   font-size: 11px;
+  text-align: center;
 }
 
 .cert-docs-grid {
@@ -494,10 +500,13 @@ body {
 .cert-docs-grid .doc-cell {
   border: 1px solid #1a4d8a;
   border-radius: 3px;
-  padding: 4px 6px;
+  padding: 5px 6px;
   font-size: 10px;
-  min-height: 32px;
+  min-height: 34px;
   background: #f8faff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .cert-docs-grid .doc-cell b {
@@ -514,19 +523,69 @@ body {
 }
 
 /* ============================================================
-   Footer - صيغة العقد + التوقيع
+   ✅ Footer - توقيع على اليمين + تصغير الإمام
 ============================================================ */
 .cert-footer {
   display: grid;
-  grid-template-columns: 2.2fr 1fr;
+  grid-template-columns: 1fr 2.2fr;  /* ✅ عكس: التوقيع أولاً (يمين) */
   gap: 0;
   border: 1.5px solid #1a4d8a;
   border-top: none;
 }
 
+/* ✅ صندوق التوقيع - على اليمين */
+.cert-footer-sign {
+  padding: 8px 12px;
+  border-left: 1.5px solid #1a4d8a;  /* الحد يفصله عن النص */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+}
+
+.cert-footer-sign .sign-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1a4d8a;
+  border-bottom: 1px dashed #999;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  width: 100%;
+}
+
+.cert-footer-sign .sign-ar {
+  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+  font-size: 10px;
+  color: #1a4d8a;
+  font-weight: 700;
+}
+
+/* ✅ الإمام - خط صغير */
+.cert-footer-sign .sign-area {
+  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
+  font-size: 14px;  /* ← كان 22px، الآن 14px */
+  color: #1a4d8a;
+  font-weight: 700;
+  margin: 10px 0;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cert-footer-sign .sign-line {
+  width: 100%;
+  border-top: 1px solid #000;
+  margin-top: 4px;
+  padding-top: 4px;
+  font-size: 9px;
+  color: #666;
+}
+
+/* النص - على اليسار */
 .cert-footer-text {
   padding: 8px 12px;
-  border-left: 1.5px solid #1a4d8a;
   font-size: 11px;
   line-height: 1.7;
 }
@@ -547,7 +606,7 @@ body {
 
 .cert-footer-text .ar {
   font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.8;
 }
@@ -568,64 +627,8 @@ body {
   color: #555;
 }
 
-.cert-footer-sign {
-  padding: 8px 12px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  text-align: center;
-}
-
-.cert-footer-sign .sign-title {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #1a4d8a;
-  border-bottom: 1px dashed #999;
-  padding-bottom: 4px;
-  margin-bottom: 4px;
-  width: 100%;
-}
-
-.cert-footer-sign .sign-ar {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 11px;
-  color: #1a4d8a;
-  font-weight: 700;
-}
-
-.cert-footer-sign .sign-area {
-  font-family: 'Noto Naskh Arabic', 'Amiri', serif;
-  font-size: 22px;
-  color: #1a4d8a;
-  font-weight: 700;
-  margin: 8px 0;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.cert-footer-sign .sign-line {
-  width: 100%;
-  border-top: 1px solid #000;
-  margin-top: 4px;
-  padding-top: 4px;
-  font-size: 10px;
-  color: #666;
-}
-
 /* ============================================================
-   Divider - خط الفواصل
-============================================================ */
-.cert-divider {
-  height: 4px;
-  background: #1a4d8a;
-  margin: 6px 0;
-}
-
-/* ============================================================
-   Print Styles - إعدادات الطباعة
+   Print
 ============================================================ */
 @media print {
   @page {
@@ -639,9 +642,7 @@ body {
     margin: 0;
   }
 
-  .toolbar,
-  .loading-screen,
-  .error-screen {
+  .toolbar, .loading-screen, .error-screen {
     display: none !important;
   }
 
@@ -654,11 +655,10 @@ body {
 
   .certificate {
     border: 3px solid #1a4d8a;
-    padding: 12px;
+    padding: 10px;
     background: #fff;
   }
 
-  /* منع قطع العناصر */
   .cert-header,
   .cert-top-row,
   .cert-two-cols,
@@ -669,7 +669,6 @@ body {
     page-break-inside: avoid;
   }
 
-  /* ضبط الألوان للطباعة */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -677,89 +676,45 @@ body {
 }
 
 /* ============================================================
-   Responsive - منع التفكك على الجوال
+   Responsive - الجوال
 ============================================================ */
 @media (max-width: 720px) {
   body { padding: 10px; }
 
-  .toolbar {
-    padding: 10px 12px;
-    font-size: 12px;
-  }
+  .toolbar { padding: 10px 12px; }
+  .toolbar-center { display: none; }
+  .toolbar button { padding: 7px 12px; font-size: 12px; }
 
-  .toolbar-center {
-    display: none;
-  }
+  .certificate-wrap { margin: 70px auto 20px; }
+  .certificate { padding: 8px; }
 
-  .toolbar button {
-    padding: 7px 12px;
-    font-size: 12px;
-  }
+  .cert-header { min-height: 60px; padding-bottom: 6px; }
+  .cert-header-title-wrap { padding: 0 65px; }
+  .cert-header-title-de { font-size: 13px; }
+  .cert-header-title-ar { font-size: 15px; }
+  .cert-logo { width: 55px; height: 50px; }
 
-  .certificate-wrap {
-    margin: 70px auto 20px;
-  }
-
-  .certificate {
-    padding: 8px;
-  }
-
-  .cert-header-title-de { font-size: 14px; }
-  .cert-header-title-ar { font-size: 16px; }
-  .cert-logo { width: 60px; height: 55px; }
-
-  .cert-top-row {
-    grid-template-columns: 1fr;
-  }
-
-  .cert-top-row .cell {
-    border-left: none;
-    border-bottom: 1px solid #1a4d8a;
-  }
-
-  .cert-top-row .cell:last-child {
-    border-bottom: none;
-  }
+  .cert-top-row { grid-template-columns: 1fr; }
+  .cert-top-row .cell { border-left: none; border-bottom: 1px solid #1a4d8a; }
+  .cert-top-row .cell:last-child { border-bottom: none; }
+  .cert-top-row .cell-address { grid-template-columns: 1fr; text-align: center; }
+  .cert-photos { justify-content: center; }
 
   .cert-two-cols,
-  .cert-witness-row {
-    grid-template-columns: 1fr;
-  }
+  .cert-witness-row { grid-template-columns: 1fr; }
 
-  .cert-col,
-  .cert-witness-box {
+  .cert-col, .cert-witness-box {
     border-left: none;
     border-bottom: 1px solid #1a4d8a;
   }
+  .cert-col:last-child, .cert-witness-box:last-child { border-bottom: none; }
 
-  .cert-col:last-child,
-  .cert-witness-box:last-child {
-    border-bottom: none;
-  }
+  .cert-wali-row { grid-template-columns: 1fr; }
+  .cert-wali-cell { border-left: none; border-bottom: 1px solid #1a4d8a; }
+  .cert-wali-cell:last-child { border-bottom: none; }
 
-  .cert-wali-row {
-    grid-template-columns: 1fr;
-  }
+  .cert-docs-grid { grid-template-columns: repeat(2, 1fr); }
 
-  .cert-wali-cell {
-    border-left: none;
-    border-bottom: 1px solid #1a4d8a;
-  }
-
-  .cert-wali-cell:last-child {
-    border-bottom: none;
-  }
-
-  .cert-docs-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .cert-footer {
-    grid-template-columns: 1fr;
-  }
-
-  .cert-footer-text {
-    border-left: none;
-    border-bottom: 1px solid #1a4d8a;
-  }
+  .cert-footer { grid-template-columns: 1fr; }
+  .cert-footer-sign { border-left: none; border-bottom: 1.5px solid #1a4d8a; }
 }
