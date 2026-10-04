@@ -1,9 +1,6 @@
 /* ============================================================
-   Print Contract - CSS V5
-   - Arial Font Everywhere
-   - Husband photo top-left, Wife top-right
-   - Logo centered
-   - Labels left, Values right
+   Print Contract - CSS V13 (Final)
+   V12 Design Approved
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14,7 +11,6 @@ body {
   color: #000;
   min-height: 100vh;
   padding: 20px;
-  direction: rtl;
 }
 
 .hidden { display: none !important; }
@@ -30,12 +26,10 @@ body {
   justify-content: center;
   gap: 20px;
   color: #666;
-  font-family: Arial, sans-serif;
 }
 
 .spinner {
-  width: 50px;
-  height: 50px;
+  width: 50px; height: 50px;
   border: 4px solid #e8f3ed;
   border-top-color: #2d6a4f;
   border-radius: 50%;
@@ -46,9 +40,7 @@ body {
 
 .error-screen {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
 }
 
 .error-box {
@@ -58,7 +50,6 @@ body {
   padding: 40px;
   max-width: 450px;
   text-align: center;
-  font-family: Arial, sans-serif;
 }
 
 .error-icon { font-size: 48px; margin-bottom: 15px; }
@@ -82,9 +73,7 @@ body {
 ============================================================ */
 .toolbar {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   background: #2d6a4f;
   color: #fff;
   padding: 12px 24px;
@@ -95,7 +84,6 @@ body {
   gap: 12px;
   z-index: 100;
   box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-  font-family: Arial, sans-serif;
 }
 
 .toolbar-left, .toolbar-right { display: flex; gap: 10px; }
@@ -142,99 +130,43 @@ body {
   color: #000;
   padding: 10px;
   border: 3px solid #1a4d8a;
-  direction: rtl;
 }
 
 /* ============================================================
-   ✅ HEADER
-   Layout: [Husband photo] [Logo + Titles] [Wife photo]
+   HEADER
 ============================================================ */
 .cert-header {
   display: grid;
-  grid-template-columns: 90px 1fr 90px;
-  gap: 10px;
+  grid-template-columns: 85px 1fr 85px;
+  gap: 8px;
   align-items: center;
   border-bottom: 2px solid #1a4d8a;
-  padding-bottom: 8px;
-  margin-bottom: 6px;
-  min-height: 110px;
+  padding: 4px 0;
+  margin-bottom: 5px;
+  min-height: 68px;
 }
 
-/* Husband photo - LEFT side */
 .cert-header-photo {
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-}
-
-.cert-header-photo:first-child {
-  justify-content: flex-end;
-}
-
-.cert-header-photo:last-child {
-  justify-content: flex-start;
-}
-
-/* Center */
-.cert-header-center {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-}
-
-.cert-logo {
-  width: 55px;
-  height: 45px;
-  display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 2px;
 }
 
-.cert-logo img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  display: block;
-}
-
-.cert-logo-fallback {
-  font-family: Arial, sans-serif;
-  font-size: 12px;
-  color: #1a4d8a;
-  font-weight: 700;
-}
-
-.cert-header-title-de {
-  font-family: Arial, sans-serif;
-  font-size: 17px;
-  font-weight: 900;
-  color: #000;
-  margin-bottom: 2px;
-  letter-spacing: 0.1px;
-}
-
-.cert-header-title-ar {
-  font-family: Arial, sans-serif;
-  font-size: 19px;
-  font-weight: 700;
-  color: #000;
-}
-
-/* Photo boxes */
 .cert-photo-box {
-  width: 80px;
-  height: 100px;
+  width: 70px;
+  height: 82px;
   border: 1.5px dashed #1a4d8a;
-  border-radius: 4px;
+  border-radius: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
   background: #f8faff;
-  flex-shrink: 0;
+  color: #1a4d8a;
+  font-size: 8.5px;
+  text-align: center;
+  line-height: 1.2;
+  padding: 3px;
+  overflow: hidden;
 }
 
 .cert-photo-box img {
@@ -244,410 +176,480 @@ body {
   display: block;
 }
 
-.cert-photo-box span {
-  font-family: Arial, sans-serif;
-  font-size: 9px;
+.cert-header-center { text-align: center; }
+
+.cert-logo {
+  width: 48px;
+  height: 38px;
+  margin: 0 auto 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
   color: #1a4d8a;
-  text-align: center;
-  line-height: 1.2;
-  padding: 4px;
+  font-weight: 700;
+}
+
+.cert-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.cert-header-title-de {
+  font-size: 15px;
+  font-weight: 900;
+  color: #000;
+  margin-bottom: 1px;
+}
+
+.cert-header-title-ar {
+  font-size: 17px;
+  font-weight: 700;
+  color: #000;
 }
 
 /* ============================================================
-   ✅ INFO STRIP
-   Layout: [Date] [Place] [Address]
-   Order in RTL: Date appears LEFT, Address appears RIGHT
+   INFO STRIP
 ============================================================ */
 .cert-info-strip {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr;
+  grid-template-columns: 1.2fr 1fr 1fr;
   border: 1.5px solid #1a4d8a;
-  margin-bottom: 6px;
-  font-size: 11px;
-  min-height: 55px;
+  margin-bottom: 5px;
+  min-height: 42px;
 }
 
 .cert-info-cell {
-  padding: 6px 10px;
+  padding: 8px 10px;
   border-left: 1px solid #1a4d8a;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
 }
 
 .cert-info-cell:last-child { border-left: none; }
 
-.cert-info-labels {
+.info-line {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: baseline;
+  gap: 6px;
+  direction: ltr;
+  flex-wrap: wrap;
 }
 
-.cert-info-labels .label-de {
-  font-family: Arial, sans-serif;
+.info-line .label-de {
   font-size: 10.5px;
   font-weight: 700;
   color: #000;
   direction: ltr;
-  text-align: right;
+  white-space: nowrap;
 }
 
-.cert-info-labels .label-ar {
-  font-family: Arial, sans-serif;
-  font-size: 11px;
+.info-line .label-ar {
+  font-size: 10.5px;
   font-weight: 700;
   color: #1a4d8a;
   direction: rtl;
-  text-align: right;
+  white-space: nowrap;
 }
 
-.cert-info-value {
-  font-family: Arial, sans-serif;
-  font-size: 14px;
+.info-line .value {
+  font-size: 13px;
   font-weight: 900;
   color: #000;
-  text-align: right;
   direction: ltr;
-  margin-top: 2px;
+  white-space: nowrap;
 }
 
 /* ============================================================
-   ✅ TWO COLUMNS (Groom / Bride)
+   TWO COLUMNS
 ============================================================ */
 .cert-two-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
   border: 1.5px solid #1a4d8a;
   border-top: none;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .cert-col {
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-left: 1px solid #1a4d8a;
-  font-size: 11px;
 }
 
 .cert-col:last-child { border-left: none; }
 
 .cert-col-title {
-  font-family: Arial, sans-serif;
   font-weight: 900;
-  font-size: 12.5px;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
+  font-size: 12px;
+  margin-bottom: 5px;
+  padding-bottom: 3px;
   border-bottom: 1px dashed #999;
   display: flex;
   justify-content: space-between;
 }
 
-.cert-col-title .ar {
-  color: #1a4d8a;
-}
+.cert-col-title .ar { color: #1a4d8a; }
 
 /* ============================================================
-   ✅ COMMON: LABEL-VALUE ROW
-   Layout: [Label at LEFT] [Value at RIGHT]
-   In RTL: Label appears RIGHT (first), Value appears LEFT
-   BUT visually we want: label on left side, value on right side
-   Solution: force direction LTR inside row, and use flex-direction: row
+   CV ROW
 ============================================================ */
 .cv-row {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
-  margin-bottom: 4px;
+  padding: 3px 0;
   direction: ltr;
-  padding: 2px 0;
 }
 
-/* Label - LEFT side (fixed width) */
 .cv-label {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 130px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
   flex-shrink: 0;
+  max-width: 58%;
+  direction: ltr;
+}
+
+.cv-label-de {
+  font-size: 10px;
+  font-weight: 700;
+  color: #000;
+  direction: ltr;
+  white-space: nowrap;
+}
+
+.cv-label-ar {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1a4d8a;
+  direction: rtl;
+  white-space: nowrap;
+}
+
+.v-value {
+  flex: 1;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #000;
+  padding: 1px 6px 2px;
+  min-height: 15px;
+  direction: ltr;
+  text-align: right;
+  border-bottom: 1px dotted #999;
+  word-break: break-word;
+}
+
+.v-value.v-ar {
   direction: rtl;
   text-align: right;
 }
 
-.cv-label-de {
-  font-family: Arial, sans-serif;
+/* ============================================================
+   WALI + DOWRY
+============================================================ */
+.cert-wali-dowry {
+  border: 1.5px solid #1a4d8a;
+  border-top: none;
+  margin-bottom: 5px;
+}
+
+.wali-dowry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.wali-dowry-col {
+  padding: 8px 12px;
+  border-left: 1px solid #1a4d8a;
+}
+
+.wali-dowry-col:last-child { border-left: none; }
+
+.wd-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 4px 0;
+  direction: ltr;
+  border-bottom: 1px dotted #ddd;
+}
+
+.wd-row:last-child { border-bottom: none; }
+
+.wd-label {
+  flex: 0 0 48%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  direction: ltr;
+}
+
+.wd-label-de {
   font-size: 10.5px;
   font-weight: 700;
   color: #000;
   direction: ltr;
-  text-align: right;
-  line-height: 1.2;
+  text-align: left;
+  line-height: 1.3;
 }
 
-.cv-label-ar {
-  font-family: Arial, sans-serif;
-  font-size: 11px;
+.wd-label-ar {
+  font-size: 10.5px;
   font-weight: 700;
   color: #1a4d8a;
   direction: rtl;
-  text-align: right;
-  line-height: 1.2;
-}
-
-/* Value - RIGHT side */
-.v-value {
-  flex: 1;
-  font-family: Arial, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #000;
-  border-bottom: 1px dotted #999;
-  padding: 2px 6px 3px;
-  min-height: 16px;
-  direction: ltr;
   text-align: left;
-  word-break: break-word;
+  line-height: 1.3;
 }
 
-.v-value.v-gold {
+.wd-value {
+  flex: 1;
+  padding-bottom: 2px;
+  border-bottom: 1px dotted #999;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.wd-value-de {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #000;
+  direction: ltr;
+  text-align: right;
+  line-height: 1.3;
+}
+
+.wd-value-ar {
+  font-size: 11px;
+  font-weight: 700;
+  color: #000;
+  direction: rtl;
+  text-align: right;
+  line-height: 1.3;
+}
+
+.wd-value.wd-gold .wd-value-de {
   color: #8b6f1e;
   font-weight: 900;
-  font-size: 13.5px;
-  border-bottom-color: #c9a961;
-}
-
-/* Separator line inside big boxes */
-.cv-separator {
-  height: 1px;
-  background: #999;
-  margin: 8px 0;
+  font-size: 13px;
 }
 
 /* ============================================================
-   ✅ WALI + DOWRY BOX (merged)
-============================================================ */
-.cert-wali-box {
-  border: 1.5px solid #1a4d8a;
-  border-top: none;
-  padding: 8px 12px;
-  margin-bottom: 6px;
-}
-
-/* ============================================================
-   ✅ WITNESSES
+   WITNESSES
 ============================================================ */
 .cert-witness-box {
   display: grid;
   grid-template-columns: 1fr 1fr;
   border: 1.5px solid #1a4d8a;
   border-top: none;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .cert-witness-col {
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-left: 1px solid #1a4d8a;
 }
 
 .cert-witness-col:last-child { border-left: none; }
 
 .cert-witness-title {
-  font-family: Arial, sans-serif;
   font-weight: 900;
-  font-size: 12.5px;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
+  font-size: 12px;
+  margin-bottom: 5px;
+  padding-bottom: 3px;
   border-bottom: 1px dashed #999;
   display: flex;
   justify-content: space-between;
 }
 
-.cert-witness-title .ar {
-  color: #1a4d8a;
-}
+.cert-witness-title .ar { color: #1a4d8a; }
 
 /* ============================================================
-   ✅ DOCUMENTS
+   PARTY SIGNATURES
 ============================================================ */
-.cert-docs-box {
+.cert-party-signatures {
   border: 1.5px solid #1a4d8a;
   border-top: none;
-  padding: 6px 10px;
-  margin-bottom: 6px;
+  padding: 8px 10px;
+  margin-bottom: 5px;
 }
 
-.cert-docs-title {
+.party-signatures-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: #1a4d8a;
+  margin-bottom: 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed #1a4d8a;
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  padding-bottom: 4px;
-  margin-bottom: 6px;
-  border-bottom: 1px dashed #999;
-  font-family: Arial, sans-serif;
-  font-size: 10.5px;
-  font-weight: 700;
-  direction: ltr;
 }
 
-.cert-docs-title .ar {
-  color: #1a4d8a;
+.party-signatures-title .ar {
   direction: rtl;
+  color: #1a4d8a;
 }
 
-.cert-docs-grid {
+.party-signatures-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 6px;
 }
 
-.cert-docs-grid .doc-cell {
+.party-sig-cell {
   border: 1px solid #1a4d8a;
   border-radius: 3px;
   padding: 5px 4px;
-  font-size: 10px;
-  min-height: 34px;
-  background: #f8faff;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  font-family: Arial, sans-serif;
-}
-
-.cert-docs-grid .doc-cell b {
-  display: block;
-  color: #1a4d8a;
-  font-size: 10.5px;
-  margin-bottom: 2px;
-  direction: ltr;
-}
-
-.cert-docs-grid .doc-cell span {
-  direction: rtl;
-  color: #000;
-  font-weight: 700;
-}
-
-/* ============================================================
-   ✅ FOOTER
-   Layout: [Contract Text] [Signature]
-   In RTL: Text is RIGHT, Signature is LEFT
-   But we want: Signature at RIGHT side
-   Solution: use grid with explicit ordering
-============================================================ */
-.cert-footer {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  border: 1.5px solid #1a4d8a;
-  border-top: none;
-  min-height: 200px;
-  direction: rtl;
-}
-
-/* Signature - RIGHT side (first in RTL) */
-.cert-footer-sign {
-  padding: 10px 12px;
+  min-height: 60px;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  border-left: 1.5px solid #1a4d8a;
   text-align: center;
-  font-family: Arial, sans-serif;
+}
+
+.party-sig-cell .sig-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 2px;
+  direction: rtl;
+}
+
+.party-sig-cell .sig-label small {
+  display: block;
+  font-size: 8.5px;
+  color: #1a4d8a;
+  direction: ltr;
+}
+
+.party-sig-cell .sig-line {
+  width: 90%;
+  border-bottom: 1px solid #1a4d8a;
+  height: 32px;
+}
+
+/* ============================================================
+   FOOTER
+============================================================ */
+.cert-footer {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  border: 1.5px solid #1a4d8a;
+  border-top: none;
+  min-height: 180px;
+  direction: rtl;
+}
+
+.cert-footer-sign {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  border-left: 1.5px solid #1a4d8a;
+  min-height: 180px;
 }
 
 .sign-box {
   width: 100%;
-  height: 100px;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: none;
-  margin-bottom: 8px;
+  padding: 5px;
 }
 
 .sign-box-inner {
-  width: 80%;
+  width: 85%;
   height: 100%;
   border-bottom: 1px dashed #999;
 }
 
 .sign-label-bottom {
-  font-family: Arial, sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: #1a4d8a;
-  margin-bottom: 4px;
+  margin-top: 4px;
+  padding-top: 4px;
 }
 
 .sign-line {
   width: 90%;
   border-top: 1px solid #000;
-  margin: 4px 0;
+  margin: 3px 0 2px;
 }
 
 .sign-caption {
-  font-family: Arial, sans-serif;
-  font-size: 9.5px;
+  font-size: 9px;
   color: #666;
+  margin-top: 2px;
 }
 
-/* Contract text - LEFT side */
 .cert-footer-text {
-  padding: 10px 12px;
-  font-family: Arial, sans-serif;
-  font-size: 10.5px;
-  line-height: 1.6;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
 }
 
 .footer-title {
-  text-align: center;
   font-weight: 900;
   font-size: 12px;
-  margin-bottom: 6px;
   color: #1a4d8a;
-  font-family: Arial, sans-serif;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #1a4d8a;
+  margin-bottom: 4px;
+  text-align: center;
 }
 
-.cert-footer-text p {
-  margin-bottom: 6px;
-  text-align: justify;
-  font-size: 10.5px;
-  font-family: Arial, sans-serif;
-}
-
-.cert-footer-text p.ar {
+.footer-text-ar {
   direction: rtl;
-  text-align: right;
+  text-align: center;
   font-size: 11px;
-  line-height: 1.7;
+  line-height: 1.8;
+  margin-bottom: 6px;
 }
 
-.cert-footer-text p.de {
+.footer-text-de {
   direction: ltr;
-  text-align: left;
+  text-align: center;
   font-size: 10px;
+  line-height: 1.6;
   font-style: italic;
   color: #333;
+  margin-bottom: 6px;
 }
 
-.footer-note {
-  margin-top: 6px;
-  padding-top: 5px;
+.footer-note-center {
+  padding-top: 6px;
   border-top: 1px dotted #999;
+  text-align: center;
   font-size: 9.5px;
   color: #555;
-  direction: rtl;
-  text-align: right;
+  line-height: 1.6;
 }
 
-.footer-note em {
+.footer-note-center strong { color: #000; }
+
+.footer-note-center em {
+  display: block;
   direction: ltr;
-  display: inline-block;
+  margin-top: 2px;
+  font-size: 9px;
 }
 
 /* ============================================================
-   Print
+   Print A4
 ============================================================ */
 @media print {
   @page {
@@ -659,7 +661,6 @@ body {
     background: #fff;
     padding: 0;
     margin: 0;
-    font-family: Arial, sans-serif;
   }
 
   .toolbar, .loading-screen, .error-screen {
@@ -682,9 +683,9 @@ body {
   .cert-header,
   .cert-info-strip,
   .cert-two-cols,
-  .cert-wali-box,
+  .cert-wali-dowry,
   .cert-witness-box,
-  .cert-docs-box,
+  .cert-party-signatures,
   .cert-footer {
     page-break-inside: avoid;
   }
@@ -696,41 +697,58 @@ body {
 }
 
 /* ============================================================
-   Responsive - Mobile
+   Responsive
 ============================================================ */
 @media (max-width: 720px) {
   body { padding: 10px; }
+
   .toolbar { padding: 10px 12px; }
   .toolbar-center { display: none; }
   .toolbar button { padding: 7px 12px; font-size: 12px; }
+
   .certificate-wrap { margin: 70px auto 20px; }
   .certificate { padding: 8px; }
 
-  .cert-header { grid-template-columns: 70px 1fr 70px; min-height: 90px; }
-  .cert-header-title-de { font-size: 13px; }
-  .cert-header-title-ar { font-size: 15px; }
-  .cert-logo { width: 45px; height: 38px; }
-  .cert-photo-box { width: 60px; height: 75px; }
-  .cert-photo-box span { font-size: 8px; }
+  .cert-header {
+    grid-template-columns: 60px 1fr 60px;
+    min-height: 60px;
+  }
+  .cert-header-title-de { font-size: 12px; }
+  .cert-header-title-ar { font-size: 14px; }
+  .cert-logo { width: 36px; height: 30px; font-size: 14px; }
+  .cert-photo-box { width: 55px; height: 68px; }
 
   .cert-info-strip { grid-template-columns: 1fr; }
-  .cert-info-cell { border-left: none; border-bottom: 1px solid #1a4d8a; }
-  .cert-info-cell:last-child { border-bottom: none; }
-
-  .cert-two-cols,
-  .cert-witness-box { grid-template-columns: 1fr; }
-  .cert-col, .cert-witness-col {
+  .cert-info-cell {
     border-left: none;
     border-bottom: 1px solid #1a4d8a;
   }
-  .cert-col:last-child, .cert-witness-col:last-child { border-bottom: none; }
+  .cert-info-cell:last-child { border-bottom: none; }
 
-  .cv-row { flex-direction: column; gap: 2px; align-items: stretch; }
-  .cv-label { min-width: auto; }
+  .cert-two-cols,
+  .cert-witness-box,
+  .wali-dowry-grid { grid-template-columns: 1fr; }
+
+  .cert-col, .cert-witness-col, .wali-dowry-col {
+    border-left: none;
+    border-bottom: 1px solid #1a4d8a;
+  }
+  .cert-col:last-child,
+  .cert-witness-col:last-child,
+  .wali-dowry-col:last-child { border-bottom: none; }
+
+  .cv-row { flex-direction: column; align-items: stretch; gap: 2px; }
+  .cv-label { max-width: 100%; }
   .v-value { text-align: right; }
 
-  .cert-docs-grid { grid-template-columns: repeat(2, 1fr); }
+  .wd-row { flex-direction: column; align-items: stretch; }
+  .wd-label { flex: 0 0 100%; }
+
+  .party-signatures-grid { grid-template-columns: repeat(2, 1fr); }
 
   .cert-footer { grid-template-columns: 1fr; }
-  .cert-footer-sign { border-left: none; border-bottom: 1.5px solid #1a4d8a; }
+  .cert-footer-sign {
+    border-left: none;
+    border-bottom: 1.5px solid #1a4d8a;
+  }
 }
