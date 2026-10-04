@@ -1,6 +1,10 @@
 /* ============================================================
-   Print Contract - JS V4 (Final Fix)
-   يحل جميع مشاكل التاريخ + الصور + RTL + الشعار
+   Print Contract - JS V5
+   - Arial Font Everywhere
+   - Husband photo top-left, Wife top-right
+   - Logo centered
+   - Labels left, Values right
+   - Fixed Date Issue
 ============================================================ */
 
 const printState = {
@@ -39,46 +43,49 @@ function showError(title, msg) {
 }
 
 /* ============================================================
-   ✅ تنسيق التاريخ — حل جميع الصيغ
+   Date Formatter - handles all formats
 ============================================================ */
 function formatDate(input) {
   if (!input) return '—';
 
   const str = String(input).trim();
-  if (!str || str === '—' || str === 'undefined') return '—';
+  if (!str || str === '—' || str === 'undefined' || str === 'undefined.00.01') {
+    return '—';
+  }
 
   let day, month, year;
 
-  // 1. صيغة يوم.شهر.سنة (04.05.2026)
+  // Format: DD.MM.YYYY
   if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(str)) {
-    const parts = str.split('.');
-    day = parts[0];
-    month = parts[1];
-    year = parts[2];
+    const p = str.split('.');
+    day = p[0]; month = p[1]; year = p[2];
   }
-  // 2. صيغة سنة.شهر.يوم (2026.5.4)
+  // Format: YYYY.MM.DD
   else if (/^\d{4}\.\d{1,2}\.\d{1,2}$/.test(str)) {
-    const parts = str.split('.');
-    year = parts[0];
-    month = parts[1];
-    day = parts[2];
+    const p = str.split('.');
+    year = p[0]; month = p[1]; day = p[2];
   }
-  // 3. صيغة ISO (2026-05-04)
+  // Format: YYYY-MM-DD (ISO)
   else if (/^\d{4}-\d{1,2}-\d{1,2}/.test(str)) {
-    const parts = str.split('T')[0].split('-');
-    year = parts[0];
-    month = parts[1];
-    day = parts[2];
+    const p = str.split('T')[0].split('-');
+    year = p[0]; month = p[1]; day = p[2];
   }
-  // 4. صيغة يوم/شهر/سنة (04/05/2026)
+  // Format: DD/MM/YYYY
   else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) {
-    const parts = str.split('/');
-    day = parts[0];
-    month = parts[1];
-    year = parts[2];
+    const p = str.split('/');
+    day = p[0]; month = p[1]; year = p[2];
   }
   else {
     return str;
+  }
+
+  // Validate
+  const d = parseInt(day, 10);
+  const m = parseInt(month, 10);
+  const y = parseInt(year, 10);
+
+  if (!d || !m || !y || d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > 2100) {
+    return '—';
   }
 
   return `${pad2(day)}.${pad2(month)}.${year}`;
@@ -92,14 +99,11 @@ function birthDate(p) {
 
 function fullAddress(p) {
   if (!p) return '—';
-  const parts = [p.addressStreet, p.addressNumber].filter(Boolean).join(' ');
+  const street = [p.addressStreet, p.addressNumber].filter(Boolean).join(' ');
   const city = [p.postalCode, p.city].filter(Boolean).join(' ');
-  return [parts, city].filter(Boolean).join(', ') || '—';
+  return [street, city].filter(Boolean).join(', ') || '—';
 }
 
-/* ============================================================
-   ✅ التحقق من الصورة
-============================================================ */
 function hasPhoto(dataUrl) {
   if (!dataUrl) return false;
   if (typeof dataUrl !== 'string') return false;
@@ -134,7 +138,26 @@ async function fetchContract(code) {
 }
 
 /* ============================================================
-   Build Certificate HTML
+   ✅ Label-Value Row Helper
+============================================================ */
+function row(labelDe, labelAr, value, options = {}) {
+  const valueClass = options.gold ? 'v-value v-gold' : 'v-value';
+  const valueStyle = options.dir ? `direction:${options.dir};` : '';
+  return `
+    <div class="cv-row">
+      <div class="cv-label">
+        <span class="cv-label-de">${escapeHtml(labelDe)}</span>
+        ${labelAr ? `<span class="cv-label-ar">${escapeHtml(labelAr)}</span>` : ''}
+      </div>
+      <div class="${valueClass}" style="${valueStyle}">
+        ${escapeHtml(value || '—')}
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+   Build Certificate
 ============================================================ */
 function buildCertificate(contract) {
   const g = contract.parties.groom || {};
@@ -153,264 +176,220 @@ function buildCertificate(contract) {
   const brideHasPhoto = hasPhoto(b.photo);
 
   return `
-    <!-- ============ Header ============ -->
+    <!-- ============================================================
+         HEADER: Husband photo (left) | Logo + Titles (center) | Wife photo (right)
+    ============================================================ -->
     <div class="cert-header">
-      <div class="cert-logo ar">
-        <img src="${printState.logoPath}" alt="Arresalah"
-             onerror="this.parentElement.innerHTML='<span style=\\'font-family:Amiri;font-size:14px;color:#1a4d8a;font-weight:700;\\'>الرسالة</span>'">
+
+      <!-- Husband photo - top left -->
+      <div class="cert-header-photo">
+        <div class="cert-photo-box" title="صورة الزوج">
+          ${groomHasPhoto
+            ? `<img src="${g.photo}" alt="Groom">`
+            : '<span>صورة<br>الزوج</span>'
+          }
+        </div>
       </div>
 
-      <div class="cert-header-title-wrap">
+      <!-- Center: Logo + Titles -->
+      <div class="cert-header-center">
+        <div class="cert-logo">
+          <img src="${printState.logoPath}" alt="Arresalah"
+               onerror="this.style.display='none';this.parentElement.innerHTML='<span class=&quot;cert-logo-fallback&quot;>الرسالة</span>'">
+        </div>
         <div class="cert-header-title-de">Islamische Eheschließungsurkunde</div>
         <div class="cert-header-title-ar">شهادة عقد زواج إسلامي</div>
       </div>
 
-      <div class="cert-logo de">
-        <img src="${printState.logoPath}" alt="Arresalah"
-             onerror="this.parentElement.innerHTML='<span style=\\'font-family:Amiri;font-size:14px;color:#1a4d8a;font-weight:700;\\'>الرسالة</span>'">
-      </div>
-    </div>
-
-    <!-- ============ Top Info Row ============ -->
-    <div class="cert-top-row">
-      <!-- ✅ يمين: تاريخ العقد -->
-      <div class="cell">
-        <div class="cell-label">Datum der Eheschließung</div>
-        <div class="cell-label-ar">تاريخ عقد الزواج</div>
-        <div class="cell-value-ar">${escapeHtml(contractDate)}</div>
-      </div>
-
-      <!-- ✅ وسط: مكان -->
-      <div class="cell">
-        <div class="cell-label">Ort</div>
-        <div class="cell-label-ar">مكان</div>
-        <div class="cell-value">Arresalah e.V.</div>
-      </div>
-
-      <!-- ✅ يسار: عنوان + صور -->
-      <div class="cell cell-address">
-        <div class="address-info">
-          <div class="cell-label">Turnstraße 83, 10551 Berlin</div>
-          <div class="cell-label-ar">عنوان المركز</div>
-        </div>
-        <div class="cert-photos">
-          <div class="cert-photo-box" title="صورة الزوج">
-            ${groomHasPhoto
-              ? `<img src="${g.photo}" alt="Groom" loading="eager">`
-              : '<span>صورة<br>الزوج</span>'
-            }
-          </div>
-          <div class="cert-photo-box" title="صورة الزوجة">
-            ${brideHasPhoto
-              ? `<img src="${b.photo}" alt="Bride" loading="eager">`
-              : '<span>صورة<br>الزوجة</span>'
-            }
-          </div>
+      <!-- Wife photo - top right -->
+      <div class="cert-header-photo">
+        <div class="cert-photo-box" title="صورة الزوجة">
+          ${brideHasPhoto
+            ? `<img src="${b.photo}" alt="Bride">`
+            : '<span>صورة<br>الزوجة</span>'
+          }
         </div>
       </div>
+
     </div>
 
-    <!-- ============ Groom & Bride ============ -->
+    <!-- ============================================================
+         TOP INFO ROW: Date (left) | Place (center) | Address (right)
+    ============================================================ -->
+    <div class="cert-info-strip">
+
+      <!-- Date - at left -->
+      <div class="cert-info-cell">
+        <div class="cert-info-labels">
+          <span class="label-de">Datum der Eheschließung</span>
+          <span class="label-ar">تاريخ عقد الزواج</span>
+        </div>
+        <div class="cert-info-value">${escapeHtml(contractDate)}</div>
+      </div>
+
+      <!-- Place - center -->
+      <div class="cert-info-cell">
+        <div class="cert-info-labels">
+          <span class="label-de">Ort</span>
+          <span class="label-ar">مكان</span>
+        </div>
+        <div class="cert-info-value">Arresalah e.V.</div>
+      </div>
+
+      <!-- Address - right -->
+      <div class="cert-info-cell">
+        <div class="cert-info-labels">
+          <span class="label-de">Turnstraße 83, 10551 Berlin</span>
+          <span class="label-ar">عنوان المركز</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================
+         GROOM & BRIDE
+    ============================================================ -->
     <div class="cert-two-cols">
-      <!-- Groom -->
+
+      <!-- Groom (left) -->
       <div class="cert-col">
         <div class="cert-col-title">
-          <span>Ehemann:</span>
+          <span>Ehemann</span>
           <span class="ar">الزوج</span>
         </div>
-        <div class="cert-field">
-          <span class="key">Name:</span>
-          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(g.nameDe || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key-ar">الاسم:</span>
-          <span class="val" style="direction:rtl;text-align:right;">${escapeHtml(g.nameAr || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Geburtsdatum, Ort:</span>
-          <span class="val">${birthDate(g)} — ${escapeHtml(g.birthRegion || '')}, ${escapeHtml(g.birthCountry || '')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Seine Mutter:</span>
-          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(g.motherNameDe || '—')}</span>
-        </div>
-        <div class="cert-field mother-ar">
-          <span class="key-ar">اسم الأم:</span>
-          <span class="val" style="direction:rtl;text-align:right;">${escapeHtml(g.motherNameAr || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Personalausweis:</span>
-          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(g.idNumber || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Anschrift:</span>
-          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(fullAddress(g))}</span>
-        </div>
+
+        ${row('Name', 'الاسم', g.nameDe || '—', { dir: 'ltr' })}
+        ${row('', '', g.nameAr || '—', { dir: 'rtl' })}
+        ${row('Geburtsdatum, Ort', '', birthDate(g) + ' — ' + (g.birthRegion || '') + ', ' + (g.birthCountry || ''))}
+        ${row('Seine Mutter', 'اسم الأم', g.motherNameDe || '—', { dir: 'ltr' })}
+        ${row('', '', g.motherNameAr || '—', { dir: 'rtl' })}
+        ${row('Personalausweis', 'رقم الهوية', g.idNumber || '—', { dir: 'ltr' })}
+        ${row('Anschrift', 'العنوان', fullAddress(g), { dir: 'ltr' })}
       </div>
 
-      <!-- Bride -->
+      <!-- Bride (right) -->
       <div class="cert-col">
         <div class="cert-col-title">
-          <span>Ehefrau:</span>
+          <span>Ehefrau</span>
           <span class="ar">الزوجة</span>
         </div>
-        <div class="cert-field">
-          <span class="key">Name:</span>
-          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(b.nameDe || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key-ar">الاسم:</span>
-          <span class="val" style="direction:rtl;text-align:right;">${escapeHtml(b.nameAr || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Geburtsdatum, Ort:</span>
-          <span class="val">${birthDate(b)} — ${escapeHtml(b.birthRegion || '')}, ${escapeHtml(b.birthCountry || '')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Ihre Mutter:</span>
-          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(b.motherNameDe || '—')}</span>
-        </div>
-        <div class="cert-field mother-ar">
-          <span class="key-ar">اسم الأم:</span>
-          <span class="val" style="direction:rtl;text-align:right;">${escapeHtml(b.motherNameAr || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Personalausweis:</span>
-          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(b.idNumber || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Anschrift:</span>
-          <span class="val" style="direction:ltr;text-align:left;">${escapeHtml(fullAddress(b))}</span>
-        </div>
+
+        ${row('Name', 'الاسم', b.nameDe || '—', { dir: 'ltr' })}
+        ${row('', '', b.nameAr || '—', { dir: 'rtl' })}
+        ${row('Geburtsdatum, Ort', '', birthDate(b) + ' — ' + (b.birthRegion || '') + ', ' + (b.birthCountry || ''))}
+        ${row('Ihre Mutter', 'اسم الأم', b.motherNameDe || '—', { dir: 'ltr' })}
+        ${row('', '', b.motherNameAr || '—', { dir: 'rtl' })}
+        ${row('Personalausweis', 'رقم الهوية', b.idNumber || '—', { dir: 'ltr' })}
+        ${row('Anschrift', 'العنوان', fullAddress(b), { dir: 'ltr' })}
       </div>
+
     </div>
 
-    <!-- ============ Wali + Dowry ============ -->
-    <div class="cert-wali-row">
-      <div class="cert-wali-cell">
-        <div class="k">Vertreter der Braut (Wali):</div>
-        <div class="k-ar">ولي الزوجة</div>
-        <div class="v">${waliIsBride ? 'Ihr Vater / أبوها' : escapeHtml(w.nameDe || '—')}</div>
-      </div>
-      <div class="cert-wali-cell">
-        <div class="k">Name Der Wali:</div>
-        <div class="k-ar">اسم الولي</div>
-        <div class="v">${waliIsBride ? 'الزوجة نفسها' : escapeHtml(w.nameDe || '—')}</div>
-      </div>
-      <div class="cert-wali-cell">
-        <div class="k">Geburtsdatum, Ort:</div>
-        <div class="k-ar">تاريخ ومكان الميلاد</div>
-        <div class="v">${waliIsBride ? '—' : birthDate(w)}</div>
-        <div class="v">${waliIsBride ? '—' : escapeHtml(w.birthCountry || '—')}</div>
-      </div>
-      <div class="cert-wali-cell">
-        <div class="k">Brautgabe:</div>
-        <div class="k-ar">المهر</div>
-        <div class="v v-gold">${escapeHtml(g.dowryAdvance || '0')} €</div>
-      </div>
+    <!-- ============================================================
+         WALI + DOWRY (single big box)
+         Labels on LEFT, Values on RIGHT
+    ============================================================ -->
+    <div class="cert-wali-box">
+
+      ${row('Vertreter der Braut (Wali)', 'ولي الزوجة', waliIsBride ? 'الزوجة نفسها' : (w.nameDe || '—'))}
+      ${row('', 'اسم الولي', waliIsBride ? 'Bride herself' : (w.nameAr || '—'))}
+      ${row('Geburtsdatum, Ort', 'تاريخ ومكان الميلاد', waliIsBride ? '—' : birthDate(w), { dir: 'ltr' })}
+      ${row('Anschrift', 'العنوان', waliIsBride ? '—' : fullAddress(w), { dir: 'ltr' })}
+
+      <div class="cv-separator"></div>
+
+      ${row('Brautgabe (Mahr) - Vorauszahlung', 'المهر المقدم', (g.dowryAdvance || '0') + ' €', { gold: true })}
+      ${row('Brautgabe (Mahr) - Aufgeschoben', 'المهر المؤخر', (g.dowryDeferred || '0') + ' €', { gold: true })}
+      ${row('Bemerkungen', 'ملاحظات', g.dowryNotes || '—', { dir: 'rtl' })}
+
     </div>
 
-    <!-- ============ Witnesses ============ -->
-    <div class="cert-witness-row">
-      <!-- Zeuge 1 -->
-      <div class="cert-witness-box">
+    <!-- ============================================================
+         WITNESSES
+    ============================================================ -->
+    <div class="cert-witness-box">
+
+      <div class="cert-witness-col">
         <div class="cert-witness-title">
-          <span>Zeuge 1:</span>
+          <span>Zeuge 1</span>
           <span class="ar">الشاهد الأول</span>
         </div>
-        <div class="cert-field">
-          <span class="key">Name:</span>
-          <span class="val">${w1IsCenter ? 'مركز الرسالة' : escapeHtml(w1.nameDe || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key-ar">الاسم:</span>
-          <span class="val">${w1IsCenter ? 'طرف المركز' : escapeHtml(w1.nameAr || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Geburtsdatum:</span>
-          <span class="val">${w1IsCenter ? '—' : birthDate(w1)}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Personalausweis:</span>
-          <span class="val">${w1IsCenter ? '—' : escapeHtml(w1.idNumber || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Anschrift:</span>
-          <span class="val">${w1IsCenter ? '—' : escapeHtml(fullAddress(w1))}</span>
-        </div>
+        ${row('Name', 'الاسم', w1IsCenter ? 'مركز الرسالة' : (w1.nameDe || '—'))}
+        ${row('', '', w1IsCenter ? 'طرف المركز' : (w1.nameAr || '—'))}
+        ${row('Geburtsdatum', '', w1IsCenter ? '—' : birthDate(w1))}
+        ${row('Personalausweis', '', w1IsCenter ? '—' : (w1.idNumber || '—'))}
+        ${row('Anschrift', '', w1IsCenter ? '—' : fullAddress(w1))}
       </div>
 
-      <!-- Zeuge 2 -->
-      <div class="cert-witness-box">
+      <div class="cert-witness-col">
         <div class="cert-witness-title">
-          <span>Zeuge 2:</span>
+          <span>Zeuge 2</span>
           <span class="ar">الشاهد الثاني</span>
         </div>
-        <div class="cert-field">
-          <span class="key">Name:</span>
-          <span class="val">${w2IsCenter ? 'مركز الرسالة' : escapeHtml(w2.nameDe || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key-ar">الاسم:</span>
-          <span class="val">${w2IsCenter ? 'طرف المركز' : escapeHtml(w2.nameAr || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Geburtsdatum:</span>
-          <span class="val">${w2IsCenter ? '—' : birthDate(w2)}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Personalausweis:</span>
-          <span class="val">${w2IsCenter ? '—' : escapeHtml(w2.idNumber || '—')}</span>
-        </div>
-        <div class="cert-field">
-          <span class="key">Anschrift:</span>
-          <span class="val">${w2IsCenter ? '—' : escapeHtml(fullAddress(w2))}</span>
-        </div>
+        ${row('Name', 'الاسم', w2IsCenter ? 'مركز الرسالة' : (w2.nameDe || '—'))}
+        ${row('', '', w2IsCenter ? 'طرف المركز' : (w2.nameAr || '—'))}
+        ${row('Geburtsdatum', '', w2IsCenter ? '—' : birthDate(w2))}
+        ${row('Personalausweis', '', w2IsCenter ? '—' : (w2.idNumber || '—'))}
+        ${row('Anschrift', '', w2IsCenter ? '—' : fullAddress(w2))}
       </div>
+
     </div>
 
-    <!-- ============ Documents ============ -->
-    <div class="cert-docs-row">
-      <div class="cert-docs-titles">
-        <div class="col-de">Identitäts- und Ledigkeitsnachweise: Ausweise/Pässe</div>
-        <div class="col-ar">مستندات إثبات الشخصية والحالة الاجتماعية:</div>
+    <!-- ============================================================
+         DOCUMENTS
+    ============================================================ -->
+    <div class="cert-docs-box">
+
+      <div class="cert-docs-title">
+        <span>Identitäts- und Ledigkeitsnachweise: Ausweise/Pässe</span>
+        <span class="ar">مستندات إثبات الشخصية والحالة الاجتماعية:</span>
       </div>
+
       <div class="cert-docs-grid">
-        <div class="doc-cell"><b>Ehemann</b><span class="ar">الزوج</span></div>
-        <div class="doc-cell"><b>Ehefrau</b><span class="ar">الزوجة</span></div>
-        <div class="doc-cell"><b>Wali</b><span class="ar">الولي</span></div>
-        <div class="doc-cell"><b>Zeuge 1</b><span class="ar">الشاهد الأول</span></div>
-        <div class="doc-cell"><b>Zeuge 2</b><span class="ar">الشاهد الثاني</span></div>
+        <div class="doc-cell"><b>Ehemann</b><span>الزوج</span></div>
+        <div class="doc-cell"><b>Ehefrau</b><span>الزوجة</span></div>
+        <div class="doc-cell"><b>Wali</b><span>الولي</span></div>
+        <div class="doc-cell"><b>Zeuge 1</b><span>الشاهد الأول</span></div>
+        <div class="doc-cell"><b>Zeuge 2</b><span>الشاهد الثاني</span></div>
       </div>
+
     </div>
 
-    <!-- ============ Footer ============ -->
+    <!-- ============================================================
+         FOOTER
+         - Right: Signature box (no "الإمام", "إدارة المركز" at bottom)
+         - Left: Contract text (compact)
+    ============================================================ -->
     <div class="cert-footer">
-      <!-- ✅ التوقيع - يمين -->
-      <div class="cert-footer-sign">
-        <div class="sign-title">Vereinsvorstand / إدارة المركز</div>
-        <div class="sign-area">الإمام</div>
-        <div class="sign-line">التوقيع / Unterschrift</div>
-      </div>
 
-      <!-- ✅ النص - يسار -->
+      <!-- Left: Contract text -->
       <div class="cert-footer-text">
-        <div class="title">صيغة العقد</div>
-        <p class="ar" style="direction:rtl;text-align:right;">
+        <div class="footer-title">صيغة العقد</div>
+        <p class="ar">
           نشهد نحن الموقعين أدناه أن عقد الزواج قد تم بين الزوجين المذكورين أعلاه،
           وقد تمّ التعريف بهما وبموافقتهما، وتمّ الاتفاق على المهر المذكور أعلاه،
           وأن الزوجة قد رضيت بذلك رضاءً تاماً، وشهد على ذلك الشهود المذكورون أعلاه.
         </p>
-        <p class="de" style="direction:ltr;text-align:left;">
-          Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen
-          und von allen Beteiligten angenommen. Beide Ehepartner bekundeten
-          ihr Einverständnis vor Zeugen.
+        <p class="de">
+          Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen und von allen
+          Beteiligten angenommen. Beide Ehepartner bekundeten ihr Einverständnis vor Zeugen.
         </p>
-        <div class="note" style="direction:rtl;text-align:right;">
+        <div class="footer-note">
           <strong>ملاحظة:</strong> هذا العقد ليس بديلاً عن التسجيل في الدوائر الألمانية المختصة.<br>
-          <em style="direction:ltr;display:inline-block;">Dieser Vertrag ist kein Ersatz für eine standesamtliche Erklärung.</em>
+          <em>Dieser Vertrag ist kein Ersatz für eine standesamtliche Erklärung.</em>
         </div>
       </div>
+
+      <!-- Right: Signature box -->
+      <div class="cert-footer-sign">
+        <div class="sign-box">
+          <div class="sign-box-inner"></div>
+        </div>
+        <div class="sign-label-bottom">إدارة المركز</div>
+        <div class="sign-line"></div>
+        <div class="sign-caption">التوقيع / Unterschrift</div>
+      </div>
+
     </div>
   `;
 }
