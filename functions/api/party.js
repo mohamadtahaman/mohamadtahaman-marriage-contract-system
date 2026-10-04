@@ -1,6 +1,6 @@
 /* ============================================================
-   Cloudflare Function: POST /api/party
-   حفظ واسترجاع بيانات كل طرف على السيرفر
+   Cloudflare Function: POST /api/party (v2)
+   يحفظ في KV + يضيف في D1 فوراً
 ============================================================ */
 
 const VALID_ROLES = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
@@ -23,8 +23,8 @@ export async function onRequestPost(context) {
   const role = (body.role || '').trim();
   const action = (body.action || 'save').trim();
   const data = body.data || null;
+  const contractDate = (body.contractDate || '').trim();
 
-  // التحقق من الكود
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
     return jsonResponse({
       success: false,
@@ -33,7 +33,7 @@ export async function onRequestPost(context) {
     }, 400);
   }
 
-  // التحقق من وجود الكود في KV
+  // التحقق من الكود
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
     if (!codesRaw) {
@@ -59,7 +59,7 @@ export async function onRequestPost(context) {
     }, 500);
   }
 
-  // التحقق من أن العقد لم يُرسل
+  // هل تم إرسال العقد النهائي؟
   try {
     const finished = await env.CONTRACT_KV.get(`contract_${code}_finished`);
     if (finished === 'true') {
@@ -72,7 +72,7 @@ export async function onRequestPost(context) {
   } catch (e) { /* تجاهل */ }
 
   /* ============================================================
-     Action: status - حالة كل الأطراف
+     Action: status
   ============================================================ */
   if (action === 'status') {
     const status = {};
@@ -85,15 +85,11 @@ export async function onRequestPost(context) {
       savedAt[r] = time || null;
     }
 
-    return jsonResponse({
-      success: true,
-      status,
-      savedAt,
-    }, 200);
+    return jsonResponse({ success: true, status, savedAt }, 200);
   }
 
   /* ============================================================
-     Action: get - جلب بيانات طرف معين
+     Action: get
   ============================================================ */
   if (action === 'get') {
     if (!VALID_ROLES.includes(role)) {
@@ -120,7 +116,7 @@ export async function onRequestPost(context) {
   }
 
   /* ============================================================
-     Action: get_all - جلب كل الأطراف (للإرسال النهائي)
+     Action: get_all
   ============================================================ */
   if (action === 'get_all') {
     const parties = {};
@@ -150,7 +146,7 @@ export async function onRequestPost(context) {
   }
 
   /* ============================================================
-     Action: save - حفظ بيانات طرف
+     Action: save - الحفظ في KV + D1
   ============================================================ */
   if (action === 'save') {
     if (!VALID_ROLES.includes(role)) {
@@ -220,7 +216,9 @@ export async function onRequestPost(context) {
       }
     }
 
-    // الحفظ في KV
+    /* ============================================
+       1. حفظ في KV (draft)
+    ============================================ */
     try {
       await env.CONTRACT_KV.put(
         `contract_${code}_${role}`,
@@ -231,24 +229,136 @@ export async function onRequestPost(context) {
         `contract_${code}_saved_${role}`,
         new Date().toISOString()
       );
-
-      return jsonResponse({
-        success: true,
-        message: 'تم حفظ البيانات',
-      }, 200);
-
     } catch (err) {
-      console.error('Save party error:', err);
+      console.error('KV save error:', err);
       return jsonResponse({
         success: false,
         error: 'kv_error',
-        message: 'فشل الحفظ',
+        message: 'فشل الحفظ في KV',
+      }, 500);
+    }
+
+    /* ============================================
+       2. إضافة/تحديث في D1
+    ============================================ */
+    try {
+      // 2.1 احصل على العقد من D1 أو أنشئه
+      let contractRow = await env.DB.prepare(
+        'SELECT id FROM contracts WHERE code = ?'
+      ).bind(code).first();
+
+      let contractId;
+
+      if (!contractRow) {
+        // أنشئ عقد جديد بحالة 'draft'
+        const insertResult = await env.DB.prepare(
+          `INSERT INTO contracts (code, contract_date, status, sent_at)
+           VALUES (?, ?, 'draft', ?)`
+        ).bind(
+          code,
+          contractDate || null,
+          Math.floor(Date.now() / 1000)
+        ).run();
+
+        contractId = insertResult.meta.last_row_id;
+      } else {
+        contractId = contractRow.id;
+      }
+
+      if (!contractId) {
+        throw new Error('Failed to get contract id');
+      }
+
+      // 2.2 احذف الطرف القديم (إن وُجد) وأضف الجديد
+      await env.DB.prepare(
+        'DELETE FROM parties WHERE contract_id = ? AND role = ?'
+      ).bind(contractId, role).run();
+
+      await env.DB.prepare(
+        `INSERT INTO parties (
+          contract_id, role,
+          name_de, name_ar,
+          birth_day, birth_month, birth_year,
+          birth_country, birth_region,
+          id_type, id_number,
+          address_number, address_street, postal_code, city,
+          mother_name_de, mother_name_ar,
+          wali_is_bride, witness_is_center
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        contractId, role,
+        data.nameDe || null, data.nameAr || null,
+        data.birthDay ? parseInt(data.birthDay, 10) : null,
+        data.birthMonth ? parseInt(data.birthMonth, 10) : null,
+        data.birthYear ? parseInt(data.birthYear, 10) : null,
+        data.birthCountry || null, data.birthRegion || null,
+        data.idType || null, data.idNumber || null,
+        data.addressNumber || null, data.addressStreet || null,
+        data.postalCode || null, data.city || null,
+        data.motherNameDe || null, data.motherNameAr || null,
+        data.waliIsBride ? 1 : 0, data.witnessIsCenter ? 1 : 0
+      ).run();
+
+      // 2.3 المهر (للزوج فقط)
+      if (role === 'groom') {
+        // احذف المهر القديم
+        await env.DB.prepare(
+          'DELETE FROM dowries WHERE contract_id = ?'
+        ).bind(contractId).run();
+
+        // أضف الجديد (إن وُجد)
+        if (data.dowryAdvance || data.dowryDeferred || data.dowryNotes) {
+          await env.DB.prepare(
+            `INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes)
+             VALUES (?, ?, ?, ?)`
+          ).bind(
+            contractId,
+            data.dowryAdvance ? parseFloat(data.dowryAdvance) : null,
+            data.dowryDeferred ? parseFloat(data.dowryDeferred) : null,
+            data.dowryNotes || null
+          ).run();
+        }
+      }
+
+      // 2.4 تسجيل في audit_log
+      try {
+        await env.DB.prepare(
+          `INSERT INTO audit_log (action, entity_type, entity_id, details)
+           VALUES ('party_save', 'party', ?, ?)`
+        ).bind(
+          contractId,
+          `Saved ${role} for contract ${code}`
+        ).run();
+      } catch (e) { /* تجاهل */ }
+
+      // 2.5 هل اكتمل الجميع؟
+      const countResult = await env.DB.prepare(
+        'SELECT COUNT(*) as cnt FROM parties WHERE contract_id = ?'
+      ).bind(contractId).first();
+
+      const savedCount = countResult?.cnt || 0;
+
+      return jsonResponse({
+        success: true,
+        message: 'تم حفظ البيانات في قاعدة البيانات',
+        savedCount: savedCount,
+        total: 5,
+        allSaved: savedCount >= 5,
+      }, 200);
+
+    } catch (err) {
+      console.error('D1 save error:', err);
+      return jsonResponse({
+        success: false,
+        error: 'db_error',
+        message: 'حُفظ في KV لكن فشل الحفظ في D1',
+        details: err.message,
       }, 500);
     }
   }
 
   /* ============================================================
-     Action: delete - حذف بيانات طرف (قبل الإرسال)
+     Action: delete
   ============================================================ */
   if (action === 'delete') {
     if (!VALID_ROLES.includes(role)) {
@@ -263,10 +373,26 @@ export async function onRequestPost(context) {
       await env.CONTRACT_KV.delete(`contract_${code}_${role}`);
       await env.CONTRACT_KV.delete(`contract_${code}_saved_${role}`);
 
-      return jsonResponse({
-        success: true,
-        message: 'تم الحذف',
-      }, 200);
+      // احذف من D1 أيضاً
+      try {
+        const contractRow = await env.DB.prepare(
+          'SELECT id FROM contracts WHERE code = ?'
+        ).bind(code).first();
+
+        if (contractRow) {
+          await env.DB.prepare(
+            'DELETE FROM parties WHERE contract_id = ? AND role = ?'
+          ).bind(contractRow.id, role).run();
+
+          if (role === 'groom') {
+            await env.DB.prepare(
+              'DELETE FROM dowries WHERE contract_id = ?'
+            ).bind(contractRow.id).run();
+          }
+        }
+      } catch (e) { /* تجاهل */ }
+
+      return jsonResponse({ success: true, message: 'تم الحذف' }, 200);
     } catch (err) {
       return jsonResponse({
         success: false,
