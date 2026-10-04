@@ -1,14 +1,10 @@
 /* ============================================================
-   Cloudflare Function: POST /api/admin
-   إدارة الأكواد والعقود - محمي بكلمة سر
+   Cloudflare Function: POST /api/admin (v2 - D1)
 ============================================================ */
 
 export async function onRequestPost(context) {
   const { request, env } = context;
 
-  /* ---------------------------------------------
-     1. قراءة البيانات
-  --------------------------------------------- */
   let body;
   try {
     body = await request.json();
@@ -23,9 +19,6 @@ export async function onRequestPost(context) {
   const password = (body.password || '').trim();
   const action = (body.action || '').trim();
 
-  /* ---------------------------------------------
-     2. التحقق من كلمة السر
-  --------------------------------------------- */
   if (!password) {
     return jsonResponse({
       success: false,
@@ -51,25 +44,14 @@ export async function onRequestPost(context) {
     }, 401);
   }
 
-  /* ---------------------------------------------
-     3. تنفيذ Action
-  --------------------------------------------- */
   switch (action) {
-    case 'login':
-      return await handleLogin(env);
-
-    case 'list':
-      return await handleList(env);
-
-    case 'generate':
-      return await handleGenerate(env);
-
-    case 'delete':
-      return await handleDelete(env, body.code);
-
-    case 'view':
-      return await handleView(env, body.code);
-
+    case 'login':      return await handleLogin(env);
+    case 'list':       return await handleList(env);
+    case 'generate':   return await handleGenerate(env);
+    case 'delete':     return await handleDelete(env, body.code);
+    case 'view':       return await handleView(env, body.code);
+    case 'search':     return await handleSearch(env, body.query);
+    case 'clear_drafts': return await handleClearDrafts(env);
     default:
       return jsonResponse({
         success: false,
@@ -80,61 +62,82 @@ export async function onRequestPost(context) {
 }
 
 /* ============================================================
-   Action: login
+   Login
 ============================================================ */
 async function handleLogin(env) {
-  return jsonResponse({
-    success: true,
-    message: 'تم تسجيل الدخول',
-  }, 200);
+  return jsonResponse({ success: true, message: 'تم تسجيل الدخول' }, 200);
 }
 
 /* ============================================================
-   Action: list - عرض كل الأكواد وحالتها
+   List - الأكواد من KV + العقود من D1
 ============================================================ */
 async function handleList(env) {
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
-    if (!codesRaw) {
-      return jsonResponse({
-        success: true,
-        codes: [],
-        contracts: [],
-      }, 200);
-    }
+    const codes = codesRaw ? JSON.parse(codesRaw) : [];
 
-    const codes = JSON.parse(codesRaw);
     const contracts = [];
 
     for (const code of codes) {
-      const finished = await env.CONTRACT_KV.get(`contract_${code}_finished`);
+      // هل العقد موجود في D1؟
+      let contractRow = null;
+      try {
+        contractRow = await env.DB.prepare(
+          'SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?'
+        ).bind(code).first();
+      } catch (e) {
+        // تجاهل
+      }
 
-      /* جلب أسماء الأطراف للعرض */
+      // جلب ملخص الأطراف
       const partySummary = {};
       const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
 
-      for (const key of partyKeys) {
-        const partyRaw = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
-        if (partyRaw) {
-          try {
-            const party = JSON.parse(partyRaw);
-            partySummary[key] = {
-              nameDe: party.nameDe || '—',
-              nameAr: party.nameAr || '—',
-              waliIsBride: !!party.waliIsBride,
-              witnessIsCenter: !!party.witnessIsCenter,
+      if (contractRow) {
+        // من D1
+        try {
+          const parties = await env.DB.prepare(
+            'SELECT role, name_de, name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?'
+          ).bind(contractRow.id).all();
+
+          for (const p of parties.results || []) {
+            partySummary[p.role] = {
+              nameDe: p.name_de || '—',
+              nameAr: p.name_ar || '—',
+              waliIsBride: !!p.wali_is_bride,
+              witnessIsCenter: !!p.witness_is_center,
             };
-          } catch (e) {
+          }
+        } catch (e) {
+          // تجاهل
+        }
+      } else {
+        // من KV (لم يُنقل بعد)
+        for (const key of partyKeys) {
+          const partyRaw = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
+          if (partyRaw) {
+            try {
+              const party = JSON.parse(partyRaw);
+              partySummary[key] = {
+                nameDe: party.nameDe || '—',
+                nameAr: party.nameAr || '—',
+                waliIsBride: !!party.waliIsBride,
+                witnessIsCenter: !!party.witnessIsCenter,
+              };
+            } catch (e) {
+              partySummary[key] = null;
+            }
+          } else {
             partySummary[key] = null;
           }
-        } else {
-          partySummary[key] = null;
         }
       }
 
       contracts.push({
         code: code,
-        finished: finished === 'true',
+        finished: contractRow ? contractRow.status === 'sent' : false,
+        inD1: !!contractRow,
+        contractDate: contractRow ? contractRow.contract_date : null,
         parties: partySummary,
       });
     }
@@ -156,11 +159,10 @@ async function handleList(env) {
 }
 
 /* ============================================================
-   Action: generate - توليد 5 أكواد جديدة
+   Generate - توليد 5 أكواد جديدة (يمسح كل شيء)
 ============================================================ */
 async function handleGenerate(env) {
   try {
-    /* توليد 5 أكواد فريدة */
     const newCodes = [];
     const used = new Set();
 
@@ -172,22 +174,29 @@ async function handleGenerate(env) {
       }
     }
 
-    /* حذف كل العقود القديمة والمسودات */
+    // 1. مسح كل مفاتيح KV
     const listResult = await env.CONTRACT_KV.list({ prefix: 'contract_' });
     const deletes = listResult.keys.map(k => env.CONTRACT_KV.delete(k.name));
-
-    /* حذف قائمة الأكواد القديمة */
     deletes.push(env.CONTRACT_KV.delete('codes'));
-
     await Promise.all(deletes);
 
-    /* كتابة الأكواد الجديدة */
+    // 2. مسح العقود من D1 (كل شيء بما فيها المُرسلة)
+    try {
+      await env.DB.prepare('DELETE FROM audit_log').run();
+      await env.DB.prepare('DELETE FROM dowries').run();
+      await env.DB.prepare('DELETE FROM parties').run();
+      await env.DB.prepare('DELETE FROM contracts').run();
+    } catch (e) {
+      console.error('D1 clear error:', e);
+    }
+
+    // 3. كتابة الأكواد الجديدة
     await env.CONTRACT_KV.put('codes', JSON.stringify(newCodes));
 
     return jsonResponse({
       success: true,
       codes: newCodes,
-      message: 'تم توليد 5 أكواد جديدة',
+      message: 'تم توليد 5 أكواد جديدة وحذف كل العقود السابقة',
     }, 200);
 
   } catch (err) {
@@ -201,7 +210,7 @@ async function handleGenerate(env) {
 }
 
 /* ============================================================
-   Action: delete - حذف عقد واحد
+   Delete - حذف عقد واحد
 ============================================================ */
 async function handleDelete(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
@@ -213,7 +222,6 @@ async function handleDelete(env, code) {
   }
 
   try {
-    /* التحقق أن الكود موجود في القائمة */
     const codesRaw = await env.CONTRACT_KV.get('codes');
     if (!codesRaw) {
       return jsonResponse({
@@ -232,17 +240,32 @@ async function handleDelete(env, code) {
       }, 404);
     }
 
-    /* حذف كل بيانات العقد */
+    // حذف من D1
+    try {
+      const contractRow = await env.DB.prepare(
+        'SELECT id FROM contracts WHERE code = ?'
+      ).bind(code).first();
+
+      if (contractRow) {
+        await env.DB.prepare('DELETE FROM parties WHERE contract_id = ?').bind(contractRow.id).run();
+        await env.DB.prepare('DELETE FROM dowries WHERE contract_id = ?').bind(contractRow.id).run();
+        await env.DB.prepare('DELETE FROM contracts WHERE id = ?').bind(contractRow.id).run();
+      }
+    } catch (e) {
+      console.error('D1 delete error:', e);
+    }
+
+    // حذف من KV
     const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
     const deletes = [];
-
     for (const key of partyKeys) {
       deletes.push(env.CONTRACT_KV.delete(`contract_${code}_${key}`));
     }
     deletes.push(env.CONTRACT_KV.delete(`contract_${code}_finished`));
     deletes.push(env.CONTRACT_KV.delete(`contract_${code}_finished_at`));
+    deletes.push(env.CONTRACT_KV.delete(`contract_${code}_date`));
 
-    /* إزالة الكود من القائمة */
+    // إزالة الكود من القائمة
     const newCodes = codes.filter(c => c !== code);
     deletes.push(env.CONTRACT_KV.put('codes', JSON.stringify(newCodes)));
 
@@ -264,7 +287,7 @@ async function handleDelete(env, code) {
 }
 
 /* ============================================================
-   Action: view - عرض بيانات عقد واحد
+   View - عرض عقد من D1
 ============================================================ */
 async function handleView(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
@@ -280,29 +303,67 @@ async function handleView(env, code) {
       code: code,
       finished: false,
       finishedAt: null,
+      contractDate: null,
       parties: {},
     };
 
-    const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
+    // جلب العقد من D1
+    const contractRow = await env.DB.prepare(
+      'SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?'
+    ).bind(code).first();
 
-    for (const key of partyKeys) {
-      const raw = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
-      if (raw) {
-        try {
-          contract.parties[key] = JSON.parse(raw);
-        } catch (e) {
-          contract.parties[key] = null;
+    if (contractRow) {
+      contract.finished = contractRow.status === 'sent';
+      contract.contractDate = contractRow.contract_date;
+      if (contractRow.sent_at) {
+        contract.finishedAt = new Date(contractRow.sent_at * 1000).toISOString();
+      }
+
+      // جلب الأطراف
+      const parties = await env.DB.prepare(
+        `SELECT role, name_de, name_ar, birth_day, birth_month, birth_year,
+                birth_country, birth_region, id_type, id_number,
+                address_number, address_street, postal_code, city,
+                mother_name_de, mother_name_ar,
+                wali_is_bride, witness_is_center
+         FROM parties WHERE contract_id = ?`
+      ).bind(contractRow.id).all();
+
+      for (const p of parties.results || []) {
+        contract.parties[p.role] = {
+          nameDe: p.name_de,
+          nameAr: p.name_ar,
+          birthDay: p.birth_day,
+          birthMonth: p.birth_month,
+          birthYear: p.birth_year,
+          birthCountry: p.birth_country,
+          birthRegion: p.birth_region,
+          idType: p.id_type,
+          idNumber: p.id_number,
+          addressNumber: p.address_number,
+          addressStreet: p.address_street,
+          postalCode: p.postal_code,
+          city: p.city,
+          motherNameDe: p.mother_name_de,
+          motherNameAr: p.mother_name_ar,
+          waliIsBride: !!p.wali_is_bride,
+          witnessIsCenter: !!p.witness_is_center,
+        };
+      }
+
+      // جلب المهر
+      const dowry = await env.DB.prepare(
+        'SELECT amount_advance, amount_deferred, notes FROM dowries WHERE contract_id = ?'
+      ).bind(contractRow.id).first();
+
+      if (dowry) {
+        if (contract.parties.groom) {
+          contract.parties.groom.dowryAdvance = dowry.amount_advance;
+          contract.parties.groom.dowryDeferred = dowry.amount_deferred;
+          contract.parties.groom.dowryNotes = dowry.notes;
         }
-      } else {
-        contract.parties[key] = null;
       }
     }
-
-    const finished = await env.CONTRACT_KV.get(`contract_${code}_finished`);
-    contract.finished = finished === 'true';
-
-    const finishedAt = await env.CONTRACT_KV.get(`contract_${code}_finished_at`);
-    contract.finishedAt = finishedAt || null;
 
     return jsonResponse({
       success: true,
@@ -313,17 +374,80 @@ async function handleView(env, code) {
     console.error('handleView error:', err);
     return jsonResponse({
       success: false,
-      error: 'kv_error',
+      error: 'db_error',
       message: 'فشل في القراءة',
     }, 500);
   }
 }
 
 /* ============================================================
-   توليد كود عشوائي (6 خانات)
+   Search - بحث في D1
+============================================================ */
+async function handleSearch(env, query) {
+  if (!query || !query.trim()) {
+    return jsonResponse({
+      success: true,
+      results: [],
+    }, 200);
+  }
+
+  const q = '%' + query.trim() + '%';
+
+  try {
+    const results = await env.DB.prepare(
+      `SELECT DISTINCT c.id, c.code, c.contract_date, c.status, c.sent_at,
+              p.role, p.name_de, p.name_ar
+       FROM contracts c
+       LEFT JOIN parties p ON p.contract_id = c.id
+       WHERE c.code LIKE ?
+          OR p.name_de LIKE ?
+          OR p.name_ar LIKE ?
+          OR p.id_number LIKE ?
+       ORDER BY c.id DESC
+       LIMIT 50`
+    ).bind(q, q, q, q).all();
+
+    return jsonResponse({
+      success: true,
+      results: results.results || [],
+    }, 200);
+
+  } catch (err) {
+    console.error('handleSearch error:', err);
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل البحث',
+    }, 500);
+  }
+}
+
+/* ============================================================
+   Clear Drafts - حذف العقود غير المُرسلة
+============================================================ */
+async function handleClearDrafts(env) {
+  try {
+    await env.DB.prepare("DELETE FROM parties WHERE contract_id IN (SELECT id FROM contracts WHERE status = 'draft')").run();
+    await env.DB.prepare("DELETE FROM dowries WHERE contract_id IN (SELECT id FROM contracts WHERE status = 'draft')").run();
+    await env.DB.prepare("DELETE FROM contracts WHERE status = 'draft'").run();
+
+    return jsonResponse({
+      success: true,
+      message: 'تم حذف العقود غير المُرسلة',
+    }, 200);
+  } catch (err) {
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل الحذف',
+    }, 500);
+  }
+}
+
+/* ============================================================
+   Helper
 ============================================================ */
 function generateRandomCode() {
-  /* بدون I, O, 0, 1 لتجنب الالتباس */
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
   for (let i = 0; i < 6; i++) {
@@ -332,9 +456,6 @@ function generateRandomCode() {
   return code;
 }
 
-/* ============================================================
-   رفض باقي الطرق
-============================================================ */
 export async function onRequestGet() {
   return jsonResponse({
     error: 'method_not_allowed',
@@ -342,9 +463,6 @@ export async function onRequestGet() {
   }, 405);
 }
 
-/* ============================================================
-   دالة مساعدة
-============================================================ */
 function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
