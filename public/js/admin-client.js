@@ -1,5 +1,5 @@
 /* ============================================================
-   Admin Client V10 - Icons + Permissions
+   Admin Client V11 - Final with Print Support
 ============================================================ */
 
 const adminState = {
@@ -13,9 +13,6 @@ const adminState = {
   currentContract: null,
 };
 
-/* ============================================================
-   Icons (SVG)
-============================================================ */
 const ICONS = {
   eye: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
   pencil: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
@@ -191,24 +188,18 @@ function logout() {
   showLogin();
 }
 
-/* ============================================================
-   Apply Role Restrictions
-============================================================ */
 function applyRoleRestrictions() {
-  // تبويب الإعدادات لـ admin فقط
   const settingsTab = document.querySelector('.admin-tab[data-tab="settings"]');
   if (settingsTab) {
     settingsTab.classList.toggle('hidden', !can('manage_users'));
   }
 
-  // زر توليد الأكواد
   const generateBtn = document.querySelector('button[onclick="generateNewCodes()"]');
   if (generateBtn) {
     const card = generateBtn.closest('.card');
     if (card) card.classList.toggle('hidden', !can('generate_codes'));
   }
 
-  // منطقة الخطر
   const dangerCard = document.querySelector('.card-danger');
   if (dangerCard) {
     dangerCard.classList.toggle('hidden', !can('generate_codes'));
@@ -324,6 +315,9 @@ function renderTable() {
         <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">
           ${ICONS.eye}
         </button>
+        <button class="icon-btn print" title="طباعة" onclick="printContractByCode('${contract.code}')">
+          ${ICONS.print}
+        </button>
         ${contract.inD1 ? `
           <button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">
             ${ICONS.pencil}
@@ -366,7 +360,7 @@ function renderArchive() {
           <th>الزوج</th>
           <th>الزوجة</th>
           <th style="width:140px;">تاريخ العقد</th>
-          <th style="width:150px;">إجراءات</th>
+          <th style="width:180px;">إجراءات</th>
         </tr>
       </thead>
       <tbody>
@@ -392,6 +386,9 @@ function renderArchive() {
         <td class="action-icons">
           <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">
             ${ICONS.eye}
+          </button>
+          <button class="icon-btn print" title="طباعة" onclick="printContractByCode('${contract.code}')">
+            ${ICONS.print}
           </button>
           ${can('edit') ? `
             <button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">
@@ -690,9 +687,34 @@ function closeModal() {
   adminState.currentContract = null;
 }
 
+/* ============================================================
+   ⭐ PRINT CONTRACT - الطريقة الجديدة
+============================================================ */
 function printContract() {
-  // سيتم تحديثها بنسخة الشهادة الرسمية
-  window.print();
+  if (!adminState.currentContract) {
+    alert('لا يوجد عقد مفتوح');
+    return;
+  }
+
+  const code = adminState.currentContract.code;
+  if (!code) {
+    alert('رقم العقد غير معروف');
+    return;
+  }
+
+  printContractByCode(code);
+}
+
+function printContractByCode(code) {
+  if (!code) {
+    alert('رقم العقد مطلوب');
+    return;
+  }
+
+  window.open(
+    './print-contract.html?code=' + encodeURIComponent(code),
+    '_blank'
+  );
 }
 
 /* ============================================================
@@ -704,7 +726,6 @@ async function editContract(code) {
     return;
   }
 
-  // افتح صفحة التعديل
   window.location.href = `./admin-edit.html?code=${encodeURIComponent(code)}`;
 }
 
@@ -880,6 +901,7 @@ window.refreshData = refreshData;
 window.viewContract = viewContract;
 window.closeModal = closeModal;
 window.printContract = printContract;
+window.printContractByCode = printContractByCode;
 window.editContract = editContract;
 window.deleteContract = deleteContract;
 window.generateNewCodes = generateNewCodes;
