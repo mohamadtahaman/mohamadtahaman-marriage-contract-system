@@ -1,0 +1,529 @@
+/* ============================================================
+   Admin Edit Page
+============================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Tajawal', sans-serif;
+  background: #f7f9f8;
+  color: #1a1a1a;
+  min-height: 100vh;
+  line-height: 1.7;
+}
+
+.hidden { display: none !important; }
+
+/* ============================================================
+   Loading Screen
+============================================================ */
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  color: #666;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e8f3ed;
+  border-top-color: #2d6a4f;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   Error Screen
+============================================================ */
+.error-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.error-box {
+  background: #fff;
+  border: 1px solid #f5d5d0;
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 450px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.error-box h2 {
+  color: #c0392b;
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.error-box p {
+  color: #666;
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+
+/* ============================================================
+   Edit Header
+============================================================ */
+.edit-wrap {
+  min-height: 100vh;
+  background: #f7f9f8;
+}
+
+.edit-header {
+  background: #fff;
+  border-bottom: 2px solid #2d6a4f;
+  padding: 16px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.edit-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-back {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ebebeb;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-back:hover {
+  background: #ebebeb;
+  transform: translateX(-2px);
+}
+
+.edit-header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.edit-code {
+  font-family: 'Courier New', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: #e8f3ed;
+  color: #2d6a4f;
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1px solid #c8e0d3;
+}
+
+.edit-status {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: #e8f3ed;
+  color: #2d6a4f;
+}
+
+.edit-status.sent {
+  background: #fdf9ef;
+  color: #8b6f1e;
+  border: 1px solid #e9d5a1;
+}
+
+.btn-save {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #ccc;
+  color: #888;
+  letter-spacing: 0.3px;
+}
+
+.btn-save:not(:disabled) {
+  background: #2d6a4f;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(45,106,79,0.25);
+}
+
+.btn-save:not(:disabled):hover {
+  background: #1b4332;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(45,106,79,0.3);
+}
+
+/* ============================================================
+   Container
+============================================================ */
+.edit-container {
+  max-width: 900px;
+  margin: 25px auto;
+  padding: 0 20px;
+}
+
+/* ============================================================
+   Tabs
+============================================================ */
+.edit-tabs {
+  display: flex;
+  gap: 6px;
+  background: #fff;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #ebebeb;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.edit-tab {
+  background: transparent;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.edit-tab:hover {
+  background: #f5f5f5;
+  color: #2d6a4f;
+}
+
+.edit-tab.active {
+  background: #2d6a4f;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(45,106,79,0.25);
+}
+
+.edit-tab.changed::after {
+  content: '●';
+  color: #c9a961;
+  margin-right: 6px;
+  font-size: 10px;
+}
+
+/* ============================================================
+   Content
+============================================================ */
+.edit-content {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #ebebeb;
+  padding: 30px;
+  min-height: 400px;
+}
+
+.edit-section-title {
+  font-size: 15px;
+  color: #2d6a4f;
+  border-bottom: 2px solid #c9a961;
+  padding-bottom: 10px;
+  margin-bottom: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.edit-grid .full {
+  grid-column: 1 / -1;
+}
+
+.edit-field label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 7px;
+  color: #333;
+  font-weight: 600;
+}
+
+.edit-field label .req {
+  color: #c0392b;
+  font-weight: 700;
+}
+
+.edit-field input,
+.edit-field select,
+.edit-field textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid #ebebeb;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+  font-family: inherit;
+  background: #fbfbfb;
+  color: #1a1a1a;
+}
+
+.edit-field input:focus,
+.edit-field select:focus,
+.edit-field textarea:focus {
+  border-color: #2d6a4f;
+  background: #fff;
+  box-shadow: 0 0 0 3px #e8f3ed;
+}
+
+.edit-field.changed input,
+.edit-field.changed select,
+.edit-field.changed textarea {
+  border-color: #c9a961;
+  background: #fdf9ef;
+}
+
+.edit-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Date Selects */
+.edit-date-selects {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1.2fr;
+  gap: 8px;
+}
+
+.edit-date-selects select {
+  text-align: center;
+  padding: 11px 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ============================================================
+   Special Box
+============================================================ */
+.edit-special-box {
+  grid-column: 1 / -1;
+  padding: 14px 18px;
+  background: #fdf9ef;
+  border: 1.5px dashed #e9d5a1;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.edit-special-box input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: #2d6a4f;
+}
+
+.edit-special-box label {
+  font-weight: 700;
+  color: #8b6f1e;
+  cursor: pointer;
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ============================================================
+   Empty State
+============================================================ */
+.edit-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+  font-size: 15px;
+}
+
+/* ============================================================
+   Toast
+============================================================ */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2d6a4f;
+  color: #fff;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  z-index: 9999;
+  animation: toastIn 0.3s ease;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.toast.error {
+  background: #c0392b;
+}
+
+.toast.warning {
+  background: #8b6f1e;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ============================================================
+   Confirm Modal
+============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-box-small {
+  background: #fff;
+  border-radius: 14px;
+  padding: 28px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+.modal-box-small h3 {
+  color: #1a1a1a;
+  font-size: 17px;
+  margin-bottom: 10px;
+}
+
+.modal-box-small p {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #2d6a4f;
+  color: #fff;
+}
+
+.btn-primary:hover { background: #1b4332; }
+
+.btn-secondary {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ebebeb;
+}
+
+.btn-secondary:hover { background: #ebebeb; }
+
+/* ============================================================
+   Responsive
+============================================================ */
+@media (max-width: 720px) {
+  .edit-header {
+    padding: 12px 16px;
+  }
+
+  .edit-header h1 {
+    font-size: 15px;
+  }
+
+  .edit-code {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  .btn-save {
+    padding: 10px 18px;
+    font-size: 13px;
+  }
+
+  .edit-container {
+    padding: 0 12px;
+    margin: 15px auto;
+  }
+
+  .edit-content {
+    padding: 20px 18px;
+    border-radius: 12px;
+  }
+
+  .edit-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .edit-date-selects {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .edit-tab {
+    padding: 8px 14px;
+    font-size: 12.5px;
+  }
+}
