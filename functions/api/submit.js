@@ -1,6 +1,6 @@
 /* ============================================================
-   Cloudflare Function: POST /api/submit (v2 - D1)
-   استقبال بيانات العقد + حفظ في D1 + إرسال بريد
+   Cloudflare Function: POST /api/submit
+   يجمع الأطراف من KV → يحفظ في D1 → يرسل البريد
 ============================================================ */
 
 export async function onRequestPost(context) {
@@ -18,8 +18,9 @@ export async function onRequestPost(context) {
   }
 
   const code = (body.code || '').trim().toUpperCase();
-  const data = body.data || {};
   const contractDate = (body.contractDate || '').trim();
+  // data احتياطي: إذا جاء من الواجهة مباشرة
+  const inlineData = body.data || null;
 
   if (!code || code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
     return jsonResponse({
@@ -29,18 +30,26 @@ export async function onRequestPost(context) {
     }, 400);
   }
 
-  // التحقق من الكود في KV
+  if (!contractDate) {
+    return jsonResponse({
+      success: false,
+      error: 'missing_contract_date',
+      message: 'تاريخ العقد مطلوب',
+    }, 400);
+  }
+
+  // التحقق من الكود
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
     if (!codesRaw) {
       return jsonResponse({
         success: false,
         error: 'no_codes',
-        message: 'لا توجد أكواد معتمدة',
+        message: 'لا توجد أكواد',
       }, 404);
     }
     const codes = JSON.parse(codesRaw);
-    if (!Array.isArray(codes) || !codes.includes(code)) {
+    if (!codes.includes(code)) {
       return jsonResponse({
         success: false,
         error: 'not_found',
@@ -55,62 +64,72 @@ export async function onRequestPost(context) {
     }, 500);
   }
 
-  // التحقق: هل العقد موجود في D1؟
+  // التحقق من عدم الإرسال المسبق
   try {
-    const existing = await env.DB.prepare(
-      'SELECT id FROM contracts WHERE code = ?'
-    ).bind(code).first();
-
-    if (existing) {
+    const finished = await env.CONTRACT_KV.get(`contract_${code}_finished`);
+    if (finished === 'true') {
       return jsonResponse({
         success: false,
         error: 'already_sent',
         message: 'تم إرسال هذا العقد مسبقاً',
       }, 409);
     }
-  } catch (err) {
-    // تجاهل — ربما جدول جديد
-  }
+  } catch (e) { /* تجاهل */ }
 
-  // التحقق من اكتمال البيانات
-  const requiredParties = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
+  /* ============================================================
+     1. جمع بيانات الأطراف
+     - أولاً من KV (party.js حفظها)
+     - إذا فشلت، من الواجهة مباشرة
+  ============================================================ */
+  const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
+  const data = {};
   const missing = [];
 
-  for (const key of requiredParties) {
-    const p = data[key];
-    if (!p) {
-      missing.push(key);
-      continue;
-    }
-    if (key === 'wali' && p.waliIsBride) continue;
-    if ((key === 'witness1' || key === 'witness2') && p.witnessIsCenter) continue;
+  for (const role of roles) {
+    // حاول من KV أولاً
+    let partyData = null;
+    try {
+      const raw = await env.CONTRACT_KV.get(`contract_${code}_${role}`);
+      if (raw) partyData = JSON.parse(raw);
+    } catch (e) { /* تجاهل */ }
 
-    if (!p.nameDe || !p.nameDe.trim()) {
-      missing.push(key);
-      continue;
+    // إذا لم يوجد في KV، استخدم inline (احتياطي)
+    if (!partyData && inlineData && inlineData[role]) {
+      partyData = inlineData[role];
     }
-    if ((key === 'groom' || key === 'bride') &&
-        (!p.motherNameDe || !p.motherNameDe.trim())) {
-      missing.push(key);
+
+    if (partyData) {
+      data[role] = partyData;
+    } else {
+      // تجاهل الولي/الشاهد إذا كانا يستخدمان الخيارات الخاصة
+      if (role === 'wali' && inlineData?.wali?.waliIsBride) {
+        data[role] = inlineData.wali;
+        continue;
+      }
+      if ((role === 'witness1' || role === 'witness2') &&
+          inlineData?.[role]?.witnessIsCenter) {
+        data[role] = inlineData[role];
+        continue;
+      }
+      missing.push(role);
     }
   }
 
   if (missing.length > 0) {
     return jsonResponse({
       success: false,
-      error: 'incomplete_data',
-      message: 'بيانات ناقصة',
+      error: 'missing_parties',
+      message: 'لم يكتمل جميع الأطراف',
       missing: missing,
     }, 400);
   }
 
-  // ============================================================
-  // الحفظ في D1
-  // ============================================================
+  /* ============================================================
+     2. الحفظ في D1
+  ============================================================ */
   let contractId;
 
   try {
-    // 1. إدراج العقد في contracts
     const insertResult = await env.DB.prepare(
       `INSERT INTO contracts (code, contract_date, status, sent_at)
        VALUES (?, ?, 'sent', ?)`
@@ -126,8 +145,8 @@ export async function onRequestPost(context) {
       throw new Error('Failed to get contract ID');
     }
 
-    // 2. إدراج الأطراف
-    for (const role of requiredParties) {
+    // الأطراف
+    for (const role of roles) {
       const p = data[role];
       if (!p) continue;
 
@@ -157,7 +176,7 @@ export async function onRequestPost(context) {
       ).run();
     }
 
-    // 3. إدراج المهر (إن وُجد)
+    // المهر
     const groom = data.groom || {};
     if (groom.dowryAdvance || groom.dowryDeferred || groom.dowryNotes) {
       await env.DB.prepare(
@@ -171,7 +190,7 @@ export async function onRequestPost(context) {
       ).run();
     }
 
-    // 4. تسجيل في audit_log
+    // Audit log
     await env.DB.prepare(
       `INSERT INTO audit_log (action, entity_type, entity_id, details)
        VALUES ('submit', 'contract', ?, ?)`
@@ -182,32 +201,31 @@ export async function onRequestPost(context) {
     return jsonResponse({
       success: false,
       error: 'db_error',
-      message: 'فشل حفظ البيانات في قاعدة البيانات',
+      message: 'فشل حفظ البيانات',
       details: err.message,
     }, 500);
   }
 
-  // ============================================================
-  // إرسال البريد
-  // ============================================================
+  /* ============================================================
+     3. إرسال البريد
+  ============================================================ */
   try {
-    const emailSent = await sendEmailViaEmailJS(env, code, data, contractDate);
-    if (!emailSent.success) {
-      console.error('EmailJS failed:', emailSent);
+    const emailResult = await sendEmailViaEmailJS(env, code, data, contractDate);
+    if (!emailResult.success) {
+      console.error('EmailJS failed:', emailResult);
     }
   } catch (err) {
     console.error('Email error:', err);
   }
 
-  // ============================================================
-  // وضع علامة "finished" في KV (للتوافق مع النظام القديم)
-  // ============================================================
+  /* ============================================================
+     4. وضع علامة "finished"
+  ============================================================ */
   try {
     await env.CONTRACT_KV.put(`contract_${code}_finished`, 'true');
     await env.CONTRACT_KV.put(`contract_${code}_finished_at`, new Date().toISOString());
-  } catch (err) {
-    // تجاهل
-  }
+    await env.CONTRACT_KV.put(`contract_${code}_date`, contractDate);
+  } catch (e) { /* تجاهل */ }
 
   return jsonResponse({
     success: true,
@@ -219,7 +237,7 @@ export async function onRequestPost(context) {
 }
 
 /* ============================================================
-   إرسال البريد عبر EmailJS
+   إرسال البريد
 ============================================================ */
 async function sendEmailViaEmailJS(env, code, data, contractDate) {
   const serviceId = env.EMAILJS_SERVICE_ID;
@@ -257,7 +275,7 @@ async function sendEmailViaEmailJS(env, code, data, contractDate) {
 }
 
 /* ============================================================
-   تجهيز متغيرات البريد
+   تجهيز المتغيرات
 ============================================================ */
 function buildEmailParams(code, data, contractDate) {
   const g = data.groom || {};
@@ -283,6 +301,7 @@ function buildEmailParams(code, data, contractDate) {
     contract_code: code,
     contract_date: contractDate || '—',
     sent_at: new Date().toLocaleString('de-DE'),
+
     groom_name_de: g.nameDe || '—',
     groom_name_ar: g.nameAr || '—',
     groom_birth: birthDate(g),
@@ -298,6 +317,7 @@ function buildEmailParams(code, data, contractDate) {
     groom_dowry_advance: g.dowryAdvance || '—',
     groom_dowry_deferred: g.dowryDeferred || '—',
     groom_dowry_notes: g.dowryNotes || '—',
+
     bride_name_de: b.nameDe || '—',
     bride_name_ar: b.nameAr || '—',
     bride_birth: birthDate(b),
@@ -310,6 +330,7 @@ function buildEmailParams(code, data, contractDate) {
     bride_city: b.city || '—',
     bride_mother_de: b.motherNameDe || '—',
     bride_mother_ar: b.motherNameAr || '—',
+
     wali_status: waliIsBride ? 'Bride is her own Wali' : 'Wali present',
     wali_name_de: waliIsBride ? '—' : (w.nameDe || '—'),
     wali_name_ar: waliIsBride ? '—' : (w.nameAr || '—'),
@@ -321,6 +342,7 @@ function buildEmailParams(code, data, contractDate) {
     wali_address: waliIsBride ? '—' : `${w.addressStreet || ''} ${w.addressNumber || ''}`.trim() || '—',
     wali_postal: waliIsBride ? '—' : (w.postalCode || '—'),
     wali_city: waliIsBride ? '—' : (w.city || '—'),
+
     w1_status: w1IsCenter ? 'Center Witness' : 'Witness present',
     w1_name_de: w1IsCenter ? '—' : (w1.nameDe || '—'),
     w1_name_ar: w1IsCenter ? '—' : (w1.nameAr || '—'),
@@ -332,6 +354,7 @@ function buildEmailParams(code, data, contractDate) {
     w1_address: w1IsCenter ? '—' : `${w1.addressStreet || ''} ${w1.addressNumber || ''}`.trim() || '—',
     w1_postal: w1IsCenter ? '—' : (w1.postalCode || '—'),
     w1_city: w1IsCenter ? '—' : (w1.city || '—'),
+
     w2_status: w2IsCenter ? 'Center Witness' : 'Witness present',
     w2_name_de: w2IsCenter ? '—' : (w2.nameDe || '—'),
     w2_name_ar: w2IsCenter ? '—' : (w2.nameAr || '—'),
