@@ -1,273 +1,270 @@
 /* ============================================================
-   Admin Panel - Clear & Simple
+   Admin Panel V4
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: 'Tajawal', sans-serif;
-  background: #f0f0f0;
-  color: #222;
+  background: #fbfbfb;
+  color: #1a1a1a;
   min-height: 100vh;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .hidden { display: none !important; }
 
-/* ============================================================
-   شاشة تسجيل الدخول
-============================================================ */
+/* ============ Login ============ */
 .login-wrap {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: linear-gradient(135deg, #1a4d3a 0%, #2d6a4f 100%);
+  background: linear-gradient(180deg, #f5faf7 0%, #fbfbfb 100%);
 }
 
 .login-box {
   background: #fff;
   width: 100%;
-  max-width: 480px;
-  border: 1px solid #ccc;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  max-width: 440px;
+  border: 1px solid #ebebeb;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+  overflow: hidden;
 }
 
 .login-header {
-  background: #1a4d3a;
+  background: #2d6a4f;
   color: #fff;
-  padding: 30px 24px;
+  padding: 32px 24px;
   text-align: center;
-  border-bottom: 3px solid #d4a944;
+  border-bottom: 3px solid #c9a961;
 }
 
 .login-header h1 {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   margin-bottom: 5px;
-  letter-spacing: 0.5px;
 }
 
-.login-header p {
-  font-size: 14px;
-  opacity: 0.85;
-}
+.login-header p { font-size: 13px; opacity: 0.85; }
 
-.login-body {
-  padding: 30px 24px;
-}
+.login-body { padding: 32px 28px; }
 
 .login-body label {
   display: block;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
-  color: #333;
   margin-bottom: 8px;
 }
 
 .login-body input {
   width: 100%;
-  padding: 14px 16px;
-  border: 2px solid #ccc;
-  font-size: 18px;
+  padding: 13px 16px;
+  border: 1.5px solid #ebebeb;
+  border-radius: 10px;
+  font-size: 17px;
   text-align: center;
-  letter-spacing: 4px;
+  letter-spacing: 3px;
   font-family: inherit;
   outline: none;
-  transition: 0.2s;
+  transition: all 0.2s;
   margin-bottom: 20px;
-  background: #fafafa;
+  background: #fbfbfb;
 }
 
 .login-body input:focus {
-  border-color: #1a4d3a;
+  border-color: #2d6a4f;
   background: #fff;
-  box-shadow: 0 0 0 4px rgba(26,77,58,0.1);
+  box-shadow: 0 0 0 4px #e8f3ed;
 }
 
 .btn-login {
   width: 100%;
-  padding: 16px;
-  background: #1a4d3a;
+  padding: 14px;
+  background: #2d6a4f;
   color: #fff;
   border: none;
-  font-size: 17px;
+  border-radius: 10px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
-  transition: 0.2s;
-  letter-spacing: 0.5px;
+  transition: all 0.2s;
 }
 
-.btn-login:hover {
-  background: #2d6a4f;
-}
-
-.btn-login:disabled {
-  background: #999;
-  cursor: not-allowed;
-}
+.btn-login:hover { background: #1b4332; }
+.btn-login:disabled { background: #ccc; cursor: not-allowed; }
 
 .login-footer {
-  padding: 15px 24px 20px;
+  padding: 16px 24px 20px;
   text-align: center;
-  border-top: 1px solid #eee;
+  border-top: 1px solid #f5f5f5;
   font-size: 13px;
 }
 
 .login-footer a {
-  color: #1a4d3a;
+  color: #2d6a4f;
   text-decoration: none;
+  font-weight: 600;
 }
 
-.login-footer a:hover {
-  text-decoration: underline;
-}
-
-/* ============================================================
-   الرسائل
-============================================================ */
+/* ============ Messages ============ */
 .message {
   margin-top: 15px;
   padding: 12px 16px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
-  border-radius: 4px;
+  border-radius: 8px;
   text-align: center;
 }
 
 .message.error {
-  background: #f5e5e5;
-  color: #a8332a;
-  border: 1px solid #a8332a;
+  background: #fdf2f0;
+  color: #c0392b;
+  border: 1px solid #f5d5d0;
 }
 
 .message.success {
   background: #e8f3ed;
   color: #2d6a4f;
-  border: 1px solid #2d6a4f;
-}
-
-.message.info {
-  background: #e8f0fa;
-  color: #1a4d8a;
-  border: 1px solid #1a4d8a;
-}
-
-/* ============================================================
-   لوحة الإدارة
-============================================================ */
-.panel-wrap {
-  min-height: 100vh;
-  background: #f0f0f0;
-}
-
-.panel-header {
-  background: #fff;
-  border-bottom: 3px solid #1a4d3a;
-  padding: 18px 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 15px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-}
-
-.panel-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.panel-title h1 {
-  font-size: 22px;
-  color: #1a4d3a;
-  font-weight: 700;
-}
-
-.badge {
-  background: #1a4d3a;
-  color: #fff;
-  font-size: 11px;
-  padding: 4px 12px;
-  border-radius: 3px;
-  font-weight: 600;
-}
-
-.panel-actions {
-  display: flex;
-  gap: 8px;
+  border: 1px solid #c8e0d3;
 }
 
 .system-message {
   max-width: 1200px;
   margin: 15px auto 0;
   padding: 14px 20px;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
   font-weight: 600;
 }
 
 .system-message.error {
-  background: #f5e5e5;
-  color: #a8332a;
-  border-right: 5px solid #a8332a;
+  background: #fdf2f0;
+  color: #c0392b;
+  border-right: 4px solid #c0392b;
 }
 
 .system-message.success {
   background: #e8f3ed;
   color: #2d6a4f;
-  border-right: 5px solid #2d6a4f;
+  border-right: 4px solid #2d6a4f;
 }
 
-/* ============================================================
-   المحتوى
-============================================================ */
+/* ============ Panel Header ============ */
+.panel-wrap {
+  min-height: 100vh;
+  background: #fbfbfb;
+  padding-bottom: 40px;
+}
+
+.panel-header {
+  background: #fff;
+  border-bottom: 1px solid #ebebeb;
+  padding: 18px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.panel-title { display: flex; align-items: center; gap: 12px; }
+
+.panel-title h1 {
+  font-size: 19px;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+.badge {
+  background: #e8f3ed;
+  color: #2d6a4f;
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+}
+
+.panel-actions { display: flex; gap: 8px; }
+
+/* ============ Tabs ============ */
+.admin-tabs {
+  max-width: 1200px;
+  margin: 20px auto 0;
+  padding: 0 32px;
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid #ebebeb;
+  overflow-x: auto;
+}
+
+.admin-tab {
+  background: transparent;
+  border: none;
+  padding: 12px 20px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #999;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.admin-tab:hover { color: #2d6a4f; }
+.admin-tab.active {
+  color: #2d6a4f;
+  border-bottom-color: #c9a961;
+}
+
+/* ============ Content ============ */
 .panel-content {
   max-width: 1200px;
-  margin: 25px auto;
-  padding: 0 30px;
+  margin: 0 auto;
+  padding: 24px 32px;
 }
 
+.tab-content { animation: fadeIn 0.2s ease; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ Cards ============ */
 .card {
   background: #fff;
-  border: 1px solid #ccc;
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
   margin-bottom: 20px;
+  overflow: hidden;
 }
 
-.card-danger {
-  border-color: #a8332a;
-}
+.card-danger { border-color: #f5d5d0; }
 
 .card-header {
-  background: #f0f0f0;
-  border-bottom: 1px solid #ccc;
-  padding: 14px 20px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+  padding: 14px 22px;
 }
 
-.card-danger .card-header {
-  background: #f5e5e5;
-}
+.card-danger .card-header { background: #fdf2f0; }
 
 .card-header h2 {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
-  color: #222;
+  color: #1a1a1a;
 }
 
-.card-danger .card-header h2 {
-  color: #a8332a;
-}
+.card-danger .card-header h2 { color: #c0392b; }
 
-.card-body {
-  padding: 20px;
-}
-
-.card-body.no-padding {
-  padding: 0;
-}
+.card-body { padding: 20px 22px; }
+.card-body.no-padding { padding: 0; }
 
 .hint {
   font-size: 13px;
@@ -276,52 +273,42 @@ body {
   line-height: 1.7;
 }
 
-/* ============================================================
-   الجدول
-============================================================ */
+/* ============ Tables ============ */
 .codes-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 .codes-table th {
-  background: #e8e8e8;
-  color: #222;
-  padding: 12px 14px;
+  background: #fafafa;
+  color: #666;
+  padding: 12px 16px;
   text-align: right;
   font-weight: 700;
-  font-size: 13px;
-  border-bottom: 2px solid #ccc;
+  font-size: 12.5px;
+  border-bottom: 1px solid #ebebeb;
 }
 
 .codes-table td {
-  padding: 14px;
-  border-bottom: 1px solid #eee;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f5f5f5;
   vertical-align: middle;
 }
 
-.codes-table tr:hover td {
-  background: #f9f9f9;
-}
+.codes-table tr:hover td { background: #fafafa; }
+.codes-table tr:last-child td { border-bottom: none; }
 
 .code-value {
   font-family: 'Courier New', monospace;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 2px;
-  color: #1a4d3a;
-}
-
-.status-sent {
   color: #2d6a4f;
-  font-weight: 700;
 }
 
-.status-available {
-  color: #999;
-  font-weight: 600;
-}
+.status-sent { color: #2d6a4f; font-weight: 700; }
+.status-available { color: #999; font-weight: 600; }
 
 .loading-cell {
   text-align: center;
@@ -330,186 +317,47 @@ body {
   font-style: italic;
 }
 
-/* ============================================================
-   الأزرار
-============================================================ */
-.btn-primary,
-.btn-secondary,
-.btn-danger,
-.btn-action {
-  padding: 10px 18px;
-  border: none;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  border-radius: 3px;
-  transition: 0.15s;
-}
-
-.btn-primary {
-  background: #1a4d3a;
-  color: #fff;
-}
-
-.btn-primary:hover { background: #2d6a4f; }
-
-.btn-secondary {
-  background: #f0f0f0;
-  color: #333;
-  border: 1px solid #999;
-}
-
-.btn-secondary:hover { background: #e0e0e0; }
-
-.btn-danger {
-  background: #a8332a;
-  color: #fff;
-}
-
-.btn-danger:hover { background: #c0392b; }
-
-.btn-action {
-  background: #f0f0f0;
-  color: #333;
-  border: 1px solid #999;
-  padding: 6px 12px;
-  font-size: 12px;
-  margin: 2px;
-}
-
-.btn-action:hover { background: #e0e0e0; }
-
-.btn-action.danger {
-  background: #f5e5e5;
-  color: #a8332a;
-  border-color: #a8332a;
-}
-
-.btn-action.danger:hover { background: #e8d0d0; }
-
-/* ============================================================
-   Modal
-============================================================ */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.modal-box {
-  background: #fff;
-  width: 100%;
-  max-width: 800px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-
-.modal-header {
-  background: #1a4d3a;
-  color: #fff;
-  padding: 15px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-header h3 {
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.modal-close {
-  background: transparent;
-  color: #fff;
-  border: none;
-  font-size: 26px;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0 5px;
-}
-
-.modal-body {
-  padding: 20px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.modal-footer {
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
-  text-align: center;
-}
-
-/* ============================================================
-   عرض بيانات العقد في Modal
-============================================================ */
-.contract-block {
-  border: 1px solid #ccc;
-  margin-bottom: 15px;
-}
-
-.contract-block-title {
-  background: #f0f0f0;
-  padding: 10px 15px;
-  font-weight: 700;
-  font-size: 14px;
-  border-bottom: 1px solid #ccc;
-}
-
-.contract-block-body {
-  padding: 12px 15px;
-  font-size: 13px;
-}
-
-.contract-row {
+/* ============ Search ============ */
+.search-bar {
   display: flex;
   gap: 10px;
-  padding: 5px 0;
-  border-bottom: 1px dotted #eee;
+  flex-wrap: wrap;
 }
 
-.contract-row:last-child { border-bottom: none; }
-
-.contract-row strong {
-  color: #1a4d3a;
-  min-width: 160px;
-  flex-shrink: 0;
-}
-
-.contract-row span {
+.search-bar input {
   flex: 1;
-  word-break: break-word;
+  min-width: 200px;
+  padding: 12px 16px;
+  border: 1.5px solid #ebebeb;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.2s;
+  background: #fbfbfb;
 }
 
-/* ============================================================
-   Responsive
-============================================================ */
-@media (max-width: 640px) {
-  .panel-header { padding: 12px 15px; }
-  .panel-title h1 { font-size: 17px; }
-  .panel-content { padding: 0 15px; }
-  .codes-table th,
-  .codes-table td { padding: 8px; font-size: 12px; }
-  .code-value { font-size: 14px; letter-spacing: 1px; }
-  .contract-row { flex-direction: column; gap: 2px; }
-  .contract-row strong { min-width: auto; }
+.search-bar input:focus {
+  border-color: #2d6a4f;
+  background: #fff;
+  box-shadow: 0 0 0 3px #e8f3ed;
+}
 
-   /* ============================================================
-   Archive - تنسيق جديد
-============================================================ */
+.search-bar select {
+  padding: 12px 16px;
+  border: 1.5px solid #ebebeb;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ============ Archive ============ */
 .archive-grid {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 0;
 }
 
 .archive-item {
@@ -529,7 +377,7 @@ body {
 .archive-item-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -539,30 +387,28 @@ body {
   font-weight: 700;
   color: #2d6a4f;
   letter-spacing: 2px;
-  margin-bottom: 4px;
 }
 
 .archive-item-names {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 24px;
   font-size: 13.5px;
-  color: #1a1a1a;
 }
 
-.archive-item-names .name-pair {
+.name-pair {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.archive-item-names .name-label {
+.name-label {
   color: #999;
   font-size: 12px;
   font-weight: 600;
 }
 
-.archive-item-names .name-value {
+.name-value {
   color: #1a1a1a;
   font-weight: 600;
 }
@@ -575,7 +421,7 @@ body {
   gap: 6px;
 }
 
-.archive-item-meta .status-dot {
+.status-dot {
   color: #2d6a4f;
   font-size: 14px;
   line-height: 1;
@@ -587,19 +433,222 @@ body {
   flex-shrink: 0;
 }
 
+/* ============ Info Rows ============ */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px dotted #f0f0f0;
+  font-size: 13.5px;
+}
+
+.info-row:last-child { border-bottom: none; }
+
+.info-row strong { color: #666; font-weight: 600; }
+.info-row span { color: #1a1a1a; font-weight: 700; }
+
+/* ============ Buttons ============ */
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-action {
+  padding: 10px 18px;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #2d6a4f;
+  color: #fff;
+}
+
+.btn-primary:hover { background: #1b4332; }
+
+.btn-secondary {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ebebeb;
+}
+
+.btn-secondary:hover { background: #ebebeb; }
+
+.btn-danger {
+  background: #c0392b;
+  color: #fff;
+}
+
+.btn-danger:hover { background: #a52a20; }
+
+.btn-action {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ebebeb;
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+.btn-action:hover {
+  background: #e8f3ed;
+  color: #2d6a4f;
+  border-color: #c8e0d3;
+}
+
+.btn-action.danger {
+  background: #fdf2f0;
+  color: #c0392b;
+  border-color: #f5d5d0;
+}
+
+.btn-action.danger:hover { background: #f5d5d0; }
+
+.btn-action.gold {
+  background: #fdf9ef;
+  color: #8b6f1e;
+  border-color: #e9d5a1;
+}
+
+.btn-action.gold:hover { background: #e9d5a1; }
+
+/* ============ Modal ============ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-box {
+  background: #fff;
+  width: 100%;
+  max-width: 800px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+.modal-header {
+  background: #2d6a4f;
+  color: #fff;
+  padding: 16px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.modal-header h3 { font-size: 16px; font-weight: 700; }
+
+.modal-close {
+  background: transparent;
+  color: #fff;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 5px;
+  opacity: 0.8;
+}
+
+.modal-close:hover { opacity: 1; }
+
+.modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  padding: 16px 22px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ============ Contract Preview ============ */
+.contract-block {
+  border: 1px solid #ebebeb;
+  border-radius: 10px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+
+.contract-block-title {
+  background: #fafafa;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #2d6a4f;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.contract-block.gold .contract-block-title {
+  background: #fdf9ef;
+  color: #8b6f1e;
+}
+
+.contract-block-body {
+  padding: 14px 16px;
+  font-size: 13px;
+}
+
+.contract-row {
+  display: flex;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dotted #f5f5f5;
+}
+
+.contract-row:last-child { border-bottom: none; }
+
+.contract-row strong {
+  color: #666;
+  min-width: 160px;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.contract-row span {
+  flex: 1;
+  word-break: break-word;
+  color: #1a1a1a;
+}
+
+/* ============ Responsive ============ */
 @media (max-width: 640px) {
+  .panel-header { padding: 14px 18px; }
+  .panel-title h1 { font-size: 16px; }
+  .panel-content { padding: 16px; }
+  .admin-tabs { padding: 0 16px; }
+  .admin-tab { padding: 10px 14px; font-size: 13px; }
+
+  .codes-table th,
+  .codes-table td { padding: 8px; font-size: 12px; }
+  .code-value { font-size: 13px; letter-spacing: 1px; }
+
   .archive-item {
     grid-template-columns: 1fr;
     gap: 12px;
     padding: 14px;
   }
 
-  .archive-item-actions {
-    justify-content: flex-start;
-  }
+  .archive-item-names { flex-direction: column; gap: 8px; }
 
-  .archive-item-names {
-    flex-direction: column;
-    gap: 8px;
-  }
+  .contract-row { flex-direction: column; gap: 2px; }
+  .contract-row strong { min-width: auto; }
+
+  .search-bar input { min-width: 100%; }
 }
