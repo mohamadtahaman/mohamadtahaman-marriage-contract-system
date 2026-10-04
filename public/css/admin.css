@@ -1,5 +1,5 @@
 /* ============================================================
-   Admin Panel V4
+   Admin Panel V5 - Archive Table
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -42,14 +42,8 @@ body {
   border-bottom: 3px solid #c9a961;
 }
 
-.login-header h1 {
-  font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 5px;
-}
-
+.login-header h1 { font-size: 20px; font-weight: 700; margin-bottom: 5px; }
 .login-header p { font-size: 13px; opacity: 0.85; }
-
 .login-body { padding: 32px 28px; }
 
 .login-body label {
@@ -104,11 +98,7 @@ body {
   font-size: 13px;
 }
 
-.login-footer a {
-  color: #2d6a4f;
-  text-decoration: none;
-  font-weight: 600;
-}
+.login-footer a { color: #2d6a4f; text-decoration: none; font-weight: 600; }
 
 /* ============ Messages ============ */
 .message {
@@ -120,17 +110,8 @@ body {
   text-align: center;
 }
 
-.message.error {
-  background: #fdf2f0;
-  color: #c0392b;
-  border: 1px solid #f5d5d0;
-}
-
-.message.success {
-  background: #e8f3ed;
-  color: #2d6a4f;
-  border: 1px solid #c8e0d3;
-}
+.message.error { background: #fdf2f0; color: #c0392b; border: 1px solid #f5d5d0; }
+.message.success { background: #e8f3ed; color: #2d6a4f; border: 1px solid #c8e0d3; }
 
 .system-message {
   max-width: 1200px;
@@ -173,11 +154,7 @@ body {
 
 .panel-title { display: flex; align-items: center; gap: 12px; }
 
-.panel-title h1 {
-  font-size: 19px;
-  color: #1a1a1a;
-  font-weight: 700;
-}
+.panel-title h1 { font-size: 19px; color: #1a1a1a; font-weight: 700; }
 
 .badge {
   background: #e8f3ed;
@@ -217,10 +194,7 @@ body {
 }
 
 .admin-tab:hover { color: #2d6a4f; }
-.admin-tab.active {
-  color: #2d6a4f;
-  border-bottom-color: #c9a961;
-}
+.admin-tab.active { color: #2d6a4f; border-bottom-color: #c9a961; }
 
 /* ============ Content ============ */
 .panel-content {
@@ -255,12 +229,7 @@ body {
 
 .card-danger .card-header { background: #fdf2f0; }
 
-.card-header h2 {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
+.card-header h2 { font-size: 15px; font-weight: 700; color: #1a1a1a; }
 .card-danger .card-header h2 { color: #c0392b; }
 
 .card-body { padding: 20px 22px; }
@@ -273,7 +242,7 @@ body {
   line-height: 1.7;
 }
 
-/* ============ Tables ============ */
+/* ============ Codes Table ============ */
 .codes-table {
   width: 100%;
   border-collapse: collapse;
@@ -354,83 +323,76 @@ body {
   outline: none;
 }
 
-/* ============ Archive ============ */
-.archive-grid {
-  display: flex;
-  flex-direction: column;
-}
-
-.archive-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 20px;
-  padding: 18px 22px;
+/* ============ Archive Table ============ */
+.archive-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
   background: #fff;
+}
+
+.archive-table thead th {
+  background: #f7f7f7;
+  color: #555;
+  padding: 14px 16px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 12.5px;
+  border-bottom: 2px solid #ebebeb;
+  letter-spacing: 0.3px;
+}
+
+.archive-table tbody td {
+  padding: 16px;
   border-bottom: 1px solid #f0f0f0;
-  align-items: center;
-  transition: background 0.2s;
+  vertical-align: middle;
+  color: #1a1a1a;
 }
 
-.archive-item:last-child { border-bottom: none; }
-.archive-item:hover { background: #fafafa; }
+.archive-table tbody tr:last-child td { border-bottom: none; }
+.archive-table tbody tr:hover { background: #fafafa; }
 
-.archive-item-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
+.serial-cell {
+  text-align: center;
 }
 
-.archive-item-code {
+.serial-num {
+  display: block;
   font-family: 'Courier New', monospace;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: #2d6a4f;
-  letter-spacing: 2px;
+  line-height: 1.2;
 }
 
-.archive-item-names {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  font-size: 13.5px;
-}
-
-.name-pair {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.name-label {
+.code-sub {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
   color: #999;
-  font-size: 12px;
-  font-weight: 600;
+  letter-spacing: 1px;
+  margin-top: 3px;
 }
 
-.name-value {
+.name-cell {
+  font-weight: 600;
   color: #1a1a1a;
+  font-size: 14px;
+}
+
+.date-cell {
+  font-family: 'Courier New', monospace;
+  color: #666;
+  font-size: 13px;
   font-weight: 600;
 }
 
-.archive-item-meta {
-  font-size: 12px;
-  color: #999;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.actions-cell {
+  white-space: nowrap;
 }
 
-.status-dot {
-  color: #2d6a4f;
-  font-size: 14px;
-  line-height: 1;
-}
-
-.archive-item-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
+.actions-cell .btn-action {
+  margin-left: 4px;
 }
 
 /* ============ Info Rows ============ */
@@ -443,7 +405,6 @@ body {
 }
 
 .info-row:last-child { border-bottom: none; }
-
 .info-row strong { color: #666; font-weight: 600; }
 .info-row span { color: #1a1a1a; font-weight: 700; }
 
@@ -462,11 +423,7 @@ body {
   transition: all 0.2s;
 }
 
-.btn-primary {
-  background: #2d6a4f;
-  color: #fff;
-}
-
+.btn-primary { background: #2d6a4f; color: #fff; }
 .btn-primary:hover { background: #1b4332; }
 
 .btn-secondary {
@@ -474,14 +431,9 @@ body {
   color: #333;
   border: 1px solid #ebebeb;
 }
-
 .btn-secondary:hover { background: #ebebeb; }
 
-.btn-danger {
-  background: #c0392b;
-  color: #fff;
-}
-
+.btn-danger { background: #c0392b; color: #fff; }
 .btn-danger:hover { background: #a52a20; }
 
 .btn-action {
@@ -503,7 +455,6 @@ body {
   color: #c0392b;
   border-color: #f5d5d0;
 }
-
 .btn-action.danger:hover { background: #f5d5d0; }
 
 .btn-action.gold {
@@ -511,7 +462,6 @@ body {
   color: #8b6f1e;
   border-color: #e9d5a1;
 }
-
 .btn-action.gold:hover { background: #e9d5a1; }
 
 /* ============ Modal ============ */
@@ -600,10 +550,7 @@ body {
   color: #8b6f1e;
 }
 
-.contract-block-body {
-  padding: 14px 16px;
-  font-size: 13px;
-}
+.contract-block-body { padding: 14px 16px; font-size: 13px; }
 
 .contract-row {
   display: flex;
@@ -639,13 +586,16 @@ body {
   .codes-table td { padding: 8px; font-size: 12px; }
   .code-value { font-size: 13px; letter-spacing: 1px; }
 
-  .archive-item {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 14px;
-  }
+  .archive-table th,
+  .archive-table td { padding: 10px 8px; font-size: 12px; }
+  .serial-num { font-size: 15px; }
+  .name-cell { font-size: 12.5px; }
+  .date-cell { font-size: 11.5px; }
 
-  .archive-item-names { flex-direction: column; gap: 8px; }
+  .actions-cell .btn-action {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
 
   .contract-row { flex-direction: column; gap: 2px; }
   .contract-row strong { min-width: auto; }
