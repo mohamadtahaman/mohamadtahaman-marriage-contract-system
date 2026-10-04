@@ -1,8 +1,5 @@
 /* ============================================================
-   Cloudflare Function: POST /api/admin (v7)
-   - القراءة من D1 (سجل كامل)
-   - إدارة أكواد KV
-   - المستخدمون + الصلاحيات
+   Cloudflare Function: POST /api/admin (v8 - With Edit Support)
 ============================================================ */
 
 const PERMISSIONS = {
@@ -19,6 +16,8 @@ const PERMISSIONS = {
   create_user:     ['admin'],
   delete_user:     ['admin'],
   change_password: ['admin', 'manager', 'user'],
+  update_party:    ['admin', 'manager'],
+  update_contract: ['admin', 'manager'],
 };
 
 export async function onRequestPost(context) {
@@ -82,18 +81,20 @@ export async function onRequestPost(context) {
   }
 
   switch (action) {
-    case 'list':            return await handleList(env);
-    case 'archive':         return await handleArchive(env);
-    case 'generate':        return await handleGenerate(env);
-    case 'delete':          return await handleDelete(env, body.code);
-    case 'view':            return await handleView(env, body.code);
-    case 'search':          return await handleSearch(env, body.query);
-    case 'clear_drafts':    return await handleClearDrafts(env, body.code, body.all);
-    case 'change_password': return await handleChangePassword(env, auth, body);
-    case 'list_users':      return await handleListUsers(env);
-    case 'create_user':     return await handleCreateUser(env, body);
-    case 'delete_user':     return await handleDeleteUser(env, body);
-    case 'export':          return await handleExport(env);
+    case 'list':             return await handleList(env);
+    case 'archive':          return await handleArchive(env);
+    case 'generate':         return await handleGenerate(env);
+    case 'delete':           return await handleDelete(env, body.code);
+    case 'view':             return await handleView(env, body.code);
+    case 'search':           return await handleSearch(env, body.query);
+    case 'clear_drafts':     return await handleClearDrafts(env, body.code, body.all);
+    case 'change_password':  return await handleChangePassword(env, auth, body);
+    case 'list_users':       return await handleListUsers(env);
+    case 'create_user':      return await handleCreateUser(env, body);
+    case 'delete_user':      return await handleDeleteUser(env, body);
+    case 'export':           return await handleExport(env);
+    case 'update_party':     return await handleUpdateParty(env, body, auth);
+    case 'update_contract':  return await handleUpdateContract(env, body, auth);
     default:
       return jsonResponse({
         success: false,
@@ -143,7 +144,209 @@ async function authenticate(env, username, password) {
 }
 
 /* ============================================================
-   List - الأكواد الخمسة + حالة كل عقد
+   Update Party - تعديل بيانات طرف
+============================================================ */
+async function handleUpdateParty(env, body, auth) {
+  const code = (body.code || '').trim().toUpperCase();
+  const role = (body.role || '').trim();
+  const data = body.data || {};
+
+  const validRoles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
+
+  if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
+    return jsonResponse({
+      success: false,
+      error: 'invalid_code',
+      message: 'رقم العقد غير صالح',
+    }, 400);
+  }
+
+  if (!validRoles.includes(role)) {
+    return jsonResponse({
+      success: false,
+      error: 'invalid_role',
+      message: 'الطرف غير صحيح',
+    }, 400);
+  }
+
+  try {
+    // 1. احصل على العقد من D1
+    const contractRow = await env.DB.prepare(
+      'SELECT id FROM contracts WHERE code = ?'
+    ).bind(code).first();
+
+    if (!contractRow) {
+      return jsonResponse({
+        success: false,
+        error: 'not_found',
+        message: 'العقد غير موجود في قاعدة البيانات',
+      }, 404);
+    }
+
+    const contractId = contractRow.id;
+
+    // 2. احذف السجل القديم وأضف الجديد
+    await env.DB.prepare(
+      'DELETE FROM parties WHERE contract_id = ? AND role = ?'
+    ).bind(contractId, role).run();
+
+    await env.DB.prepare(
+      `INSERT INTO parties (
+        contract_id, role,
+        name_de, name_ar,
+        birth_day, birth_month, birth_year,
+        birth_country, birth_region,
+        id_type, id_number,
+        address_number, address_street, postal_code, city,
+        mother_name_de, mother_name_ar,
+        wali_is_bride, witness_is_center
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      contractId, role,
+      data.nameDe || null, data.nameAr || null,
+      data.birthDay ? parseInt(data.birthDay, 10) : null,
+      data.birthMonth ? parseInt(data.birthMonth, 10) : null,
+      data.birthYear ? parseInt(data.birthYear, 10) : null,
+      data.birthCountry || null, data.birthRegion || null,
+      data.idType || null, data.idNumber || null,
+      data.addressNumber || null, data.addressStreet || null,
+      data.postalCode || null, data.city || null,
+      data.motherNameDe || null, data.motherNameAr || null,
+      data.waliIsBride ? 1 : 0, data.witnessIsCenter ? 1 : 0
+    ).run();
+
+    // 3. إذا كان الزوج → حدّث المهر
+    if (role === 'groom') {
+      await env.DB.prepare(
+        'DELETE FROM dowries WHERE contract_id = ?'
+      ).bind(contractId).run();
+
+      if (data.dowryAdvance || data.dowryDeferred || data.dowryNotes) {
+        await env.DB.prepare(
+          `INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes)
+           VALUES (?, ?, ?, ?)`
+        ).bind(
+          contractId,
+          data.dowryAdvance ? parseFloat(data.dowryAdvance) : null,
+          data.dowryDeferred ? parseFloat(data.dowryDeferred) : null,
+          data.dowryNotes || null
+        ).run();
+      }
+    }
+
+    // 4. حدّث KV أيضاً (لمزامنة النظام)
+    try {
+      await env.CONTRACT_KV.put(
+        `contract_${code}_${role}`,
+        JSON.stringify(data)
+      );
+      await env.CONTRACT_KV.put(
+        `contract_${code}_saved_${role}`,
+        new Date().toISOString()
+      );
+    } catch (e) { /* تجاهل */ }
+
+    // 5. تسجيل في audit_log
+    try {
+      await env.DB.prepare(
+        `INSERT INTO audit_log (user_id, action, entity_type, entity_id, details)
+         VALUES (?, 'edit_party', 'party', ?, ?)`
+      ).bind(
+        auth.userId,
+        contractId,
+        `Edited ${role} of contract ${code} by ${auth.username}`
+      ).run();
+    } catch (e) { /* تجاهل */ }
+
+    return jsonResponse({
+      success: true,
+      message: 'تم حفظ التعديلات',
+    }, 200);
+
+  } catch (err) {
+    console.error('handleUpdateParty error:', err);
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل التعديل: ' + err.message,
+    }, 500);
+  }
+}
+
+/* ============================================================
+   Update Contract - تعديل تاريخ العقد
+============================================================ */
+async function handleUpdateContract(env, body, auth) {
+  const code = (body.code || '').trim().toUpperCase();
+  const contractDate = (body.contract_date || '').trim();
+
+  if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
+    return jsonResponse({
+      success: false,
+      error: 'invalid_code',
+      message: 'رقم العقد غير صالح',
+    }, 400);
+  }
+
+  if (!contractDate) {
+    return jsonResponse({
+      success: false,
+      error: 'missing_date',
+      message: 'تاريخ العقد مطلوب',
+    }, 400);
+  }
+
+  try {
+    const contractRow = await env.DB.prepare(
+      'SELECT id FROM contracts WHERE code = ?'
+    ).bind(code).first();
+
+    if (!contractRow) {
+      return jsonResponse({
+        success: false,
+        error: 'not_found',
+        message: 'العقد غير موجود',
+      }, 404);
+    }
+
+    await env.DB.prepare(
+      'UPDATE contracts SET contract_date = ? WHERE id = ?'
+    ).bind(contractDate, contractRow.id).run();
+
+    // مزامنة KV
+    try {
+      await env.CONTRACT_KV.put(`contract_${code}_date`, contractDate);
+    } catch (e) { /* تجاهل */ }
+
+    // Audit log
+    try {
+      await env.DB.prepare(
+        `INSERT INTO audit_log (user_id, action, entity_type, entity_id, details)
+         VALUES (?, 'edit_contract', 'contract', ?, ?)`
+      ).bind(
+        auth.userId,
+        contractRow.id,
+        `Edited date of contract ${code} by ${auth.username}`
+      ).run();
+    } catch (e) { /* تجاهل */ }
+
+    return jsonResponse({
+      success: true,
+      message: 'تم تحديث تاريخ العقد',
+    }, 200);
+
+  } catch (err) {
+    console.error('handleUpdateContract error:', err);
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل التحديث',
+    }, 500);
+  }
+}
+
+/* ============================================================
+   List
 ============================================================ */
 async function handleList(env) {
   try {
@@ -152,7 +355,6 @@ async function handleList(env) {
     const contracts = [];
 
     for (const code of codes) {
-      // اقرأ من D1 أولاً
       let contractRow = null;
       try {
         contractRow = await env.DB.prepare(
@@ -164,7 +366,6 @@ async function handleList(env) {
       const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
 
       if (contractRow) {
-        // من D1 (الأطراف)
         try {
           const parties = await env.DB.prepare(
             'SELECT role, name_de, name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?'
@@ -180,7 +381,6 @@ async function handleList(env) {
           }
         } catch (e) { /* تجاهل */ }
       } else {
-        // احتياطي: من KV
         for (const key of partyKeys) {
           const partyRaw = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
           if (partyRaw) {
@@ -201,7 +401,6 @@ async function handleList(env) {
         }
       }
 
-      // عدد الأطراف المسجلة
       const savedCount = partyKeys.filter(k => partySummary[k] !== null && partySummary[k] !== undefined).length;
 
       contracts.push({
@@ -231,7 +430,7 @@ async function handleList(env) {
 }
 
 /* ============================================================
-   Archive - كل العقود من D1
+   Archive
 ============================================================ */
 async function handleArchive(env) {
   try {
@@ -244,7 +443,6 @@ async function handleArchive(env) {
     const result = [];
 
     for (const c of contracts.results || []) {
-      // اقرأ أسماء الأطراف
       const parties = await env.DB.prepare(
         'SELECT role, name_de, name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?'
       ).bind(c.id).all();
@@ -300,13 +498,11 @@ async function handleGenerate(env) {
       }
     }
 
-    // امسح KV
     const listResult = await env.CONTRACT_KV.list({ prefix: 'contract_' });
     const deletes = listResult.keys.map(k => env.CONTRACT_KV.delete(k.name));
     deletes.push(env.CONTRACT_KV.delete('codes'));
     await Promise.all(deletes);
 
-    // امسح D1 (كل شيء)
     try {
       await env.DB.prepare('DELETE FROM audit_log').run();
       await env.DB.prepare('DELETE FROM dowries').run();
@@ -316,7 +512,6 @@ async function handleGenerate(env) {
       console.error('D1 clear error:', e);
     }
 
-    // اكتب الأكواد الجديدة
     await env.CONTRACT_KV.put('codes', JSON.stringify(newCodes));
 
     return jsonResponse({
@@ -358,7 +553,6 @@ async function handleDelete(env, code) {
       return jsonResponse({ success: false, error: 'not_found', message: 'الكود غير موجود' }, 404);
     }
 
-    // احذف من D1
     try {
       const contractRow = await env.DB.prepare(
         'SELECT id FROM contracts WHERE code = ?'
@@ -373,7 +567,6 @@ async function handleDelete(env, code) {
       console.error('D1 delete error:', e);
     }
 
-    // احذف من KV
     const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
     const deletes = [];
     for (const key of partyKeys) {
@@ -402,7 +595,7 @@ async function handleDelete(env, code) {
 }
 
 /* ============================================================
-   View - عرض عقد من D1 (أو من KV)
+   View
 ============================================================ */
 async function handleView(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
@@ -474,7 +667,7 @@ async function handleView(env, code) {
         contract.parties.groom.dowryNotes = dowry.notes;
       }
     } else {
-      // لا يوجد في D1 → اقرأ من KV
+      // من KV
       const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
       for (const r of roles) {
         const raw = await env.CONTRACT_KV.get(`contract_${code}_${r}`);
@@ -590,7 +783,6 @@ async function handleClearDrafts(env, code, all) {
 
     await Promise.all(keysToDelete.map(k => env.CONTRACT_KV.delete(k)));
 
-    // احذف من D1 أيضاً
     try {
       const contractRow = await env.DB.prepare(
         'SELECT id FROM contracts WHERE code = ?'
