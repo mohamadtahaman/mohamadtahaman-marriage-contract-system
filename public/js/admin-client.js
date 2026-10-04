@@ -1,5 +1,5 @@
 /* ============================================================
-   Admin Client V7 - Fix: Send username with every request
+   Admin Client V8 - Fixed: create_user uses user_username
 ============================================================ */
 
 const adminState = {
@@ -66,9 +66,6 @@ function formatBirthDate(p) {
   return `${pad2(p.birthDay)}.${pad2(p.birthMonth)}.${p.birthYear}`;
 }
 
-/* ============================================================
-   Reset Login Button (helper)
-============================================================ */
 function resetLoginButton() {
   const btn = $('loginBtn');
   if (btn) {
@@ -120,7 +117,6 @@ async function login() {
       return;
     }
 
-    // ✅ حفظ بيانات المستخدم
     adminState.password = password;
     adminState.username = username;
     adminState.role = data.user?.role || 'user';
@@ -170,30 +166,25 @@ function logout() {
 }
 
 /* ============================================================
-   Apply Role Restrictions to UI
+   Apply Role Restrictions
 ============================================================ */
 function applyRoleRestrictions() {
   const role = adminState.role || 'viewer';
 
   const canManageUsers = role === 'admin';
   const canGenerateCodes = role === 'admin';
-  const canDelete = role === 'admin' || role === 'manager';
-  const canExport = role === 'admin' || role === 'manager';
 
-  // إخفاء تبويب الإعدادات لغير الأدمن
   const settingsTab = document.querySelector('.admin-tab[data-tab="settings"]');
   if (settingsTab) {
     settingsTab.classList.toggle('hidden', !canManageUsers);
   }
 
-  // إخفاء زر توليد الأكواد
   const generateBtn = document.querySelector('button[onclick="generateNewCodes()"]');
   if (generateBtn) {
     const card = generateBtn.closest('.card');
     if (card) card.classList.toggle('hidden', !canGenerateCodes);
   }
 
-  // إخفاء منطقة الخطر لغير الأدمن
   const dangerCard = document.querySelector('.card-danger');
   if (dangerCard) {
     dangerCard.classList.toggle('hidden', !canGenerateCodes);
@@ -201,14 +192,14 @@ function applyRoleRestrictions() {
 }
 
 /* ============================================================
-   API - ✅ الآن يُرسل username مع كل طلب
+   API
 ============================================================ */
 async function apiCall(action, extra = {}) {
   const response = await fetch('/api/admin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      username: adminState.username,   // ← الإصلاح!
+      username: adminState.username,
       password: adminState.password,
       action,
       ...extra,
@@ -415,11 +406,9 @@ function renderSettings() {
 
   const codesCountEl = $('infoCodesCount');
   const sentCountEl = $('infoSentCount');
-  const roleEl = $('infoRole');
 
   if (codesCountEl) codesCountEl.textContent = adminState.codes.length;
   if (sentCountEl) sentCountEl.textContent = sentCount;
-  if (roleEl) roleEl.textContent = adminState.role || '—';
 }
 
 /* ============================================================
@@ -512,6 +501,9 @@ async function loadUsers() {
   }
 }
 
+/* ============================================================
+   Create User - ✅ الآن يرسل user_username (لا يتعارض مع username)
+============================================================ */
 async function createUser() {
   const username = $('newUsername').value.trim().toLowerCase();
   const password = $('newUserPassword').value.trim();
@@ -525,7 +517,7 @@ async function createUser() {
 
   try {
     await apiCall('create_user', {
-      username: username,
+      user_username: username,     // ← الإصلاح الأساسي
       user_password: password,
       full_name: fullName,
       role: role,
@@ -760,7 +752,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedUsername = sessionStorage.getItem('admin_username') || 'admin';
   const savedRole = sessionStorage.getItem('admin_role');
 
-  // ✅ استرجاع بيانات المستخدم
   if (savedUsername) {
     adminState.username = savedUsername;
     const userInput = $('usernameInput');
@@ -772,7 +763,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminState.role = savedRole;
 
     try {
-      // تحقق من الجلسة
       const response = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -796,7 +786,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.warn('Auto-login failed:', err);
     }
 
-    // فشل → امسح
     sessionStorage.removeItem('admin_password');
     sessionStorage.removeItem('admin_username');
     sessionStorage.removeItem('admin_role');
