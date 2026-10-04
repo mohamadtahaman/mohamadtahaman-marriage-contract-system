@@ -1,6 +1,6 @@
 /* ============================================================
-   Cloudflare Function: POST /api/submit
-   يجمع الأطراف من KV → يحفظ في D1 → يرسل البريد
+   Cloudflare Function: POST /api/submit (v2)
+   يكمل العملية: يحول status إلى 'sent' + يرسل البريد
 ============================================================ */
 
 export async function onRequestPost(context) {
@@ -19,8 +19,6 @@ export async function onRequestPost(context) {
 
   const code = (body.code || '').trim().toUpperCase();
   const contractDate = (body.contractDate || '').trim();
-  // data احتياطي: إذا جاء من الواجهة مباشرة
-  const inlineData = body.data || null;
 
   if (!code || code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
     return jsonResponse({
@@ -77,40 +75,21 @@ export async function onRequestPost(context) {
   } catch (e) { /* تجاهل */ }
 
   /* ============================================================
-     1. جمع بيانات الأطراف
-     - أولاً من KV (party.js حفظها)
-     - إذا فشلت، من الواجهة مباشرة
+     1. جلب بيانات الأطراف (من KV — كنسخة أساسية)
   ============================================================ */
   const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
   const data = {};
   const missing = [];
 
   for (const role of roles) {
-    // حاول من KV أولاً
-    let partyData = null;
     try {
       const raw = await env.CONTRACT_KV.get(`contract_${code}_${role}`);
-      if (raw) partyData = JSON.parse(raw);
-    } catch (e) { /* تجاهل */ }
-
-    // إذا لم يوجد في KV، استخدم inline (احتياطي)
-    if (!partyData && inlineData && inlineData[role]) {
-      partyData = inlineData[role];
-    }
-
-    if (partyData) {
-      data[role] = partyData;
-    } else {
-      // تجاهل الولي/الشاهد إذا كانا يستخدمان الخيارات الخاصة
-      if (role === 'wali' && inlineData?.wali?.waliIsBride) {
-        data[role] = inlineData.wali;
-        continue;
+      if (raw) {
+        data[role] = JSON.parse(raw);
+      } else {
+        missing.push(role);
       }
-      if ((role === 'witness1' || role === 'witness2') &&
-          inlineData?.[role]?.witnessIsCenter) {
-        data[role] = inlineData[role];
-        continue;
-      }
+    } catch (e) {
       missing.push(role);
     }
   }
@@ -125,83 +104,158 @@ export async function onRequestPost(context) {
   }
 
   /* ============================================================
-     2. الحفظ في D1
+     2. تحديث العقد في D1 → status = 'sent'
   ============================================================ */
   let contractId;
 
   try {
-    const insertResult = await env.DB.prepare(
-      `INSERT INTO contracts (code, contract_date, status, sent_at)
-       VALUES (?, ?, 'sent', ?)`
-    ).bind(
-      code,
-      contractDate || null,
-      Math.floor(Date.now() / 1000)
-    ).run();
+    // هل العقد موجود في D1؟
+    const contractRow = await env.DB.prepare(
+      'SELECT id, status FROM contracts WHERE code = ?'
+    ).bind(code).first();
 
-    contractId = insertResult.meta.last_row_id;
-
-    if (!contractId) {
-      throw new Error('Failed to get contract ID');
-    }
-
-    // الأطراف
-    for (const role of roles) {
-      const p = data[role];
-      if (!p) continue;
-
-      await env.DB.prepare(
-        `INSERT INTO parties (
-          contract_id, role,
-          name_de, name_ar,
-          birth_day, birth_month, birth_year,
-          birth_country, birth_region,
-          id_type, id_number,
-          address_number, address_street, postal_code, city,
-          mother_name_de, mother_name_ar,
-          wali_is_bride, witness_is_center
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    if (!contractRow) {
+      // لم يُنشأ بعد → أنشئه كاملاً
+      const insertResult = await env.DB.prepare(
+        `INSERT INTO contracts (code, contract_date, status, sent_at)
+         VALUES (?, ?, 'sent', ?)`
       ).bind(
-        contractId, role,
-        p.nameDe || null, p.nameAr || null,
-        p.birthDay ? parseInt(p.birthDay, 10) : null,
-        p.birthMonth ? parseInt(p.birthMonth, 10) : null,
-        p.birthYear ? parseInt(p.birthYear, 10) : null,
-        p.birthCountry || null, p.birthRegion || null,
-        p.idType || null, p.idNumber || null,
-        p.addressNumber || null, p.addressStreet || null,
-        p.postalCode || null, p.city || null,
-        p.motherNameDe || null, p.motherNameAr || null,
-        p.waliIsBride ? 1 : 0, p.witnessIsCenter ? 1 : 0
+        code,
+        contractDate,
+        Math.floor(Date.now() / 1000)
       ).run();
-    }
 
-    // المهر
-    const groom = data.groom || {};
-    if (groom.dowryAdvance || groom.dowryDeferred || groom.dowryNotes) {
+      contractId = insertResult.meta.last_row_id;
+
+      // أضف كل الأطراف
+      for (const role of roles) {
+        const p = data[role];
+        if (!p) continue;
+
+        await env.DB.prepare(
+          `INSERT INTO parties (
+            contract_id, role,
+            name_de, name_ar,
+            birth_day, birth_month, birth_year,
+            birth_country, birth_region,
+            id_type, id_number,
+            address_number, address_street, postal_code, city,
+            mother_name_de, mother_name_ar,
+            wali_is_bride, witness_is_center
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          contractId, role,
+          p.nameDe || null, p.nameAr || null,
+          p.birthDay ? parseInt(p.birthDay, 10) : null,
+          p.birthMonth ? parseInt(p.birthMonth, 10) : null,
+          p.birthYear ? parseInt(p.birthYear, 10) : null,
+          p.birthCountry || null, p.birthRegion || null,
+          p.idType || null, p.idNumber || null,
+          p.addressNumber || null, p.addressStreet || null,
+          p.postalCode || null, p.city || null,
+          p.motherNameDe || null, p.motherNameAr || null,
+          p.waliIsBride ? 1 : 0, p.witnessIsCenter ? 1 : 0
+        ).run();
+      }
+
+      // المهر
+      const groom = data.groom || {};
+      if (groom.dowryAdvance || groom.dowryDeferred || groom.dowryNotes) {
+        await env.DB.prepare(
+          `INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes)
+           VALUES (?, ?, ?, ?)`
+        ).bind(
+          contractId,
+          groom.dowryAdvance ? parseFloat(groom.dowryAdvance) : null,
+          groom.dowryDeferred ? parseFloat(groom.dowryDeferred) : null,
+          groom.dowryNotes || null
+        ).run();
+      }
+
+    } else {
+      // موجود → حدّث فقط
+      contractId = contractRow.id;
+
+      // تحديث الحالة
       await env.DB.prepare(
-        `INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes)
-         VALUES (?, ?, ?, ?)`
+        `UPDATE contracts SET status = 'sent', sent_at = ?, contract_date = ?
+         WHERE id = ?`
       ).bind(
-        contractId,
-        groom.dowryAdvance ? parseFloat(groom.dowryAdvance) : null,
-        groom.dowryDeferred ? parseFloat(groom.dowryDeferred) : null,
-        groom.dowryNotes || null
+        Math.floor(Date.now() / 1000),
+        contractDate,
+        contractId
       ).run();
+
+      // تحديث كل الأطراف (احتياطياً — قد تكون حديثة)
+      for (const role of roles) {
+        const p = data[role];
+        if (!p) continue;
+
+        // احذف القديم
+        await env.DB.prepare(
+          'DELETE FROM parties WHERE contract_id = ? AND role = ?'
+        ).bind(contractId, role).run();
+
+        // أضف الجديد
+        await env.DB.prepare(
+          `INSERT INTO parties (
+            contract_id, role,
+            name_de, name_ar,
+            birth_day, birth_month, birth_year,
+            birth_country, birth_region,
+            id_type, id_number,
+            address_number, address_street, postal_code, city,
+            mother_name_de, mother_name_ar,
+            wali_is_bride, witness_is_center
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          contractId, role,
+          p.nameDe || null, p.nameAr || null,
+          p.birthDay ? parseInt(p.birthDay, 10) : null,
+          p.birthMonth ? parseInt(p.birthMonth, 10) : null,
+          p.birthYear ? parseInt(p.birthYear, 10) : null,
+          p.birthCountry || null, p.birthRegion || null,
+          p.idType || null, p.idNumber || null,
+          p.addressNumber || null, p.addressStreet || null,
+          p.postalCode || null, p.city || null,
+          p.motherNameDe || null, p.motherNameAr || null,
+          p.waliIsBride ? 1 : 0, p.witnessIsCenter ? 1 : 0
+        ).run();
+      }
+
+      // المهر
+      await env.DB.prepare(
+        'DELETE FROM dowries WHERE contract_id = ?'
+      ).bind(contractId).run();
+
+      const groom = data.groom || {};
+      if (groom.dowryAdvance || groom.dowryDeferred || groom.dowryNotes) {
+        await env.DB.prepare(
+          `INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes)
+           VALUES (?, ?, ?, ?)`
+        ).bind(
+          contractId,
+          groom.dowryAdvance ? parseFloat(groom.dowryAdvance) : null,
+          groom.dowryDeferred ? parseFloat(groom.dowryDeferred) : null,
+          groom.dowryNotes || null
+        ).run();
+      }
     }
 
     // Audit log
-    await env.DB.prepare(
-      `INSERT INTO audit_log (action, entity_type, entity_id, details)
-       VALUES ('submit', 'contract', ?, ?)`
-    ).bind(contractId, `Contract ${code} submitted`).run();
+    try {
+      await env.DB.prepare(
+        `INSERT INTO audit_log (action, entity_type, entity_id, details)
+         VALUES ('submit', 'contract', ?, ?)`
+      ).bind(contractId, `Contract ${code} finalized`).run();
+    } catch (e) { /* تجاهل */ }
 
   } catch (err) {
-    console.error('D1 insert error:', err);
+    console.error('D1 update error:', err);
     return jsonResponse({
       success: false,
       error: 'db_error',
-      message: 'فشل حفظ البيانات',
+      message: 'فشل تحديث قاعدة البيانات',
       details: err.message,
     }, 500);
   }
@@ -219,7 +273,7 @@ export async function onRequestPost(context) {
   }
 
   /* ============================================================
-     4. وضع علامة "finished"
+     4. وضع علامة "finished" في KV
   ============================================================ */
   try {
     await env.CONTRACT_KV.put(`contract_${code}_finished`, 'true');
@@ -237,7 +291,7 @@ export async function onRequestPost(context) {
 }
 
 /* ============================================================
-   إرسال البريد
+   EmailJS
 ============================================================ */
 async function sendEmailViaEmailJS(env, code, data, contractDate) {
   const serviceId = env.EMAILJS_SERVICE_ID;
@@ -274,9 +328,6 @@ async function sendEmailViaEmailJS(env, code, data, contractDate) {
   return { success: true };
 }
 
-/* ============================================================
-   تجهيز المتغيرات
-============================================================ */
 function buildEmailParams(code, data, contractDate) {
   const g = data.groom || {};
   const b = data.bride || {};
