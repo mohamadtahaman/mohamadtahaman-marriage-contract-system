@@ -885,4 +885,145 @@ function showBlessingMessage(role) {
       <div class="blessing-line-bottom"></div>
       <div class="blessing-label">${title}</div>
       <div class="blessing-check">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        تم الحفظ
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  requestAnimationFrame(() => overlay.classList.add('visible'));
+
+  setTimeout(() => {
+    overlay.classList.remove('visible');
+    overlay.classList.add('fading');
+    setTimeout(() => overlay.remove(), 800);
+  }, 2500);
+}
+
+/* ============================================================
+   Submit All
+============================================================ */
+async function submitAllParties() {
+  const btn = document.getElementById('submitAllBtn');
+
+  const { day, month, year } = state.contractDate;
+  if (!day || !month || !year) {
+    toast(t('invalidContractDate'), 'error');
+    return;
+  }
+  if (!isValidDate(day, month, year)) {
+    toast(t('invalidContractDate'), 'error');
+    return;
+  }
+
+  if (!PARTY_DEFS.every(d => state.partyStatus[d.key])) {
+    toast(t('incomplete'), 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  const originalText = btn.innerHTML;
+  btn.textContent = t('submitting');
+
+  try {
+    const response = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: state.currentContractCode,
+        contractDate: getContractDateStr(),
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.message || 'Submit failed');
+    }
+
+    toast(t('submitSuccess'), 'success');
+
+    document.getElementById('roleScreen').innerHTML = `
+      <div class="success-box">
+        <span class="big-check">✓</span>
+        <div class="success-title">${t('submitSuccess')}</div>
+        <div class="success-code">${state.currentContractCode}</div>
+        <small>${t('contractDateTitle')}: ${getContractDateStr()}</small>
+        <div style="margin-top:24px;">
+          <button class="btn btn-primary btn-small" onclick="location.reload()">
+            ${t('newContract')}
+          </button>
+        </div>
+      </div>`;
+    scrollToTop();
+
+  } catch (err) {
+    console.error('Submit error:', err);
+    toast(t('submitFailed'), 'error');
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+/* ============================================================
+   Help Modal
+============================================================ */
+function showHelp() {
+  document.getElementById('helpModal').classList.remove('hidden');
+}
+
+function closeHelpModal() {
+  document.getElementById('helpModal').classList.add('hidden');
+}
+
+/* ============================================================
+   Language Hook
+============================================================ */
+window.onLanguageChanged = function() {
+  if (!document.getElementById('inputScreen').classList.contains('hidden')) {
+    renderPartyForm();
+  }
+  if (!document.getElementById('roleScreen').classList.contains('hidden')) {
+    renderRolePicker();
+    renderContractDateDropdowns();
+  }
+};
+
+/* ============================================================
+   Init
+============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  const verifyBtn = document.getElementById('verifyBtn');
+  if (verifyBtn) verifyBtn.addEventListener('click', verifyCode);
+
+  const codeInput = document.getElementById('contractCodeInput');
+  if (codeInput) {
+    codeInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') verifyCode();
+    });
+    codeInput.addEventListener('input', () => {
+      codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+  }
+
+  const helpBtn = document.getElementById('helpBtn');
+  if (helpBtn) helpBtn.addEventListener('click', showHelp);
+
+  const submitBtn = document.getElementById('submitAllBtn');
+  if (submitBtn) submitBtn.addEventListener('click', submitAllParties);
+});
+
+/* ============================================================
+   Exports
+============================================================ */
+window.verifyCode = verifyCode;
+window.savePartyAndReturn = savePartyAndReturn;
+window.submitAllParties = submitAllParties;
+window.showHelp = showHelp;
+window.closeHelpModal = closeHelpModal;
+window.openParty = openParty;
+window.removePhoto = removePhoto;
