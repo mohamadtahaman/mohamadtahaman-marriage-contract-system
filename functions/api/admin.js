@@ -1,36 +1,23 @@
 /* ============================================================
-   Cloudflare Function: POST /api/admin (v4 - With Permissions)
+   Cloudflare Function: POST /api/admin (v5 - Fixed)
 ============================================================ */
 
-/* ============================================================
-   نظام الصلاحيات
-============================================================ */
 const PERMISSIONS = {
-  // قراءة
-  list:          ['admin', 'manager', 'user', 'viewer'],
-  view:          ['admin', 'manager', 'user', 'viewer'],
-  search:        ['admin', 'manager', 'user', 'viewer'],
-  export:        ['admin', 'manager'],
-  login:         ['all'],
-
-  // كتابة
-  submit:        ['admin', 'manager', 'user'],
-  delete:        ['admin', 'manager'],
-  generate:      ['admin'],
-  clear_drafts:  ['admin'],
-
-  // إدارة مستخدمين
-  list_users:    ['admin'],
-  create_user:   ['admin'],
-  delete_user:   ['admin'],
-
-  // كلمة المرور
+  list:            ['admin', 'manager', 'user', 'viewer'],
+  view:            ['admin', 'manager', 'user', 'viewer'],
+  search:          ['admin', 'manager', 'user', 'viewer'],
+  export:          ['admin', 'manager'],
+  login:           ['all'],
+  submit:          ['admin', 'manager', 'user'],
+  delete:          ['admin', 'manager'],
+  generate:        ['admin'],
+  clear_drafts:    ['admin'],
+  list_users:      ['admin'],
+  create_user:     ['admin'],
+  delete_user:     ['admin'],
   change_password: ['admin', 'manager', 'user'],
 };
 
-/* ============================================================
-   Entry Point
-============================================================ */
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -56,20 +43,20 @@ export async function onRequestPost(context) {
     }, 401);
   }
 
-  // 1. جلب المستخدم بناءً على كلمة المرور
   const auth = await authenticate(env, body.username, password);
 
   if (!auth.success) {
     return jsonResponse({
       success: false,
-      error: 'wrong_password',
-      message: 'بيانات الدخول غير صحيحة',
+      error: auth.error || 'auth_failed',
+      message: auth.error === 'inactive'
+        ? 'الحساب معطّل'
+        : 'بيانات الدخول غير صحيحة',
     }, 401);
   }
 
   const userRole = auth.role;
 
-  // 2. login له معالج خاص
   if (action === 'login') {
     return jsonResponse({
       success: true,
@@ -81,7 +68,6 @@ export async function onRequestPost(context) {
     }, 200);
   }
 
-  // 3. التحقق من الصلاحية
   const allowedRoles = PERMISSIONS[action] || [];
 
   if (!allowedRoles.includes('all') && !allowedRoles.includes(userRole)) {
@@ -92,7 +78,6 @@ export async function onRequestPost(context) {
     }, 403);
   }
 
-  // 4. تنفيذ الإجراء
   switch (action) {
     case 'list':             return await handleList(env);
     case 'generate':         return await handleGenerate(env);
@@ -120,7 +105,6 @@ export async function onRequestPost(context) {
 async function authenticate(env, username, password) {
   username = (username || 'admin').trim().toLowerCase();
 
-  // 1. جرب D1
   try {
     const user = await env.DB.prepare(
       'SELECT id, username, password_hash, role, is_active FROM users WHERE username = ?'
@@ -134,7 +118,6 @@ async function authenticate(env, username, password) {
         return { success: false, error: 'wrong_password' };
       }
 
-      // تحديث آخر دخول
       try {
         await env.DB.prepare(
           'UPDATE users SET last_login = ? WHERE id = ?'
@@ -152,7 +135,6 @@ async function authenticate(env, username, password) {
     console.error('DB auth error:', e);
   }
 
-  // 2. Fallback: env (admin الرئيسي)
   if (username === 'admin' && password === env.ADMIN_PASSWORD) {
     return {
       success: true,
@@ -551,46 +533,35 @@ async function handleChangePassword(env, auth, body) {
     }, 400);
   }
 
-  if (oldPw !== auth.password_hash) {
-    // يعمل فقط إذا كان في D1
-  }
-
   try {
-    // إذا كان المستخدم في D1
-    if (auth.userId) {
-      const user = await env.DB.prepare(
-        'SELECT password_hash FROM users WHERE id = ?'
-      ).bind(auth.userId).first();
-
-      if (!user || user.password_hash !== oldPw) {
-        return jsonResponse({
-          success: false,
-          error: 'wrong_old',
-          message: 'كلمة المرور القديمة غير صحيحة',
-        }, 401);
-      }
-
-      await env.DB.prepare(
-        'UPDATE users SET password_hash = ? WHERE id = ?'
-      ).bind(newPw, auth.userId).run();
-
-      await env.DB.prepare(
-        'INSERT INTO audit_log (action, entity_type, entity_id, details) VALUES (?, ?, ?, ?)'
-      ).bind('change_password', 'user', auth.userId, 'Password changed').run();
-
+    if (!auth.userId) {
       return jsonResponse({
-        success: true,
-        message: 'تم تغيير كلمة المرور',
-      }, 200);
+        success: false,
+        error: 'env_admin',
+        message: 'لتغيير كلمة مرور الأدمن الرئيسي، عدّلها من Cloudflare',
+      }, 403);
     }
 
-    // admin من env → يجب تعديل env يدوياً
-    return jsonResponse({
-      success: false,
-      error: 'env_admin',
-      message: 'لتغيير كلمة مرور الأدمن الرئيسي، عدّلها من Cloudflare',
-    }, 403);
+    const user = await env.DB.prepare(
+      'SELECT password_hash FROM users WHERE id = ?'
+    ).bind(auth.userId).first();
 
+    if (!user || user.password_hash !== oldPw) {
+      return jsonResponse({
+        success: false,
+        error: 'wrong_old',
+        message: 'كلمة المرور القديمة غير صحيحة',
+      }, 401);
+    }
+
+    await env.DB.prepare(
+      'UPDATE users SET password_hash = ? WHERE id = ?'
+    ).bind(newPw, auth.userId).run();
+
+    return jsonResponse({
+      success: true,
+      message: 'تم تغيير كلمة المرور',
+    }, 200);
   } catch (err) {
     console.error('changePassword error:', err);
     return jsonResponse({
@@ -624,10 +595,10 @@ async function handleListUsers(env) {
 }
 
 /* ============================================================
-   Create User
+   Create User - ✅ الآن يقرأ user_username وليس username
 ============================================================ */
 async function handleCreateUser(env, body) {
-  const username = (body.username || '').trim().toLowerCase();
+  const username = (body.user_username || '').trim().toLowerCase();
   const password = (body.user_password || '').trim();
   const fullName = (body.full_name || '').trim();
   const email = (body.user_email || '').trim();
