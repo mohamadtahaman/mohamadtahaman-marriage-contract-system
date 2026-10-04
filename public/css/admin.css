@@ -1,5 +1,5 @@
 /* ============================================================
-   Admin Panel V5 - Archive Table
+   Admin Panel V6 - Full Styles
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -10,6 +10,7 @@ body {
   color: #1a1a1a;
   min-height: 100vh;
   line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
 }
 
 .hidden { display: none !important; }
@@ -44,6 +45,7 @@ body {
 
 .login-header h1 { font-size: 20px; font-weight: 700; margin-bottom: 5px; }
 .login-header p { font-size: 13px; opacity: 0.85; }
+
 .login-body { padding: 32px 28px; }
 
 .login-body label {
@@ -51,6 +53,7 @@ body {
   font-size: 13.5px;
   font-weight: 700;
   margin-bottom: 8px;
+  color: #1a1a1a;
 }
 
 .login-body input {
@@ -58,14 +61,19 @@ body {
   padding: 13px 16px;
   border: 1.5px solid #ebebeb;
   border-radius: 10px;
-  font-size: 17px;
-  text-align: center;
-  letter-spacing: 3px;
+  font-size: 15px;
   font-family: inherit;
   outline: none;
   transition: all 0.2s;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   background: #fbfbfb;
+  color: #1a1a1a;
+}
+
+.login-body input#passwordInput {
+  text-align: center;
+  letter-spacing: 3px;
+  font-size: 17px;
 }
 
 .login-body input:focus {
@@ -98,7 +106,13 @@ body {
   font-size: 13px;
 }
 
-.login-footer a { color: #2d6a4f; text-decoration: none; font-weight: 600; }
+.login-footer a {
+  color: #2d6a4f;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-footer a:hover { text-decoration: underline; }
 
 /* ============ Messages ============ */
 .message {
@@ -110,8 +124,17 @@ body {
   text-align: center;
 }
 
-.message.error { background: #fdf2f0; color: #c0392b; border: 1px solid #f5d5d0; }
-.message.success { background: #e8f3ed; color: #2d6a4f; border: 1px solid #c8e0d3; }
+.message.error {
+  background: #fdf2f0;
+  color: #c0392b;
+  border: 1px solid #f5d5d0;
+}
+
+.message.success {
+  background: #e8f3ed;
+  color: #2d6a4f;
+  border: 1px solid #c8e0d3;
+}
 
 .system-message {
   max-width: 1200px;
@@ -154,7 +177,11 @@ body {
 
 .panel-title { display: flex; align-items: center; gap: 12px; }
 
-.panel-title h1 { font-size: 19px; color: #1a1a1a; font-weight: 700; }
+.panel-title h1 {
+  font-size: 19px;
+  color: #1a1a1a;
+  font-weight: 700;
+}
 
 .badge {
   background: #e8f3ed;
@@ -194,7 +221,11 @@ body {
 }
 
 .admin-tab:hover { color: #2d6a4f; }
-.admin-tab.active { color: #2d6a4f; border-bottom-color: #c9a961; }
+
+.admin-tab.active {
+  color: #2d6a4f;
+  border-bottom-color: #c9a961;
+}
 
 /* ============ Content ============ */
 .panel-content {
@@ -229,7 +260,12 @@ body {
 
 .card-danger .card-header { background: #fdf2f0; }
 
-.card-header h2 { font-size: 15px; font-weight: 700; color: #1a1a1a; }
+.card-header h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
 .card-danger .card-header h2 { color: #c0392b; }
 
 .card-body { padding: 20px 22px; }
@@ -242,11 +278,19 @@ body {
   line-height: 1.7;
 }
 
+.sub-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: #1a1a1a;
+}
+
 /* ============ Codes Table ============ */
 .codes-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13.5px;
+  background: #fff;
 }
 
 .codes-table th {
@@ -263,6 +307,7 @@ body {
   padding: 14px 16px;
   border-bottom: 1px solid #f5f5f5;
   vertical-align: middle;
+  color: #1a1a1a;
 }
 
 .codes-table tr:hover td { background: #fafafa; }
@@ -286,7 +331,7 @@ body {
   font-style: italic;
 }
 
-/* ============ Search ============ */
+/* ============ Search Bar ============ */
 .search-bar {
   display: flex;
   gap: 10px;
@@ -352,9 +397,7 @@ body {
 .archive-table tbody tr:last-child td { border-bottom: none; }
 .archive-table tbody tr:hover { background: #fafafa; }
 
-.serial-cell {
-  text-align: center;
-}
+.serial-cell { text-align: center; }
 
 .serial-num {
   display: block;
@@ -387,12 +430,45 @@ body {
   font-weight: 600;
 }
 
-.actions-cell {
-  white-space: nowrap;
+.actions-cell { white-space: nowrap; }
+.actions-cell .btn-action { margin-left: 4px; }
+
+/* ============ Form Grid (Settings) ============ */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
 }
 
-.actions-cell .btn-action {
-  margin-left: 4px;
+.form-grid .field { min-width: 0; }
+
+.form-grid label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.form-grid input,
+.form-grid select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #ebebeb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  background: #fbfbfb;
+  transition: all 0.2s;
+  color: #1a1a1a;
+}
+
+.form-grid input:focus,
+.form-grid select:focus {
+  border-color: #2d6a4f;
+  background: #fff;
+  box-shadow: 0 0 0 3px #e8f3ed;
 }
 
 /* ============ Info Rows ============ */
@@ -423,17 +499,30 @@ body {
   transition: all 0.2s;
 }
 
-.btn-primary { background: #2d6a4f; color: #fff; }
-.btn-primary:hover { background: #1b4332; }
+.btn-primary {
+  background: #2d6a4f;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #1b4332;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45,106,79,0.2);
+}
 
 .btn-secondary {
   background: #f5f5f5;
   color: #333;
   border: 1px solid #ebebeb;
 }
+
 .btn-secondary:hover { background: #ebebeb; }
 
-.btn-danger { background: #c0392b; color: #fff; }
+.btn-danger {
+  background: #c0392b;
+  color: #fff;
+}
+
 .btn-danger:hover { background: #a52a20; }
 
 .btn-action {
@@ -455,6 +544,7 @@ body {
   color: #c0392b;
   border-color: #f5d5d0;
 }
+
 .btn-action.danger:hover { background: #f5d5d0; }
 
 .btn-action.gold {
@@ -462,6 +552,7 @@ body {
   color: #8b6f1e;
   border-color: #e9d5a1;
 }
+
 .btn-action.gold:hover { background: #e9d5a1; }
 
 /* ============ Modal ============ */
@@ -474,6 +565,7 @@ body {
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  backdrop-filter: blur(2px);
 }
 
 .modal-box {
@@ -574,8 +666,22 @@ body {
   color: #1a1a1a;
 }
 
+/* ============ Print ============ */
+@media print {
+  body * { visibility: hidden; }
+  #modalContent, #modalContent * { visibility: visible; }
+  #modalContent {
+    position: absolute;
+    inset: 0;
+    padding: 20px;
+  }
+  .modal-header, .modal-footer { display: none !important; }
+  .modal-box { box-shadow: none; max-width: 100%; border-radius: 0; }
+  .modal-overlay { background: #fff; }
+}
+
 /* ============ Responsive ============ */
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .panel-header { padding: 14px 18px; }
   .panel-title h1 { font-size: 16px; }
   .panel-content { padding: 16px; }
@@ -592,13 +698,12 @@ body {
   .name-cell { font-size: 12.5px; }
   .date-cell { font-size: 11.5px; }
 
-  .actions-cell .btn-action {
-    padding: 4px 8px;
-    font-size: 11px;
-  }
+  .actions-cell .btn-action { padding: 4px 8px; font-size: 11px; }
 
   .contract-row { flex-direction: column; gap: 2px; }
   .contract-row strong { min-width: auto; }
 
   .search-bar input { min-width: 100%; }
+
+  .form-grid { grid-template-columns: 1fr; }
 }
