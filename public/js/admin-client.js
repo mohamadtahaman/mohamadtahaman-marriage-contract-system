@@ -1,5 +1,5 @@
 /* ============================================================
-   Admin Client V3 - With D1 Support & Bug Fixes
+   Admin Client V4 - Fixed Archive Layout
 ============================================================ */
 
 const adminState = {
@@ -49,7 +49,6 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-// ✅ إصلاح: تحويل أي قيمة إلى String قبل padStart
 function pad2(n) {
   if (n === undefined || n === null || n === '') return '—';
   return String(n).padStart(2, '0');
@@ -285,11 +284,18 @@ function renderArchive() {
         <div class="archive-item-info">
           <div class="archive-item-code">${escapeHtml(contract.code)}</div>
           <div class="archive-item-names">
-            <strong>الزوج:</strong> ${escapeHtml(groomName)}<br>
-            <strong>الزوجة:</strong> ${escapeHtml(brideName)}
+            <div class="name-pair">
+              <span class="name-label">الزوج:</span>
+              <span class="name-value">${escapeHtml(groomName)}</span>
+            </div>
+            <div class="name-pair">
+              <span class="name-label">الزوجة:</span>
+              <span class="name-value">${escapeHtml(brideName)}</span>
+            </div>
           </div>
           <div class="archive-item-meta">
-            ● مُرسل${contract.contractDate ? ' — ' + escapeHtml(contract.contractDate) : ''}
+            <span class="status-dot">●</span>
+            <span>مُرسل${contract.contractDate ? ' — ' + escapeHtml(contract.contractDate) : ''}</span>
           </div>
         </div>
         <div class="archive-item-actions">
@@ -468,10 +474,10 @@ async function generateNewCodes() {
   const sentCount = adminState.contracts.filter(c => c.finished).length;
 
   if (sentCount > 0) {
-    if (!confirm(`⚠️ تحذير: يوجد ${sentCount} عقد مُرسل.\n\nتوليد أكواد جديدة سيمسح كل العقود السابقة (من KV و D1).\n\nهل أنت متأكد؟`)) return;
+    if (!confirm(`⚠️ تحذير: يوجد ${sentCount} عقد مُرسل.\n\nتوليد أكواد جديدة سيمسح كل العقود السابقة.\n\nهل أنت متأكد؟`)) return;
   }
 
-  if (!confirm('⚠️ سيتم حذف الأكواد الحالية وكل العقود المرتبطة بها من قاعدة البيانات.\n\nهل أنت متأكد؟')) return;
+  if (!confirm('⚠️ سيتم حذف الأكواد الحالية وكل العقود المرتبطة بها.\n\nهل أنت متأكد؟')) return;
 
   try {
     const data = await apiCall('generate');
