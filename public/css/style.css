@@ -1231,4 +1231,122 @@ footer {
   .party-tabs { grid-template-columns: repeat(2, 1fr); }
   .party-tab { font-size: 11.5px; padding: 12px 6px; }
   .party-tab .tab-icon { font-size: 18px; }
+/* ============================================================
+   Photo Upload Section
+============================================================ */
+.photo-section {
+  grid-column: 1 / -1;
+  margin-top: 20px;
+}
+
+.photo-upload-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  background: #fbfbfb;
+  border: 1.5px dashed #ebebeb;
+  border-radius: 12px;
+}
+
+.photo-preview {
+  width: 140px;
+  height: 180px;
+  border: 2px solid #ebebeb;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #bbb;
+  font-size: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.photo-placeholder svg {
+  width: 40px;
+  height: 40px;
+  stroke: #ddd;
+}
+
+.photo-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-photo-upload,
+.btn-photo-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-photo-upload {
+  background: #2d6a4f;
+  color: #fff;
+}
+
+.btn-photo-upload:hover {
+  background: #1b4332;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45,106,79,0.25);
+}
+
+.btn-photo-remove {
+  background: #fdf2f0;
+  color: #c0392b;
+  border: 1px solid #f5d5d0;
+}
+
+.btn-photo-remove:hover {
+  background: #f5d5d0;
+}
+
+.btn-photo-upload svg,
+.btn-photo-remove svg {
+  width: 16px;
+  height: 16px;
+}
+
+.photo-hint {
+  font-size: 11.5px;
+  color: #999;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .photo-preview {
+    width: 120px;
+    height: 155px;
+  }
+}
 }
