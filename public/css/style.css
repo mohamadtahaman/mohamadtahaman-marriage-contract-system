@@ -1,5 +1,5 @@
 /* ============================================================
-   Marriage Contract System V2 - Modern Design
+   Marriage Contract System V3 - Modern Design
    Arresalah Zentrum Berlin
 ============================================================ */
 
@@ -11,13 +11,13 @@
   --green-light: #74c69d;
   --green-pale: #e8f3ed;
   --green-ultra: #f5faf7;
-  
+
   /* Gold - softer */
   --gold: #c9a961;
   --gold-dark: #8b6f1e;
   --gold-light: #e9d5a1;
   --gold-pale: #fdf9ef;
-  
+
   /* Neutrals */
   --text: #1a1a1a;
   --text-mid: #666;
@@ -26,7 +26,7 @@
   --border-light: #f5f5f5;
   --bg: #fbfbfb;
   --white: #ffffff;
-  
+
   /* Status */
   --red: #c0392b;
   --red-pale: #fdf2f0;
@@ -44,7 +44,7 @@ body {
 }
 
 /* ============================================================
-   الشريط العلوي
+   Topbar
 ============================================================ */
 .topbar {
   background: var(--green-dark);
@@ -88,7 +88,7 @@ body {
 }
 
 /* ============================================================
-   الهيدر
+   Header
 ============================================================ */
 .site-header {
   background: var(--white);
@@ -118,10 +118,7 @@ body {
   border: 1px solid var(--green-pale);
 }
 
-.brand-logo svg {
-  width: 34px;
-  height: 34px;
-}
+.brand-logo svg { width: 34px; height: 34px; }
 
 .brand-text h1 {
   font-family: 'Amiri', serif;
@@ -152,7 +149,7 @@ body {
 }
 
 /* ============================================================
-   الهيرو
+   Hero
 ============================================================ */
 .hero {
   background: linear-gradient(180deg, var(--green-ultra) 0%, var(--bg) 100%);
@@ -215,7 +212,7 @@ body {
 .hero-ornament::after { right: -8px; }
 
 /* ============================================================
-   البطاقة الرئيسية
+   Container
 ============================================================ */
 .container {
   max-width: 920px;
@@ -230,7 +227,7 @@ body {
 }
 
 /* ============================================================
-   شاشة التحقق
+   Verify Screen
 ============================================================ */
 #verifyScreen {
   text-align: center;
@@ -250,10 +247,7 @@ body {
   border: 1px solid var(--green-pale);
 }
 
-.verify-icon svg {
-  width: 32px;
-  height: 32px;
-}
+.verify-icon svg { width: 32px; height: 32px; }
 
 #verifyScreen h2 {
   color: var(--text);
@@ -301,7 +295,7 @@ body {
 }
 
 /* ============================================================
-   الأزرار
+   Buttons
 ============================================================ */
 .btn {
   display: inline-flex;
@@ -386,7 +380,7 @@ body {
 }
 
 /* ============================================================
-   تبويبات الأطراف
+   Party Tabs
 ============================================================ */
 .party-tabs {
   display: grid;
@@ -458,7 +452,7 @@ body {
 }
 
 /* ============================================================
-   دائرة التقدم
+   Progress
 ============================================================ */
 .progress-section {
   display: flex;
@@ -512,7 +506,7 @@ body {
 }
 
 /* ============================================================
-   عناوين الشاشات
+   Screen Titles
 ============================================================ */
 .screen-title {
   text-align: center;
@@ -530,7 +524,7 @@ body {
 }
 
 /* ============================================================
-   النموذج
+   Form
 ============================================================ */
 .form-grid {
   display: grid;
@@ -600,18 +594,14 @@ body {
   box-shadow: 0 0 0 3px rgba(192,57,43,0.1);
 }
 
-.field input.error:focus,
-.field select.error:focus,
-.field textarea.error:focus {
-  box-shadow: 0 0 0 3px rgba(192,57,43,0.15);
-}
-
 .field textarea {
   resize: vertical;
   min-height: 76px;
 }
 
-/* ============ قوائم التاريخ ============ */
+/* ============================================================
+   Date Selects
+============================================================ */
 .date-selects {
   display: grid;
   grid-template-columns: 1fr 1.5fr 1.2fr;
@@ -632,7 +622,9 @@ body {
   background-position: center;
 }
 
-/* ============ العنوان ============ */
+/* ============================================================
+   Address
+============================================================ */
 .address-sub {
   display: grid;
   grid-template-columns: 1fr 2fr;
@@ -647,7 +639,9 @@ body {
   grid-column: 1 / -1;
 }
 
-/* ============ عناوين الأقسام ============ */
+/* ============================================================
+   Section Title
+============================================================ */
 .section-title {
   grid-column: 1 / -1;
   font-size: 13.5px;
@@ -670,7 +664,7 @@ body {
 }
 
 /* ============================================================
-   الصناديق الخاصة (الولي / الشاهد)
+   Special Box (Wali / Witness)
 ============================================================ */
 .special-box {
   grid-column: 1 / -1;
@@ -718,7 +712,7 @@ body {
 }
 
 /* ============================================================
-   المهر
+   Dowry Box
 ============================================================ */
 .dowry-box {
   grid-column: 1 / -1;
@@ -750,7 +744,7 @@ body {
 .dowry-fields .field-full { grid-column: 1 / -1; }
 
 /* ============================================================
-   أزرار الحفظ
+   Save Button
 ============================================================ */
 .save-btn-wrap {
   text-align: center;
@@ -791,6 +785,12 @@ body {
   transform: translateY(-1px);
 }
 
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+}
+
 .save-hint {
   font-size: 12px;
   color: var(--text-light);
@@ -798,7 +798,7 @@ body {
 }
 
 /* ============================================================
-   منطقة الإرسال + تاريخ العقد
+   Send Area
 ============================================================ */
 .send-area {
   text-align: center;
@@ -858,7 +858,7 @@ body {
 }
 
 /* ============================================================
-   النجاح
+   Success
 ============================================================ */
 .success-box {
   text-align: center;
@@ -904,7 +904,7 @@ body {
 }
 
 /* ============================================================
-   رابط دخول الإدارة - شبه مخفي
+   Admin Access Link
 ============================================================ */
 .admin-access {
   text-align: center;
@@ -987,6 +987,7 @@ footer {
   border-right: 3px solid var(--gold);
   pointer-events: auto;
   animation: toastIn 0.3s ease;
+  transition: opacity 0.3s ease;
 }
 
 .toast.error {
@@ -1070,6 +1071,134 @@ footer {
 }
 
 /* ============================================================
+   ✨ Blessing Overlay - رسالة إسلامية للزوجين
+============================================================ */
+.blessing-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(27, 67, 50, 0.92);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  padding: 20px;
+}
+
+.blessing-overlay.visible {
+  opacity: 1;
+}
+
+.blessing-overlay.fading {
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.blessing-content {
+  text-align: center;
+  max-width: 700px;
+  padding: 40px 30px;
+  animation: blessingFadeIn 0.8s ease;
+}
+
+@keyframes blessingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.blessing-line-top,
+.blessing-line-bottom {
+  width: 100px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 0 auto;
+}
+
+.blessing-line-top { margin-bottom: 30px; }
+.blessing-line-bottom { margin-top: 30px; }
+
+.blessing-arabic {
+  font-family: 'Amiri', serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--gold-light);
+  line-height: 2;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 20px rgba(201, 169, 97, 0.3);
+  margin-bottom: 20px;
+}
+
+.blessing-label {
+  font-family: 'Amiri', serif;
+  font-size: 20px;
+  color: #fff;
+  margin-top: 20px;
+  opacity: 0.9;
+  font-weight: 700;
+}
+
+.blessing-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 25px;
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(233, 213, 161, 0.4);
+  border-radius: 30px;
+  color: var(--gold-light);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.blessing-check svg {
+  width: 18px;
+  height: 18px;
+  color: #74c69d;
+  animation: checkPulse 1.5s ease infinite;
+}
+
+@keyframes checkPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* تحسين العرض على الجوال */
+@media (max-width: 640px) {
+  .blessing-content {
+    padding: 30px 20px;
+  }
+
+  .blessing-arabic {
+    font-size: 22px;
+    line-height: 1.9;
+  }
+
+  .blessing-label {
+    font-size: 16px;
+  }
+
+  .blessing-line-top,
+  .blessing-line-bottom {
+    width: 70px;
+  }
+
+  .blessing-check {
+    font-size: 12.5px;
+    padding: 8px 18px;
+  }
+}
+
+/* ============================================================
    Utility
 ============================================================ */
 .hidden { display: none !important; }
@@ -1084,16 +1213,16 @@ footer {
   .address-sub2 { grid-template-columns: 1fr; }
   .dowry-fields { grid-template-columns: 1fr; }
   .date-selects { grid-template-columns: 1fr 1fr 1fr; }
-  
+
   .site-header { padding: 16px 20px; }
   .brand-text h1 { font-size: 17px; }
   .brand-logo { width: 44px; height: 44px; }
   .brand-logo svg { width: 28px; height: 28px; }
-  
+
   .hero { padding: 40px 20px 50px; }
   .hero h2 { font-size: 21px; }
   .bismillah { font-size: 20px; }
-  
+
   .container { padding: 24px 20px; margin: -20px 12px 30px; border-radius: 12px; }
   .header-contact { font-size: 11px; }
 }
