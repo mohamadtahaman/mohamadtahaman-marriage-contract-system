@@ -1,5 +1,5 @@
 /* ============================================================
-   Admin Client V4 - Fixed Archive Layout
+   Admin Client V5 - Archive Table
 ============================================================ */
 
 const adminState = {
@@ -51,6 +51,10 @@ function escapeHtml(s) {
 
 function pad2(n) {
   if (n === undefined || n === null || n === '') return '—';
+  return String(n).padStart(2, '0');
+}
+
+function pad2num(n) {
   return String(n).padStart(2, '0');
 }
 
@@ -251,7 +255,7 @@ function renderTable() {
 }
 
 /* ============================================================
-   Archive
+   Archive - Count
 ============================================================ */
 function updateArchiveCount() {
   const sentCount = adminState.contracts.filter(c => c.finished).length;
@@ -259,6 +263,9 @@ function updateArchiveCount() {
   if (el) el.textContent = sentCount;
 }
 
+/* ============================================================
+   Archive - Render Table
+============================================================ */
 function renderArchive() {
   const container = $('archiveBody');
   if (!container) return;
@@ -270,46 +277,56 @@ function renderArchive() {
     return;
   }
 
-  let html = '<div class="archive-grid">';
+  let html = `
+    <table class="archive-table">
+      <thead>
+        <tr>
+          <th style="width:70px; text-align:center;">#</th>
+          <th>الزوج</th>
+          <th>الزوجة</th>
+          <th style="width:140px;">تاريخ العقد</th>
+          <th style="width:170px;">إجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
 
-  sentContracts.forEach(contract => {
+  sentContracts.forEach((contract, idx) => {
     const groom = contract.parties?.groom;
     const bride = contract.parties?.bride;
 
     const groomName = groom?.nameDe || groom?.nameAr || '—';
     const brideName = bride?.nameDe || bride?.nameAr || '—';
+    const contractDate = contract.contractDate || '—';
 
     html += `
-      <div class="archive-item">
-        <div class="archive-item-info">
-          <div class="archive-item-code">${escapeHtml(contract.code)}</div>
-          <div class="archive-item-names">
-            <div class="name-pair">
-              <span class="name-label">الزوج:</span>
-              <span class="name-value">${escapeHtml(groomName)}</span>
-            </div>
-            <div class="name-pair">
-              <span class="name-label">الزوجة:</span>
-              <span class="name-value">${escapeHtml(brideName)}</span>
-            </div>
-          </div>
-          <div class="archive-item-meta">
-            <span class="status-dot">●</span>
-            <span>مُرسل${contract.contractDate ? ' — ' + escapeHtml(contract.contractDate) : ''}</span>
-          </div>
-        </div>
-        <div class="archive-item-actions">
+      <tr>
+        <td class="serial-cell">
+          <span class="serial-num">${pad2num(idx + 1)}</span>
+          <span class="code-sub">${escapeHtml(contract.code)}</span>
+        </td>
+        <td class="name-cell">${escapeHtml(groomName)}</td>
+        <td class="name-cell">${escapeHtml(brideName)}</td>
+        <td class="date-cell">${escapeHtml(contractDate)}</td>
+        <td class="actions-cell">
           <button class="btn-action gold" onclick="viewContract('${contract.code}')">معاينة</button>
           <button class="btn-action danger" onclick="deleteContract('${contract.code}')">حذف</button>
-        </div>
-      </div>
+        </td>
+      </tr>
     `;
   });
 
-  html += '</div>';
+  html += `
+      </tbody>
+    </table>
+  `;
+
   container.innerHTML = html;
 }
 
+/* ============================================================
+   Archive - Filter
+============================================================ */
 function filterArchive() {
   const query = ($('archiveSearch')?.value || '').trim().toLowerCase();
   const statusFilter = $('archiveFilterStatus')?.value || 'all';
