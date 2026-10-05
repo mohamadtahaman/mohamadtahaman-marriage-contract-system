@@ -256,10 +256,30 @@ function switchTab(tab) {
   const target = $('tab-' + tab);
   if (target) target.classList.remove('hidden');
 
-  if (tab === 'archive') renderArchive();
+  if (tab === 'archive') loadArchiveFromD1();
   if (tab === 'settings') {
     renderSettings();
     loadUsers();
+  }
+}
+
+/* ✅ جلب الأرشيف من D1 مباشرة */
+async function loadArchiveFromD1() {
+  const container = $('archiveBody');
+  if (!container) return;
+
+  container.innerHTML = '<div class="loading-cell">جارٍ التحميل...</div>';
+
+  try {
+    const data = await apiCall('archive');
+    adminState.archiveContracts = data.contracts || [];
+    adminState.filteredContracts = [...adminState.archiveContracts];
+    updateArchiveCount();
+    renderArchive();
+  } catch (err) {
+    container.innerHTML = `<div class="loading-cell" style="color:#c0392b;">
+      خطأ: ${escapeHtml(err.message)}
+    </div>`;
   }
 }
 
