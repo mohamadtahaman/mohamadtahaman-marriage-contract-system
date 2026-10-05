@@ -483,41 +483,62 @@ async function handleArchive(env) {
 }
 
 /* ============================================================
-   Generate
+   Generate - توليد 5 أكواد جديدة (بدون حذف العقود)
 ============================================================ */
 async function handleGenerate(env) {
   try {
-    const newCodes = [];
-    const used = new Set();
+    // 1. اقرأ الأكواد الحالية
+    const codesRaw = await env.CONTRACT_KV.get('codes');
+    const oldCodes = codesRaw ? JSON.parse(codesRaw) : [];
 
-    while (newCodes.length < 5) {
+    // 2. احفظ الأكواد القديمة في السجل
+    let history = [];
+    try {
+      const histRaw = await env.CONTRACT_KV.get('codes_history');
+      if (histRaw) history = JSON.parse(histRaw);
+    } catch (e) { /* تجاهل */ }
+
+    // أضف الأكواد القديمة للسجل (إن لم تكن موجودة)
+    for (const c of oldCodes) {
+      if (!history.includes(c)) history.push(c);
+    }
+    await env.CONTRACT_KV.put('codes_history', JSON.stringify(history));
+
+    // 3. ولّد 5 أكواد جديدة فريدة (لا تتكرر مع القديمة)
+    const used = new Set(history);
+    const newCodes = [];
+
+    let attempts = 0;
+    while (newCodes.length < 5 && attempts < 1000) {
       const code = generateRandomCode();
       if (!used.has(code)) {
         used.add(code);
         newCodes.push(code);
       }
+      attempts++;
     }
 
-    const listResult = await env.CONTRACT_KV.list({ prefix: 'contract_' });
-    const deletes = listResult.keys.map(k => env.CONTRACT_KV.delete(k.name));
-    deletes.push(env.CONTRACT_KV.delete('codes'));
-    await Promise.all(deletes);
-
-    try {
-      await env.DB.prepare('DELETE FROM audit_log').run();
-      await env.DB.prepare('DELETE FROM dowries').run();
-      await env.DB.prepare('DELETE FROM parties').run();
-      await env.DB.prepare('DELETE FROM contracts').run();
-    } catch (e) {
-      console.error('D1 clear error:', e);
+    if (newCodes.length < 5) {
+      return jsonResponse({
+        success: false,
+        error: 'generation_failed',
+        message: 'فشل توليد أكواد جديدة',
+      }, 500);
     }
 
+    // 4. اكتب الأكواد الجديدة (تستبدل القديمة في قائمة codes فقط)
     await env.CONTRACT_KV.put('codes', JSON.stringify(newCodes));
+
+    // 5. ⚠️ لا نحذف أي شيء:
+    //    - D1 كامل (العقود + الأطراف + المهور) يبقى
+    //    - KV drafts تبقى
+    //    - KV finished يبقى
 
     return jsonResponse({
       success: true,
       codes: newCodes,
-      message: 'تم توليد 5 أكواد جديدة وحذف كل العقود السابقة',
+      oldCodes: oldCodes,
+      message: 'تم توليد 5 أكواد جديدة — العقود السابقة محفوظة في الأرشيف',
     }, 200);
 
   } catch (err) {
