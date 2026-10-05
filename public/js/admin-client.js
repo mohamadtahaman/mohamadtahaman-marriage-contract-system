@@ -755,23 +755,33 @@ async function deleteContract(code) {
 ============================================================ */
 async function generateNewCodes() {
   const sentCount = adminState.contracts.filter(c => c.finished).length;
+  const pendingCount = adminState.contracts.filter(c => !c.finished && c.savedCount > 0).length;
 
-  if (sentCount > 0) {
-    if (!confirm(`⚠️ تحذير: يوجد ${sentCount} عقد مُرسل.\n\nتوليد أكواد جديدة سيمسح كل العقود السابقة.\n\nهل أنت متأكد؟`)) return;
+  // تحذير إذا كانت هناك مسودات غير مكتملة
+  if (pendingCount > 0) {
+    if (!confirm(
+      `⚠️ تنبيه\n\n` +
+      `يوجد ${pendingCount} عقد قيد التعبئة (لم يُرسل بعد).\n\n` +
+      `إذا ولّدت أكواداً جديدة الآن، ستفقد الوصول لهذه العقود.\n\n` +
+      `هل تريد المتابعة؟`
+    )) return;
   }
 
-  if (!confirm('⚠️ سيتم حذف الأكواد الحالية وكل العقود المرتبطة بها.\n\nهل أنت متأكد؟')) return;
+  const msg = sentCount > 0
+    ? `توليد 5 أكواد جديدة؟\n\n✅ العقود المُرسلة (${sentCount}) ستبقى في الأرشيف\n✅ الأكواد القديمة لن تعمل بعد الآن`
+    : `توليد 5 أكواد جديدة؟\n\n✅ الأكواد القديمة لن تعمل بعد الآن`;
+
+  if (!confirm(msg)) return;
 
   try {
     const data = await apiCall('generate');
-    showSystemMessage('✓ ' + (data.message || 'تم توليد 5 أكواد جديدة'), 'success');
+    showSystemMessage('✓ ' + data.message, 'success');
     await loadList();
     if (adminState.currentTab === 'archive') renderArchive();
   } catch (err) {
     alert('فشل التوليد: ' + err.message);
   }
 }
-
 /* ============================================================
    Clear Drafts
 ============================================================ */
