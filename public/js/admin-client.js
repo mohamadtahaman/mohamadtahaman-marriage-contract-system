@@ -365,7 +365,8 @@ function renderArchive() {
   const container = $('archiveBody');
   if (!container) return;
 
-  const sentContracts = adminState.filteredContracts.filter(c => c.finished);
+  const list = adminState.filteredContracts || [];
+  const sentContracts = list.filter(c => c.finished);
 
   if (sentContracts.length === 0) {
     container.innerHTML = `<div class="loading-cell">لا توجد عقود مُرسلة بعد.</div>`;
