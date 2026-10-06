@@ -1,6 +1,8 @@
 /* ============================================================
-   Print Contract - JS V13 (Final)
-   - V12 Design Approved
+   Print Contract - JS V14
+   - Wali & Witnesses: same structure as Groom/Bride (no mother)
+   - Dowry: Advance + Deferred + Notes (hidden if empty)
+   - No extra white space at bottom
 ============================================================ */
 
 const printState = {
@@ -109,6 +111,127 @@ function hasPhoto(dataUrl) {
   return true;
 }
 
+function hasValue(v) {
+  if (v === undefined || v === null) return false;
+  const s = String(v).trim();
+  return s !== '' && s !== '—';
+}
+
+/* ============================================================
+   ✅ Reusable: Party Details Block
+   يستخدم للزوج، الزوجة، الولي، الشهود
+   motherName = true للزوجين فقط
+============================================================ */
+function buildPartyBlock(party, options = {}) {
+  const p = party || {};
+  const showMother = options.showMother !== false; // default true
+  const isCenter = options.isCenter || false;
+  const isBride = options.isBride || false;
+
+  // إذا كان الشاهد "طرف المركز"
+  if (isCenter) {
+    return `
+      <div class="cv-row">
+        <div class="cv-label">
+          <span class="cv-label-de">Name</span>
+        </div>
+        <div class="v-value">مركز الرسالة</div>
+      </div>
+      <div class="cv-row">
+        <div class="cv-label">
+          <span class="cv-label-ar">الاسم</span>
+        </div>
+        <div class="v-value v-ar">طرف المركز</div>
+      </div>
+      <div class="cv-row">
+        <div class="cv-label">
+          <span class="cv-label-de">Geburtsdatum, Ort</span>
+          <span class="cv-label-ar">الميلاد</span>
+        </div>
+        <div class="v-value">—</div>
+      </div>
+      <div class="cv-row">
+        <div class="cv-label">
+          <span class="cv-label-de">Personalausweis</span>
+          <span class="cv-label-ar">رقم الهوية</span>
+        </div>
+        <div class="v-value">—</div>
+      </div>
+      <div class="cv-row">
+        <div class="cv-label">
+          <span class="cv-label-de">Anschrift</span>
+          <span class="cv-label-ar">العنوان</span>
+        </div>
+        <div class="v-value">—</div>
+      </div>
+    `;
+  }
+
+  // بناء الحقول
+  let html = `
+    <div class="cv-row">
+      <div class="cv-label">
+        <span class="cv-label-de">Name</span>
+      </div>
+      <div class="v-value">${escapeHtml(p.nameDe || '—')}</div>
+    </div>
+
+    <div class="cv-row">
+      <div class="cv-label">
+        <span class="cv-label-ar">الاسم</span>
+      </div>
+      <div class="v-value v-ar">${escapeHtml(p.nameAr || '—')}</div>
+    </div>
+
+    <div class="cv-row">
+      <div class="cv-label">
+        <span class="cv-label-de">Geburtsdatum, Ort</span>
+        <span class="cv-label-ar">الميلاد</span>
+      </div>
+      <div class="v-value">${birthDate(p)} — ${escapeHtml(birthPlace(p)) || '—'}</div>
+    </div>
+  `;
+
+  if (showMother) {
+    html += `
+      <div class="cv-row">
+        <div class="cv-label">
+          <span class="cv-label-de">${isBride ? 'Ihre Mutter' : 'Seine Mutter'}</span>
+          <span class="cv-label-ar">اسم الأم</span>
+        </div>
+        <div class="v-value">${escapeHtml(p.motherNameDe || '—')}</div>
+      </div>
+
+      <div class="cv-row">
+        <div class="cv-label">
+          <span class="cv-label-ar">اسم الأم</span>
+        </div>
+        <div class="v-value v-ar">${escapeHtml(p.motherNameAr || '—')}</div>
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="cv-row">
+      <div class="cv-label">
+        <span class="cv-label-de">Personalausweis</span>
+        <span class="cv-label-ar">رقم الهوية</span>
+      </div>
+      <div class="v-value">${escapeHtml(p.idNumber || '—')}</div>
+    </div>
+
+    <div class="cv-row">
+      <div class="cv-label">
+        <span class="cv-label-de">Anschrift</span>
+        <span class="cv-label-ar">العنوان</span>
+      </div>
+      <div class="v-value">${escapeHtml(fullAddress(p))}</div>
+    </div>
+  `;
+
+  return html;
+}
+
 /* ============================================================
    API
 ============================================================ */
@@ -153,16 +276,25 @@ function buildCertificate(contract) {
   const groomHasPhoto = hasPhoto(g.photo);
   const brideHasPhoto = hasPhoto(b.photo);
 
+  // ✅ المهر: قيم
+  const dowryAdvance = hasValue(g.dowryAdvance) ? g.dowryAdvance + ' €' : '—';
+  const dowryDeferred = hasValue(g.dowryDeferred) ? g.dowryDeferred + ' €' : '—';
+  const hasNotes = hasValue(g.dowryNotes);
+
+  // ✅ الولي (بدون أم)
+  const waliIsBrideOrPresent = waliIsBride
+    ? { nameDe: 'Bride herself', nameAr: 'الزوجة نفسها' }
+    : { nameDe: w.nameDe, nameAr: w.nameAr };
+
+  // ✅ في حال "الولي هي الزوجة نفسها" — لا نعرض بيانات ولي
+  const showWaliDetails = !waliIsBride;
+
   return `
     <!-- ============ HEADER ============ -->
     <div class="cert-header">
-
       <div class="cert-header-photo">
         <div class="cert-photo-box">
-          ${groomHasPhoto
-            ? `<img src="${g.photo}" alt="Groom">`
-            : 'صورة<br>الزوج'
-          }
+          ${groomHasPhoto ? `<img src="${g.photo}" alt="Groom">` : 'صورة<br>الزوج'}
         </div>
       </div>
 
@@ -177,18 +309,13 @@ function buildCertificate(contract) {
 
       <div class="cert-header-photo">
         <div class="cert-photo-box">
-          ${brideHasPhoto
-            ? `<img src="${b.photo}" alt="Bride">`
-            : 'صورة<br>الزوجة'
-          }
+          ${brideHasPhoto ? `<img src="${b.photo}" alt="Bride">` : 'صورة<br>الزوجة'}
         </div>
       </div>
-
     </div>
 
     <!-- ============ INFO STRIP ============ -->
     <div class="cert-info-strip">
-
       <div class="cert-info-cell">
         <div class="info-line">
           <span class="label-de">Turnstraße 83, 10551 Berlin</span>
@@ -211,7 +338,6 @@ function buildCertificate(contract) {
           <span class="value">${escapeHtml(contractDate)}</span>
         </div>
       </div>
-
     </div>
 
     <!-- ============ GROOM & BRIDE ============ -->
@@ -223,59 +349,7 @@ function buildCertificate(contract) {
           <span>Ehefrau</span>
           <span class="ar">الزوجة</span>
         </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Name</span>
-          </div>
-          <div class="v-value">${escapeHtml(b.nameDe || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-ar">الاسم</span>
-          </div>
-          <div class="v-value v-ar">${escapeHtml(b.nameAr || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Geburtsdatum, Ort</span>
-            <span class="cv-label-ar">الميلاد</span>
-          </div>
-          <div class="v-value">${birthDate(b)} — ${escapeHtml(birthPlace(b)) || '—'}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Ihre Mutter</span>
-            <span class="cv-label-ar">اسم الأم</span>
-          </div>
-          <div class="v-value">${escapeHtml(b.motherNameDe || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-ar">اسم الأم</span>
-          </div>
-          <div class="v-value v-ar">${escapeHtml(b.motherNameAr || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Personalausweis</span>
-            <span class="cv-label-ar">رقم الهوية</span>
-          </div>
-          <div class="v-value">${escapeHtml(b.idNumber || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Anschrift</span>
-            <span class="cv-label-ar">العنوان</span>
-          </div>
-          <div class="v-value">${escapeHtml(fullAddress(b))}</div>
-        </div>
+        ${buildPartyBlock(b, { showMother: true, isBride: true })}
       </div>
 
       <!-- Groom -->
@@ -284,59 +358,7 @@ function buildCertificate(contract) {
           <span>Ehemann</span>
           <span class="ar">الزوج</span>
         </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Name</span>
-          </div>
-          <div class="v-value">${escapeHtml(g.nameDe || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-ar">الاسم</span>
-          </div>
-          <div class="v-value v-ar">${escapeHtml(g.nameAr || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Geburtsdatum, Ort</span>
-            <span class="cv-label-ar">الميلاد</span>
-          </div>
-          <div class="v-value">${birthDate(g)} — ${escapeHtml(birthPlace(g)) || '—'}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Seine Mutter</span>
-            <span class="cv-label-ar">اسم الأم</span>
-          </div>
-          <div class="v-value">${escapeHtml(g.motherNameDe || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-ar">اسم الأم</span>
-          </div>
-          <div class="v-value v-ar">${escapeHtml(g.motherNameAr || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Personalausweis</span>
-            <span class="cv-label-ar">رقم الهوية</span>
-          </div>
-          <div class="v-value">${escapeHtml(g.idNumber || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Anschrift</span>
-            <span class="cv-label-ar">العنوان</span>
-          </div>
-          <div class="v-value">${escapeHtml(fullAddress(g))}</div>
-        </div>
+        ${buildPartyBlock(g, { showMother: true, isBride: false })}
       </div>
 
     </div>
@@ -345,46 +367,34 @@ function buildCertificate(contract) {
     <div class="cert-wali-dowry">
       <div class="wali-dowry-grid">
 
-        <!-- Right column (RTL first) = Wali details -->
+        <!-- ✅ يمين: بيانات الولي (بدون أم) -->
         <div class="wali-dowry-col">
-
-          <div class="wd-row">
-            <div class="wd-label">
-              <span class="wd-label-de">Name Der Wali:</span>
-              <span class="wd-label-ar">اسم الولي</span>
-            </div>
-            <div class="wd-value">
-              <span class="wd-value-de">${waliIsBride ? '—' : escapeHtml(w.nameDe || '—')}</span>
-              <span class="wd-value-ar">${waliIsBride ? '—' : escapeHtml(w.nameAr || '—')}</span>
-            </div>
-          </div>
-
-          <div class="wd-row">
-            <div class="wd-label">
-              <span class="wd-label-de">Geburtsdatum, Ort:</span>
-              <span class="wd-label-ar">تاريخ ومكان الميلاد</span>
-            </div>
-            <div class="wd-value">
-              <span class="wd-value-de">${waliIsBride ? '—' : birthDate(w)}</span>
-              <span class="wd-value-ar">${waliIsBride ? '—' : escapeHtml(birthPlace(w))}</span>
-            </div>
-          </div>
-
-          <div class="wd-row">
-            <div class="wd-label">
-              <span class="wd-label-de">Anschrift:</span>
-              <span class="wd-label-ar">العنوان</span>
-            </div>
-            <div class="wd-value">
-              <span class="wd-value-de">${waliIsBride ? '—' : escapeHtml(fullAddress(w))}</span>
-            </div>
-          </div>
-
+          <div class="col-subsection-title-light">بيانات الولي</div>
+          ${showWaliDetails
+            ? buildPartyBlock(w, { showMother: false })
+            : `
+              <div class="cv-row">
+                <div class="cv-label">
+                  <span class="cv-label-de">Name Der Wali</span>
+                  <span class="cv-label-ar">اسم الولي</span>
+                </div>
+                <div class="v-value v-ar">الزوجة نفسها</div>
+              </div>
+              <div class="cv-row">
+                <div class="cv-label">
+                  <span class="cv-label-de">Status</span>
+                  <span class="cv-label-ar">الحالة</span>
+                </div>
+                <div class="v-value">Bride herself</div>
+              </div>
+            `
+          }
         </div>
 
-        <!-- Left column (RTL second) = Wali designation + Mahr -->
+        <!-- ✅ يسار: صفة الولي + المهر -->
         <div class="wali-dowry-col">
 
+          <!-- صفة الولي -->
           <div class="wd-row">
             <div class="wd-label">
               <span class="wd-label-de">Vertreter der Braut (Wali):</span>
@@ -396,22 +406,47 @@ function buildCertificate(contract) {
             </div>
           </div>
 
+          <!-- المهر - المقدم -->
           <div class="wd-row">
             <div class="wd-label">
-              <span class="wd-label-de">Brautgabe:</span>
-              <span class="wd-label-ar">المهر</span>
+              <span class="wd-label-de">Brautgabe - Vorauszahlung:</span>
+              <span class="wd-label-ar">المهر المقدم</span>
             </div>
             <div class="wd-value wd-gold">
-              <span class="wd-value-de">${escapeHtml(g.dowryAdvance || '0')} €</span>
+              <span class="wd-value-de">${escapeHtml(dowryAdvance)}</span>
             </div>
           </div>
+
+          <!-- المهر - المؤخر -->
+          <div class="wd-row">
+            <div class="wd-label">
+              <span class="wd-label-de">Brautgabe - Aufgeschoben:</span>
+              <span class="wd-label-ar">المهر المؤخر</span>
+            </div>
+            <div class="wd-value wd-gold">
+              <span class="wd-value-de">${escapeHtml(dowryDeferred)}</span>
+            </div>
+          </div>
+
+          <!-- ✅ ملاحظات المهر - تظهر فقط إذا وُجدت -->
+          ${hasNotes ? `
+            <div class="wd-row">
+              <div class="wd-label">
+                <span class="wd-label-de">Bemerkungen:</span>
+                <span class="wd-label-ar">ملاحظات</span>
+              </div>
+              <div class="wd-value">
+                <span class="wd-value-ar">${escapeHtml(g.dowryNotes)}</span>
+              </div>
+            </div>
+          ` : ''}
 
         </div>
 
       </div>
     </div>
 
-    <!-- ============ WITNESSES ============ -->
+    <!-- ============ WITNESSES (نفس بنية الزوجين، بدون أم) ============ -->
     <div class="cert-witness-box">
 
       <div class="cert-witness-col">
@@ -419,30 +454,7 @@ function buildCertificate(contract) {
           <span>Zeuge 1</span>
           <span class="ar">الشاهد الأول</span>
         </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Name</span>
-            <span class="cv-label-ar">الاسم</span>
-          </div>
-          <div class="v-value">${w1IsCenter ? 'مركز الرسالة' : escapeHtml(w1.nameDe || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Geburtsdatum</span>
-            <span class="cv-label-ar">الميلاد</span>
-          </div>
-          <div class="v-value">${w1IsCenter ? '—' : birthDate(w1)}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Personalausweis</span>
-            <span class="cv-label-ar">الهوية</span>
-          </div>
-          <div class="v-value">${w1IsCenter ? '—' : escapeHtml(w1.idNumber || '—')}</div>
-        </div>
+        ${buildPartyBlock(w1, { showMother: false, isCenter: w1IsCenter })}
       </div>
 
       <div class="cert-witness-col">
@@ -450,30 +462,7 @@ function buildCertificate(contract) {
           <span>Zeuge 2</span>
           <span class="ar">الشاهد الثاني</span>
         </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Name</span>
-            <span class="cv-label-ar">الاسم</span>
-          </div>
-          <div class="v-value">${w2IsCenter ? 'مركز الرسالة' : escapeHtml(w2.nameDe || '—')}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Geburtsdatum</span>
-            <span class="cv-label-ar">الميلاد</span>
-          </div>
-          <div class="v-value">${w2IsCenter ? '—' : birthDate(w2)}</div>
-        </div>
-
-        <div class="cv-row">
-          <div class="cv-label">
-            <span class="cv-label-de">Personalausweis</span>
-            <span class="cv-label-ar">الهوية</span>
-          </div>
-          <div class="v-value">${w2IsCenter ? '—' : escapeHtml(w2.idNumber || '—')}</div>
-        </div>
+        ${buildPartyBlock(w2, { showMother: false, isCenter: w2IsCenter })}
       </div>
 
     </div>
