@@ -1,8 +1,10 @@
 /* ============================================================
-   Print Contract - CSS V14
-   - Wali & Witnesses: same style as Groom/Bride
+   Print Contract - CSS V16 (Final)
+   - Bigger photos: 95x115
+   - Header: 110px | 1fr | 110px | min-height 90px
+   - Wali & Witnesses same as Groom/Bride
    - Dowry: Advance + Deferred + Notes (hidden if empty)
-   - Reduced bottom white space
+   - A4 optimized
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -31,7 +33,8 @@ body {
 }
 
 .spinner {
-  width: 50px; height: 50px;
+  width: 50px;
+  height: 50px;
   border: 4px solid #e8f3ed;
   border-top-color: #2d6a4f;
   border-radius: 50%;
@@ -42,7 +45,9 @@ body {
 
 .error-screen {
   min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .error-box {
@@ -135,17 +140,19 @@ body {
 }
 
 /* ============================================================
-   HEADER
+   ✅ HEADER - Bigger photos
+   Layout: [Wife photo] [Logo+Titles] [Husband photo]
+   In RTL: first grid item is on the RIGHT
 ============================================================ */
 .cert-header {
   display: grid;
-  grid-template-columns: 85px 1fr 85px;
-  gap: 8px;
+  grid-template-columns: 110px 1fr 110px;
+  gap: 10px;
   align-items: center;
   border-bottom: 2px solid #1a4d8a;
-  padding: 4px 0;
-  margin-bottom: 5px;
-  min-height: 68px;
+  padding: 6px 0;
+  margin-bottom: 6px;
+  min-height: 90px;
 }
 
 .cert-header-photo {
@@ -154,20 +161,21 @@ body {
   justify-content: center;
 }
 
+/* ✅ Photo box - bigger */
 .cert-photo-box {
-  width: 70px;
-  height: 82px;
+  width: 95px;
+  height: 115px;
   border: 1.5px dashed #1a4d8a;
-  border-radius: 3px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #f8faff;
   color: #1a4d8a;
-  font-size: 8.5px;
+  font-size: 9.5px;
   text-align: center;
-  line-height: 1.2;
-  padding: 3px;
+  line-height: 1.3;
+  padding: 4px;
   overflow: hidden;
 }
 
@@ -178,18 +186,22 @@ body {
   display: block;
 }
 
-.cert-header-center { text-align: center; }
+.cert-header-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
 
+/* ✅ Logo - slightly bigger */
 .cert-logo {
-  width: 48px;
-  height: 38px;
-  margin: 0 auto 1px;
+  width: 70px;
+  height: 55px;
+  margin: 0 auto 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  color: #1a4d8a;
-  font-weight: 700;
 }
 
 .cert-logo img {
@@ -297,7 +309,7 @@ body {
 .cert-col-title .ar { color: #1a4d8a; }
 
 /* ============================================================
-   ✅ CV ROW (يُستخدم في كل الأطراف)
+   CV ROW (يُستخدم في كل الأطراف)
 ============================================================ */
 .cv-row {
   display: flex;
@@ -368,12 +380,11 @@ body {
 .wali-dowry-col {
   padding: 8px 12px;
   border-left: 1px solid #1a4d8a;
-  /* ✅ الولي: نفس أسلوب الزوج/الزوجة */
 }
 
 .wali-dowry-col:last-child { border-left: none; }
 
-/* ✅ عنوان صغير خفيف لعمود الولي */
+/* عنوان صغير لعمود الولي */
 .col-subsection-title-light {
   font-size: 10.5px;
   font-weight: 900;
@@ -385,40 +396,7 @@ body {
   direction: rtl;
 }
 
-/* ============================================================
-   WITNESSES
-============================================================ */
-.cert-witness-box {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1.5px solid #1a4d8a;
-  border-top: none;
-  margin-bottom: 5px;
-}
-
-.cert-witness-col {
-  padding: 7px 12px;
-  border-left: 1px solid #1a4d8a;
-  /* ✅ الشهود: نفس بنية الزوج */
-}
-
-.cert-witness-col:last-child { border-left: none; }
-
-.cert-witness-title {
-  font-weight: 900;
-  font-size: 12px;
-  margin-bottom: 5px;
-  padding-bottom: 3px;
-  border-bottom: 1px dashed #999;
-  display: flex;
-  justify-content: space-between;
-}
-
-.cert-witness-title .ar { color: #1a4d8a; }
-
-/* ============================================================
-   WD ROW (صفوف المهر وصفة الولي)
-============================================================ */
+/* صفوف المهر وصفة الولي */
 .wd-row {
   display: flex;
   align-items: flex-end;
@@ -483,12 +461,42 @@ body {
   line-height: 1.3;
 }
 
-/* ✅ المهر بالذهبي */
+/* المهر بالذهبي */
 .wd-value.wd-gold .wd-value-de {
   color: #8b6f1e;
   font-weight: 900;
   font-size: 13px;
 }
+
+/* ============================================================
+   WITNESSES
+============================================================ */
+.cert-witness-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1.5px solid #1a4d8a;
+  border-top: none;
+  margin-bottom: 5px;
+}
+
+.cert-witness-col {
+  padding: 7px 12px;
+  border-left: 1px solid #1a4d8a;
+}
+
+.cert-witness-col:last-child { border-left: none; }
+
+.cert-witness-title {
+  font-weight: 900;
+  font-size: 12px;
+  margin-bottom: 5px;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed #999;
+  display: flex;
+  justify-content: space-between;
+}
+
+.cert-witness-title .ar { color: #1a4d8a; }
 
 /* ============================================================
    PARTY SIGNATURES
@@ -669,7 +677,7 @@ body {
 }
 
 /* ============================================================
-   ✅ Print A4 - ضبط دقيق
+   Print A4
 ============================================================ */
 @media print {
   @page {
@@ -698,7 +706,6 @@ body {
     border: 3px solid #1a4d8a;
     padding: 8px;
     background: #fff;
-    /* ✅ ضبط ارتفاع الشهادة لتناسب A4 */
     max-height: 287mm;
     overflow: hidden;
   }
@@ -732,14 +739,17 @@ body {
   .certificate-wrap { margin: 70px auto 20px; }
   .certificate { padding: 8px; }
 
+  /* ✅ Header responsive with bigger photos */
   .cert-header {
-    grid-template-columns: 60px 1fr 60px;
-    min-height: 60px;
+    grid-template-columns: 85px 1fr 85px;
+    gap: 6px;
+    min-height: 80px;
+    padding: 4px 0;
   }
   .cert-header-title-de { font-size: 12px; }
   .cert-header-title-ar { font-size: 14px; }
-  .cert-logo { width: 36px; height: 30px; font-size: 14px; }
-  .cert-photo-box { width: 55px; height: 68px; }
+  .cert-logo { width: 52px; height: 42px; }
+  .cert-photo-box { width: 75px; height: 90px; font-size: 8.5px; }
 
   .cert-info-strip { grid-template-columns: 1fr; }
   .cert-info-cell {
