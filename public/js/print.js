@@ -293,32 +293,36 @@ function buildCertificate(contract) {
   const showWaliDetails = !waliIsBride;
 
   return `
-    <!-- ============ HEADER ============ -->
-    <div class="cert-header">
-      <div class="cert-header-photo">
-        <div class="cert-photo-box">
-          ${groomHasPhoto
-            ? `<img src="${g.photo}" alt="Groom">`
-            : 'صورة<br>الزوج'
-          }
-        </div>
-      </div>
+<!-- ============ HEADER ============ -->
+<div class="cert-header">
 
-      <div class="cert-header-center">
-        ${buildLogoHtml()}
-        <div class="cert-header-title-de">Islamische Eheschließungsurkunde</div>
-        <div class="cert-header-title-ar">شهادة عقد زواج إسلامي</div>
-      </div>
-
-      <div class="cert-header-photo">
-        <div class="cert-photo-box">
-          ${brideHasPhoto
-            ? `<img src="${b.photo}" alt="Bride">`
-            : 'صورة<br>الزوجة'
-          }
-        </div>
-      </div>
+  <!-- في RTL: العمود الأول = يمين الصفحة = الزوجة -->
+  <div class="cert-header-photo">
+    <div class="cert-photo-box">
+      ${brideHasPhoto
+        ? `<img src="${b.photo}" alt="Bride">`
+        : 'صورة<br>الزوجة'
+      }
     </div>
+  </div>
+
+  <div class="cert-header-center">
+    ${buildLogoHtml()}
+    <div class="cert-header-title-de">Islamische Eheschließungsurkunde</div>
+    <div class="cert-header-title-ar">شهادة عقد زواج إسلامي</div>
+  </div>
+
+  <!-- في RTL: العمود الثالث = يسار الصفحة = الزوج -->
+  <div class="cert-header-photo">
+    <div class="cert-photo-box">
+      ${groomHasPhoto
+        ? `<img src="${g.photo}" alt="Groom">`
+        : 'صورة<br>الزوج'
+      }
+    </div>
+  </div>
+
+</div>
 
     <!-- ============ INFO STRIP ============ -->
     <div class="cert-info-strip">
