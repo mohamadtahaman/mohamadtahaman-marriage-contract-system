@@ -1,7 +1,8 @@
 /* ============================================================
-   Print Contract - JS V15 (Final)
-   - Logo with fallback (webp → png → SVG)
-   - Photo support
+   Print Contract - JS V16 (Final)
+   - Husband photo LEFT, Bride photo RIGHT
+   - Bigger photos
+   - Logo with fallback (webp → png)
    - Wali & Witnesses same as Groom/Bride (no mother)
    - Dowry: Advance + Deferred + Notes (hidden if empty)
 ============================================================ */
@@ -120,7 +121,7 @@ function hasValue(v) {
 }
 
 /* ============================================================
-   ✅ Reusable: Party Details Block
+   Reusable: Party Details Block
 ============================================================ */
 function buildPartyBlock(party, options = {}) {
   const p = party || {};
@@ -231,7 +232,7 @@ function buildPartyBlock(party, options = {}) {
 }
 
 /* ============================================================
-   ✅ Logo HTML - with fallback
+   Logo HTML - with fallback
 ============================================================ */
 function buildLogoHtml() {
   return `
@@ -293,36 +294,39 @@ function buildCertificate(contract) {
   const showWaliDetails = !waliIsBride;
 
   return `
-<!-- ============ HEADER ============ -->
-<div class="cert-header">
+    <!-- ============ HEADER ============ -->
+    <!-- في RTL: العنصر الأول = يمين الصفحة = الزوجة -->
+    <!-- في RTL: العنصر الأخير = يسار الصفحة = الزوج -->
+    <div class="cert-header">
 
-  <!-- في RTL: العمود الأول = يمين الصفحة = الزوجة -->
-  <div class="cert-header-photo">
-    <div class="cert-photo-box">
-      ${brideHasPhoto
-        ? `<img src="${b.photo}" alt="Bride">`
-        : 'صورة<br>الزوجة'
-      }
+      <!-- يمين: صورة الزوجة -->
+      <div class="cert-header-photo">
+        <div class="cert-photo-box">
+          ${brideHasPhoto
+            ? `<img src="${b.photo}" alt="Bride">`
+            : 'صورة<br>الزوجة'
+          }
+        </div>
+      </div>
+
+      <!-- وسط: الشعار + العنوان -->
+      <div class="cert-header-center">
+        ${buildLogoHtml()}
+        <div class="cert-header-title-de">Islamische Eheschließungsurkunde</div>
+        <div class="cert-header-title-ar">شهادة عقد زواج إسلامي</div>
+      </div>
+
+      <!-- يسار: صورة الزوج -->
+      <div class="cert-header-photo">
+        <div class="cert-photo-box">
+          ${groomHasPhoto
+            ? `<img src="${g.photo}" alt="Groom">`
+            : 'صورة<br>الزوج'
+          }
+        </div>
+      </div>
+
     </div>
-  </div>
-
-  <div class="cert-header-center">
-    ${buildLogoHtml()}
-    <div class="cert-header-title-de">Islamische Eheschließungsurkunde</div>
-    <div class="cert-header-title-ar">شهادة عقد زواج إسلامي</div>
-  </div>
-
-  <!-- في RTL: العمود الثالث = يسار الصفحة = الزوج -->
-  <div class="cert-header-photo">
-    <div class="cert-photo-box">
-      ${groomHasPhoto
-        ? `<img src="${g.photo}" alt="Groom">`
-        : 'صورة<br>الزوج'
-      }
-    </div>
-  </div>
-
-</div>
 
     <!-- ============ INFO STRIP ============ -->
     <div class="cert-info-strip">
