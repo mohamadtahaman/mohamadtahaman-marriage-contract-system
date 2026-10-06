@@ -1,6 +1,8 @@
 /* ============================================================
-   Print Contract - CSS V13 (Final)
-   V12 Design Approved
+   Print Contract - CSS V14
+   - Wali & Witnesses: same style as Groom/Bride
+   - Dowry: Advance + Deferred + Notes (hidden if empty)
+   - Reduced bottom white space
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -265,7 +267,7 @@ body {
 }
 
 /* ============================================================
-   TWO COLUMNS
+   TWO COLUMNS (Groom/Bride)
 ============================================================ */
 .cert-two-cols {
   display: grid;
@@ -295,7 +297,7 @@ body {
 .cert-col-title .ar { color: #1a4d8a; }
 
 /* ============================================================
-   CV ROW
+   ✅ CV ROW (يُستخدم في كل الأطراف)
 ============================================================ */
 .cv-row {
   display: flex;
@@ -366,10 +368,57 @@ body {
 .wali-dowry-col {
   padding: 8px 12px;
   border-left: 1px solid #1a4d8a;
+  /* ✅ الولي: نفس أسلوب الزوج/الزوجة */
 }
 
 .wali-dowry-col:last-child { border-left: none; }
 
+/* ✅ عنوان صغير خفيف لعمود الولي */
+.col-subsection-title-light {
+  font-size: 10.5px;
+  font-weight: 900;
+  color: #1a4d8a;
+  margin-bottom: 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed #1a4d8a;
+  text-align: right;
+  direction: rtl;
+}
+
+/* ============================================================
+   WITNESSES
+============================================================ */
+.cert-witness-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1.5px solid #1a4d8a;
+  border-top: none;
+  margin-bottom: 5px;
+}
+
+.cert-witness-col {
+  padding: 7px 12px;
+  border-left: 1px solid #1a4d8a;
+  /* ✅ الشهود: نفس بنية الزوج */
+}
+
+.cert-witness-col:last-child { border-left: none; }
+
+.cert-witness-title {
+  font-weight: 900;
+  font-size: 12px;
+  margin-bottom: 5px;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed #999;
+  display: flex;
+  justify-content: space-between;
+}
+
+.cert-witness-title .ar { color: #1a4d8a; }
+
+/* ============================================================
+   WD ROW (صفوف المهر وصفة الولي)
+============================================================ */
 .wd-row {
   display: flex;
   align-items: flex-end;
@@ -434,41 +483,12 @@ body {
   line-height: 1.3;
 }
 
+/* ✅ المهر بالذهبي */
 .wd-value.wd-gold .wd-value-de {
   color: #8b6f1e;
   font-weight: 900;
   font-size: 13px;
 }
-
-/* ============================================================
-   WITNESSES
-============================================================ */
-.cert-witness-box {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1.5px solid #1a4d8a;
-  border-top: none;
-  margin-bottom: 5px;
-}
-
-.cert-witness-col {
-  padding: 7px 12px;
-  border-left: 1px solid #1a4d8a;
-}
-
-.cert-witness-col:last-child { border-left: none; }
-
-.cert-witness-title {
-  font-weight: 900;
-  font-size: 12px;
-  margin-bottom: 5px;
-  padding-bottom: 3px;
-  border-bottom: 1px dashed #999;
-  display: flex;
-  justify-content: space-between;
-}
-
-.cert-witness-title .ar { color: #1a4d8a; }
 
 /* ============================================================
    PARTY SIGNATURES
@@ -544,7 +564,7 @@ body {
   grid-template-columns: 1fr 1.3fr;
   border: 1.5px solid #1a4d8a;
   border-top: none;
-  min-height: 180px;
+  min-height: 170px;
   direction: rtl;
 }
 
@@ -556,7 +576,7 @@ body {
   align-items: center;
   text-align: center;
   border-left: 1.5px solid #1a4d8a;
-  min-height: 180px;
+  min-height: 170px;
 }
 
 .sign-box {
@@ -649,12 +669,12 @@ body {
 }
 
 /* ============================================================
-   Print A4
+   ✅ Print A4 - ضبط دقيق
 ============================================================ */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 6mm;
+    margin: 5mm;
   }
 
   body {
@@ -678,6 +698,9 @@ body {
     border: 3px solid #1a4d8a;
     padding: 8px;
     background: #fff;
+    /* ✅ ضبط ارتفاع الشهادة لتناسب A4 */
+    max-height: 287mm;
+    overflow: hidden;
   }
 
   .cert-header,
