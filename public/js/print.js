@@ -1,14 +1,16 @@
 /* ============================================================
-   Print Contract - JS V14
-   - Wali & Witnesses: same structure as Groom/Bride (no mother)
+   Print Contract - JS V15 (Final)
+   - Logo with fallback (webp → png → SVG)
+   - Photo support
+   - Wali & Witnesses same as Groom/Bride (no mother)
    - Dowry: Advance + Deferred + Notes (hidden if empty)
-   - No extra white space at bottom
 ============================================================ */
 
 const printState = {
   code: null,
   contract: null,
-  logoPath: './images/logo.webp',
+  logoPath: './imeges/logo.webp',
+  logoFallback: './imeges/logo.png',
 };
 
 /* ============================================================
@@ -119,16 +121,13 @@ function hasValue(v) {
 
 /* ============================================================
    ✅ Reusable: Party Details Block
-   يستخدم للزوج، الزوجة، الولي، الشهود
-   motherName = true للزوجين فقط
 ============================================================ */
 function buildPartyBlock(party, options = {}) {
   const p = party || {};
-  const showMother = options.showMother !== false; // default true
+  const showMother = options.showMother !== false;
   const isCenter = options.isCenter || false;
   const isBride = options.isBride || false;
 
-  // إذا كان الشاهد "طرف المركز"
   if (isCenter) {
     return `
       <div class="cv-row">
@@ -167,7 +166,6 @@ function buildPartyBlock(party, options = {}) {
     `;
   }
 
-  // بناء الحقول
   let html = `
     <div class="cv-row">
       <div class="cv-label">
@@ -233,6 +231,18 @@ function buildPartyBlock(party, options = {}) {
 }
 
 /* ============================================================
+   ✅ Logo HTML - with fallback
+============================================================ */
+function buildLogoHtml() {
+  return `
+    <div class="cert-logo">
+      <img src="${printState.logoPath}" alt="Arresalah"
+           onerror="this.onerror=null; this.src='${printState.logoFallback}';">
+    </div>
+  `;
+}
+
+/* ============================================================
    API
 ============================================================ */
 async function fetchContract(code) {
@@ -276,17 +286,10 @@ function buildCertificate(contract) {
   const groomHasPhoto = hasPhoto(g.photo);
   const brideHasPhoto = hasPhoto(b.photo);
 
-  // ✅ المهر: قيم
   const dowryAdvance = hasValue(g.dowryAdvance) ? g.dowryAdvance + ' €' : '—';
   const dowryDeferred = hasValue(g.dowryDeferred) ? g.dowryDeferred + ' €' : '—';
   const hasNotes = hasValue(g.dowryNotes);
 
-  // ✅ الولي (بدون أم)
-  const waliIsBrideOrPresent = waliIsBride
-    ? { nameDe: 'Bride herself', nameAr: 'الزوجة نفسها' }
-    : { nameDe: w.nameDe, nameAr: w.nameAr };
-
-  // ✅ في حال "الولي هي الزوجة نفسها" — لا نعرض بيانات ولي
   const showWaliDetails = !waliIsBride;
 
   return `
@@ -294,22 +297,25 @@ function buildCertificate(contract) {
     <div class="cert-header">
       <div class="cert-header-photo">
         <div class="cert-photo-box">
-          ${groomHasPhoto ? `<img src="${g.photo}" alt="Groom">` : 'صورة<br>الزوج'}
+          ${groomHasPhoto
+            ? `<img src="${g.photo}" alt="Groom">`
+            : 'صورة<br>الزوج'
+          }
         </div>
       </div>
 
       <div class="cert-header-center">
-        <div class="cert-logo">
-          <img src="${printState.logoPath}" alt="Arresalah"
-               onerror="this.style.display='none'; this.parentElement.textContent='☪'">
-        </div>
+        ${buildLogoHtml()}
         <div class="cert-header-title-de">Islamische Eheschließungsurkunde</div>
         <div class="cert-header-title-ar">شهادة عقد زواج إسلامي</div>
       </div>
 
       <div class="cert-header-photo">
         <div class="cert-photo-box">
-          ${brideHasPhoto ? `<img src="${b.photo}" alt="Bride">` : 'صورة<br>الزوجة'}
+          ${brideHasPhoto
+            ? `<img src="${b.photo}" alt="Bride">`
+            : 'صورة<br>الزوجة'
+          }
         </div>
       </div>
     </div>
@@ -342,8 +348,6 @@ function buildCertificate(contract) {
 
     <!-- ============ GROOM & BRIDE ============ -->
     <div class="cert-two-cols">
-
-      <!-- Bride -->
       <div class="cert-col">
         <div class="cert-col-title">
           <span>Ehefrau</span>
@@ -352,7 +356,6 @@ function buildCertificate(contract) {
         ${buildPartyBlock(b, { showMother: true, isBride: true })}
       </div>
 
-      <!-- Groom -->
       <div class="cert-col">
         <div class="cert-col-title">
           <span>Ehemann</span>
@@ -360,19 +363,21 @@ function buildCertificate(contract) {
         </div>
         ${buildPartyBlock(g, { showMother: true, isBride: false })}
       </div>
-
     </div>
 
     <!-- ============ WALI + DOWRY ============ -->
     <div class="cert-wali-dowry">
       <div class="wali-dowry-grid">
 
-        <!-- ✅ يمين: بيانات الولي (بدون أم) -->
+        <!-- يمين: بيانات الولي -->
         <div class="wali-dowry-col">
-          <div class="col-subsection-title-light">بيانات الولي</div>
           ${showWaliDetails
-            ? buildPartyBlock(w, { showMother: false })
+            ? `
+              <div class="col-subsection-title-light">بيانات الولي</div>
+              ${buildPartyBlock(w, { showMother: false })}
+            `
             : `
+              <div class="col-subsection-title-light">بيانات الولي</div>
               <div class="cv-row">
                 <div class="cv-label">
                   <span class="cv-label-de">Name Der Wali</span>
@@ -391,10 +396,9 @@ function buildCertificate(contract) {
           }
         </div>
 
-        <!-- ✅ يسار: صفة الولي + المهر -->
+        <!-- يسار: صفة الولي + المهر -->
         <div class="wali-dowry-col">
 
-          <!-- صفة الولي -->
           <div class="wd-row">
             <div class="wd-label">
               <span class="wd-label-de">Vertreter der Braut (Wali):</span>
@@ -406,7 +410,6 @@ function buildCertificate(contract) {
             </div>
           </div>
 
-          <!-- المهر - المقدم -->
           <div class="wd-row">
             <div class="wd-label">
               <span class="wd-label-de">Brautgabe - Vorauszahlung:</span>
@@ -417,7 +420,6 @@ function buildCertificate(contract) {
             </div>
           </div>
 
-          <!-- المهر - المؤخر -->
           <div class="wd-row">
             <div class="wd-label">
               <span class="wd-label-de">Brautgabe - Aufgeschoben:</span>
@@ -428,7 +430,6 @@ function buildCertificate(contract) {
             </div>
           </div>
 
-          <!-- ✅ ملاحظات المهر - تظهر فقط إذا وُجدت -->
           ${hasNotes ? `
             <div class="wd-row">
               <div class="wd-label">
@@ -446,9 +447,8 @@ function buildCertificate(contract) {
       </div>
     </div>
 
-    <!-- ============ WITNESSES (نفس بنية الزوجين، بدون أم) ============ -->
+    <!-- ============ WITNESSES ============ -->
     <div class="cert-witness-box">
-
       <div class="cert-witness-col">
         <div class="cert-witness-title">
           <span>Zeuge 1</span>
@@ -464,7 +464,6 @@ function buildCertificate(contract) {
         </div>
         ${buildPartyBlock(w2, { showMother: false, isCenter: w2IsCenter })}
       </div>
-
     </div>
 
     <!-- ============ PARTY SIGNATURES ============ -->
@@ -484,7 +483,6 @@ function buildCertificate(contract) {
 
     <!-- ============ FOOTER ============ -->
     <div class="cert-footer">
-
       <div class="cert-footer-sign">
         <div class="sign-box"><div class="sign-box-inner"></div></div>
         <div class="sign-label-bottom">إدارة المركز</div>
@@ -512,7 +510,6 @@ function buildCertificate(contract) {
           <em>Dieser Vertrag ist kein Ersatz für eine standesamtliche Erklärung.</em>
         </div>
       </div>
-
     </div>
   `;
 }
