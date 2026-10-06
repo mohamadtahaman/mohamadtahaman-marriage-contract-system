@@ -8,27 +8,40 @@
 <meta http-equiv="Expires" content="0">
 <title>لوحة الإدارة - Arresalah Zentrum Berlin</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/admin.css?v=6">
+<link rel="stylesheet" href="./css/admin.css?v=10">
 
-<!-- ✅ إصلاح ظهور شاشة الدخول لحظياً -->
+<!-- ✅ فحص الجلسة قبل الرسم - بدون flash -->
 <script>
 (function() {
   try {
-    var hasSession = !!sessionStorage.getItem('admin_password');
-    document.documentElement.className = hasSession ? 'has-session' : 'no-session';
+    var pwd = sessionStorage.getItem('admin_password');
+    if (pwd) {
+      document.documentElement.classList.add('has-session');
+    } else {
+      document.documentElement.classList.add('no-session');
+    }
   } catch (e) {
-    document.documentElement.className = 'no-session';
+    document.documentElement.classList.add('no-session');
   }
 })();
 </script>
 
 <style>
-  /* ✅ إخفاء الشاشات قبل تحميل JS */
-  html.has-session #loginScreen { display: none !important; }
-  html.no-session #adminPanel { display: none !important; }
+  /* ✅ لا يظهر شيء حتى تحدده JS */
+  #loginScreen, #adminPanel {
+    visibility: hidden;
+  }
 
-  /* شاشة تحميل مؤقتة بينما JS يتحقق */
-  .boot-screen {
+  html.ready #loginScreen,
+  html.ready #adminPanel {
+    visibility: visible;
+  }
+
+  html.ready.has-session #loginScreen { display: none !important; }
+  html.ready.no-session #adminPanel { display: none !important; }
+
+  /* شاشة تحميل بسيطة */
+  .boot-loader {
     position: fixed;
     inset: 0;
     background: #f5faf7;
@@ -36,32 +49,26 @@
     align-items: center;
     justify-content: center;
     z-index: 9999;
-    transition: opacity 0.2s ease;
   }
-  .boot-screen .boot-spinner {
+  .boot-loader .spinner {
     width: 44px;
     height: 44px;
     border: 3px solid #e8f3ed;
     border-top-color: #2d6a4f;
     border-radius: 50%;
-    animation: bootSpin 0.7s linear infinite;
+    animation: spin 0.7s linear infinite;
   }
-  @keyframes bootSpin { to { transform: rotate(360deg); } }
-
-  html.has-session .boot-screen { display: none; }
-  html.no-session .boot-screen { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  html.ready .boot-loader { display: none !important; }
 </style>
 </head>
 <body>
 
-<!-- ✅ شاشة تحميل - تظهر فقط عند فتح الصفحة -->
-<div class="boot-screen" id="bootScreen">
-  <div class="boot-spinner"></div>
+<div class="boot-loader" id="bootLoader">
+  <div class="spinner"></div>
 </div>
 
-<!-- ============================================================
-     Login Screen
-============================================================ -->
+<!-- Login Screen -->
 <div id="loginScreen" class="login-wrap">
   <div class="login-box">
     <div class="login-header">
@@ -71,10 +78,13 @@
 
     <div class="login-body">
       <label>اسم المستخدم</label>
-      <input type="text" id="usernameInput" placeholder="admin" value="admin" autocomplete="username" style="text-align:right; letter-spacing:0; margin-bottom:14px;">
+      <input type="text" id="usernameInput" placeholder="admin" value="admin"
+             autocomplete="username"
+             style="text-align:right; letter-spacing:0; margin-bottom:14px;">
 
       <label>كلمة المرور</label>
-      <input type="password" id="passwordInput" placeholder="••••••" autocomplete="current-password">
+      <input type="password" id="passwordInput" placeholder="••••••"
+             autocomplete="current-password">
 
       <button id="loginBtn" class="btn-login">دخول</button>
 
@@ -87,11 +97,8 @@
   </div>
 </div>
 
-<!-- ============================================================
-     Admin Panel
-============================================================ -->
-<div id="adminPanel" class="panel-wrap hidden">
-
+<!-- Admin Panel -->
+<div id="adminPanel" class="panel-wrap">
   <div class="panel-header">
     <div class="panel-title">
       <h1>لوحة الإدارة</h1>
@@ -113,11 +120,10 @@
 
   <div class="panel-content">
 
+    <!-- Codes Tab -->
     <div id="tab-codes" class="tab-content">
       <div class="card">
-        <div class="card-header">
-          <h2>أكواد العقود (5 عقود)</h2>
-        </div>
+        <div class="card-header"><h2>أكواد العقود (5 عقود)</h2></div>
         <div class="card-body no-padding">
           <table class="codes-table">
             <thead>
@@ -136,23 +142,17 @@
       </div>
 
       <div class="card">
-        <div class="card-header">
-          <h2>إدارة أكواد العقود</h2>
-        </div>
+        <div class="card-header"><h2>إدارة أكواد العقود</h2></div>
         <div class="card-body">
           <p class="hint">
             توليد 5 أكواد جديدة يُلغي الأكواد الحالية فقط — العقود المُرسلة تبقى في الأرشيف.
           </p>
-          <button onclick="generateNewCodes()" class="btn-primary">
-            توليد 5 أكواد جديدة
-          </button>
+          <button onclick="generateNewCodes()" class="btn-primary">توليد 5 أكواد جديدة</button>
         </div>
       </div>
 
       <div class="card card-danger">
-        <div class="card-header">
-          <h2>منطقة الخطر — مسح المسودات</h2>
-        </div>
+        <div class="card-header"><h2>منطقة الخطر — مسح المسودات</h2></div>
         <div class="card-body">
           <p class="hint">مسح المسودات المحفوظة على السيرفر (لا يحذف العقود المُرسلة).</p>
 
@@ -177,6 +177,7 @@
       </div>
     </div>
 
+    <!-- Archive Tab -->
     <div id="tab-archive" class="tab-content hidden">
       <div class="card">
         <div class="card-header"><h2>البحث في الأرشيف</h2></div>
@@ -202,6 +203,7 @@
       </div>
     </div>
 
+    <!-- Settings Tab -->
     <div id="tab-settings" class="tab-content hidden">
       <div class="card">
         <div class="card-header"><h2>🔐 تغيير كلمة المرور</h2></div>
@@ -285,7 +287,7 @@
           <div class="info-row"><strong>عدد الأكواد:</strong><span id="infoCodesCount">—</span></div>
           <div class="info-row"><strong>عدد العقود المُرسلة:</strong><span id="infoSentCount">—</span></div>
           <div class="info-row"><strong>حالة الاتصال:</strong><span style="color:#2d6a4f;">✓ متصل</span></div>
-          <div class="info-row"><strong>إصدار الواجهة:</strong><span style="color:#2d6a4f;">v7</span></div>
+          <div class="info-row"><strong>إصدار الواجهة:</strong><span style="color:#2d6a4f;">v10</span></div>
         </div>
       </div>
     </div>
@@ -293,6 +295,7 @@
   </div>
 </div>
 
+<!-- Modal -->
 <div id="viewModal" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-header">
@@ -307,17 +310,16 @@
   </div>
 </div>
 
-<script src="./js/admin-client.js?v=7"></script>
+<script src="./js/admin-client.js?v=10"></script>
 
+<!-- ✅ إزالة شاشة التحميل بعد تحميل JS -->
 <script>
-// ✅ إخفاء شاشة التحميل بعد جاهزية الصفحة
-window.addEventListener('load', function() {
-  var boot = document.getElementById('bootScreen');
-  if (boot) {
-    boot.style.opacity = '0';
-    setTimeout(function() { boot.remove(); }, 200);
-  }
-});
+(function() {
+  // امنح JS وقتاً للتحقق من الجلسة
+  setTimeout(function() {
+    document.documentElement.classList.add('ready');
+  }, 100);
+})();
 </script>
 
 </body>
