@@ -1,6 +1,7 @@
 /* ============================================================
-   Cloudflare Function: POST /api/print
-   جلب بيانات العقد للطباعة (بدون تسجيل دخول)
+   Cloudflare Function: POST /api/print (v2)
+   - جلب بيانات العقد للطباعة
+   - ✅ يدعم الصور الشخصية
 ============================================================ */
 
 export async function onRequestPost(context) {
@@ -36,7 +37,7 @@ export async function onRequestPost(context) {
       parties: {},
     };
 
-    // ابحث في D1
+    // البحث في D1
     const contractRow = await env.DB.prepare(
       'SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?'
     ).bind(code).first();
@@ -49,14 +50,19 @@ export async function onRequestPost(context) {
         contract.finishedAt = new Date(contractRow.sent_at * 1000).toISOString();
       }
 
-      // الأطراف
+      // ✅ الأطراف — مع عمود photo
       const parties = await env.DB.prepare(
-        `SELECT role, name_de, name_ar, birth_day, birth_month, birth_year,
-                birth_country, birth_region, id_type, id_number,
+        `SELECT role,
+                name_de, name_ar,
+                birth_day, birth_month, birth_year,
+                birth_country, birth_region,
+                id_type, id_number,
                 address_number, address_street, postal_code, city,
                 mother_name_de, mother_name_ar,
-                wali_is_bride, witness_is_center
-         FROM parties WHERE contract_id = ?`
+                wali_is_bride, witness_is_center,
+                photo
+         FROM parties
+         WHERE contract_id = ?`
       ).bind(contractRow.id).all();
 
       for (const p of parties.results || []) {
@@ -78,6 +84,7 @@ export async function onRequestPost(context) {
           motherNameAr: p.mother_name_ar,
           waliIsBride: !!p.wali_is_bride,
           witnessIsCenter: !!p.witness_is_center,
+          photo: p.photo || '',  // ✅ الصورة
         };
       }
 
@@ -103,14 +110,12 @@ export async function onRequestPost(context) {
         }
       }
 
-      // تاريخ العقد من KV
       try {
         const dateFromKv = await env.CONTRACT_KV.get(`contract_${code}_date`);
         if (dateFromKv) contract.contractDate = dateFromKv;
       } catch (e) { /* تجاهل */ }
     }
 
-    // التحقق: هل يوجد أي طرف؟
     const hasAnyParty = Object.keys(contract.parties).length > 0;
 
     if (!hasAnyParty) {
@@ -132,6 +137,7 @@ export async function onRequestPost(context) {
       success: false,
       error: 'db_error',
       message: 'فشل في القراءة',
+      details: err.message,
     }, 500);
   }
 }
