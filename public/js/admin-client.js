@@ -1,22 +1,55 @@
 /* ============================================================
-   Admin Client V10 - Final Fix
-   - Fix: New contracts appear as #01
-   - Fix: Search in archive works correctly
-   - Fix: Page doesn't disappear on navigation
+   Admin Client V11 - Final
+   - Instant screen show (no refresh needed)
+   - Archive loads from D1
+   - Correct numbering (#01 for newest)
+   - Robust search
 ============================================================ */
 
+/* ============================================================
+   ✅ إظهار الصفحة فوراً حسب الجلسة — قبل أي شيء
+============================================================ */
+(function showCorrectScreen() {
+  var hasSession = false;
+  try {
+    hasSession = !!sessionStorage.getItem('admin_password');
+  } catch (e) {}
+
+  var loginScreen = document.getElementById('loginScreen');
+  var adminPanel = document.getElementById('adminPanel');
+
+  if (!loginScreen || !adminPanel) {
+    document.addEventListener('DOMContentLoaded', showCorrectScreen);
+    return;
+  }
+
+  if (hasSession) {
+    loginScreen.style.display = 'none';
+    adminPanel.style.display = 'block';
+  } else {
+    loginScreen.style.display = 'flex';
+    adminPanel.style.display = 'none';
+  }
+})();
+
+/* ============================================================
+   State
+============================================================ */
 const adminState = {
   password: null,
   username: 'admin',
   role: null,
   codes: [],
-  contracts: [],           // الأكواد الحالية (5)
-  archiveContracts: [],    // عقود الأرشيف من D1
-  filteredContracts: [],   // المعروضة حالياً
+  contracts: [],           // 5 أكواد حالية
+  archiveContracts: [],    // الأرشيف من D1
+  filteredContracts: [],
   currentTab: 'codes',
   currentContract: null,
 };
 
+/* ============================================================
+   Icons
+============================================================ */
 const ICONS = {
   eye: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
   pencil: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
@@ -36,11 +69,6 @@ function escapeHtml(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-}
-
-function pad2(n) {
-  if (n === undefined || n === null || n === '') return '—';
-  return String(n).padStart(2, '0');
 }
 
 function pad2num(n) {
@@ -195,16 +223,16 @@ async function login() {
 function showPanel() {
   const loginScreen = $('loginScreen');
   const adminPanel = $('adminPanel');
-  if (loginScreen) loginScreen.classList.add('hidden');
-  if (adminPanel) adminPanel.classList.remove('hidden');
+  if (loginScreen) loginScreen.style.display = 'none';
+  if (adminPanel) adminPanel.style.display = 'block';
   applyRoleRestrictions();
 }
 
 function showLogin() {
   const loginScreen = $('loginScreen');
   const adminPanel = $('adminPanel');
-  if (loginScreen) loginScreen.classList.remove('hidden');
-  if (adminPanel) adminPanel.classList.add('hidden');
+  if (loginScreen) loginScreen.style.display = 'flex';
+  if (adminPanel) adminPanel.style.display = 'none';
   const pwInput = $('passwordInput');
   if (pwInput) pwInput.value = '';
   hideMessage();
@@ -261,7 +289,6 @@ function switchTab(tab) {
   if (target) target.classList.remove('hidden');
 
   if (tab === 'archive') {
-    // ✅ امسح البحث وأعد التحميل
     const searchInput = $('archiveSearch');
     if (searchInput) searchInput.value = '';
     loadArchiveFromD1();
@@ -273,7 +300,7 @@ function switchTab(tab) {
 }
 
 /* ============================================================
-   Load Codes List (5 current codes)
+   Load Codes (5 current)
 ============================================================ */
 async function loadList() {
   const tbody = $('codesBody');
@@ -293,11 +320,9 @@ async function loadList() {
   }
 }
 
-/* ============================================================
-   Render Codes Table (5 current codes)
-============================================================ */
 function renderTable() {
   const tbody = $('codesBody');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   if (!adminState.contracts || adminState.contracts.length === 0) {
@@ -340,7 +365,7 @@ function renderTable() {
 }
 
 /* ============================================================
-   ✅ Archive - Load from D1
+   Archive - Load from D1
 ============================================================ */
 async function loadArchiveFromD1() {
   const container = $('archiveBody');
@@ -367,9 +392,6 @@ function updateArchiveCount() {
   if (el) el.textContent = sentCount;
 }
 
-/* ============================================================
-   ✅ Render Archive Table (with correct numbering)
-============================================================ */
 function renderArchive() {
   const container = $('archiveBody');
   if (!container) return;
@@ -381,7 +403,7 @@ function renderArchive() {
     return;
   }
 
-  // ✅ ترتيب حسب sent_at أو contract_date (الأحدث أولاً)
+  // ✅ ترتيب: الأحدث أولاً
   sentContracts.sort((a, b) => {
     const aTime = a.sentAt || 0;
     const bTime = b.sentAt || 0;
@@ -411,7 +433,6 @@ function renderArchive() {
     const brideName = bride?.nameDe || bride?.nameAr || '—';
     const contractDate = contract.contractDate || '—';
 
-    // ✅ الأحدث = رقم 01 (idx 0 → 01)
     html += `
       <tr>
         <td class="serial-cell">
@@ -446,7 +467,7 @@ function renderArchive() {
 }
 
 /* ============================================================
-   ✅ Search - Robust
+   Search - Robust
 ============================================================ */
 function filterArchive() {
   const query = ($('archiveSearch')?.value || '').trim().toLowerCase();
@@ -461,19 +482,15 @@ function filterArchive() {
   }
 
   adminState.filteredContracts = all.filter(contract => {
-    // فلتر الحالة
     if (statusFilter === 'sent' && !contract.finished) return false;
     if (statusFilter === 'pending' && contract.finished) return false;
 
-    // بحث بالكود
     if ((contract.code || '').toLowerCase().includes(query)) return true;
 
-    // بحث في الأطراف
     const parties = contract.parties || {};
     for (const key of Object.keys(parties)) {
       const p = parties[key];
       if (!p) continue;
-
       if (p.nameDe && String(p.nameDe).toLowerCase().includes(query)) return true;
       if (p.nameAr && String(p.nameAr).includes(query)) return true;
     }
@@ -745,20 +762,18 @@ function closeModal() {
 }
 
 /* ============================================================
-   Print Contract
+   Print
 ============================================================ */
 function printContract() {
   if (!adminState.currentContract) {
     alert('لا يوجد عقد مفتوح');
     return;
   }
-
   const code = adminState.currentContract.code;
   if (!code) {
     alert('رقم العقد غير معروف');
     return;
   }
-
   printContractByCode(code);
 }
 
@@ -767,7 +782,6 @@ function printContractByCode(code) {
     alert('رقم العقد مطلوب');
     return;
   }
-
   window.open(
     './print-contract.html?code=' + encodeURIComponent(code),
     '_blank'
@@ -775,7 +789,7 @@ function printContractByCode(code) {
 }
 
 /* ============================================================
-   Edit Contract
+   Edit
 ============================================================ */
 function editContract(code) {
   if (!can('edit')) {
@@ -786,7 +800,7 @@ function editContract(code) {
 }
 
 /* ============================================================
-   Delete Contract
+   Delete
 ============================================================ */
 async function deleteContract(code) {
   if (!can('delete')) {
@@ -901,13 +915,9 @@ async function refreshData() {
 }
 
 /* ============================================================
-   ✅ Init - Page doesn't disappear
+   Init
 ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
-  // ✅ إزالة boot loader فوراً
-  const bootLoader = $('bootLoader');
-  if (bootLoader) bootLoader.remove();
-
   const savedPassword = sessionStorage.getItem('admin_password');
   const savedUsername = sessionStorage.getItem('admin_username') || 'admin';
   const savedRole = sessionStorage.getItem('admin_role');
@@ -922,11 +932,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminState.password = savedPassword;
     adminState.role = savedRole;
 
-    // ✅ أظهر اللوحة فوراً — قبل انتظار الشبكة
-    document.documentElement.classList.add('ready');
-    showPanel();
-
-    // ثم تحقق من الجلسة في الخلفية
+    // تحقق من الجلسة في الخلفية
     try {
       const response = await fetch('/api/admin', {
         method: 'POST',
@@ -947,7 +953,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadList();
         return;
       } else {
-        // فشل التحقق
         sessionStorage.removeItem('admin_password');
         sessionStorage.removeItem('admin_username');
         sessionStorage.removeItem('admin_role');
@@ -955,13 +960,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } catch (err) {
       console.warn('Session check failed:', err);
-      // اترك اللوحة معروضة — المستخدم يمكنه التحديث يدوياً
     }
     return;
   }
 
-  // لا يوجد جلسة
-  document.documentElement.classList.add('ready');
   showLogin();
 
   const input = $('passwordInput');
