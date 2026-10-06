@@ -8,65 +8,14 @@
 <meta http-equiv="Expires" content="0">
 <title>لوحة الإدارة - Arresalah Zentrum Berlin</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/admin.css?v=10">
-
-<!-- ✅ فحص الجلسة قبل الرسم - بدون flash -->
-<script>
-(function() {
-  try {
-    var pwd = sessionStorage.getItem('admin_password');
-    if (pwd) {
-      document.documentElement.classList.add('has-session');
-    } else {
-      document.documentElement.classList.add('no-session');
-    }
-  } catch (e) {
-    document.documentElement.classList.add('no-session');
-  }
-})();
-</script>
-
+<link rel="stylesheet" href="./css/admin.css?v=11">
 <style>
-  /* ✅ لا يظهر شيء حتى تحدده JS */
-  #loginScreen, #adminPanel {
-    visibility: hidden;
-  }
-
-  html.ready #loginScreen,
-  html.ready #adminPanel {
-    visibility: visible;
-  }
-
-  html.ready.has-session #loginScreen { display: none !important; }
-  html.ready.no-session #adminPanel { display: none !important; }
-
-  /* شاشة تحميل بسيطة */
-  .boot-loader {
-    position: fixed;
-    inset: 0;
-    background: #f5faf7;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-  }
-  .boot-loader .spinner {
-    width: 44px;
-    height: 44px;
-    border: 3px solid #e8f3ed;
-    border-top-color: #2d6a4f;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  html.ready .boot-loader { display: none !important; }
+  /* ✅ إخفاء مبدئي — سيُتحكم به فوراً من JS */
+  #loginScreen { display: none; }
+  #adminPanel { display: none; }
 </style>
 </head>
 <body>
-
-<div class="boot-loader" id="bootLoader">
-  <div class="spinner"></div>
-</div>
 
 <!-- Login Screen -->
 <div id="loginScreen" class="login-wrap">
@@ -99,6 +48,7 @@
 
 <!-- Admin Panel -->
 <div id="adminPanel" class="panel-wrap">
+
   <div class="panel-header">
     <div class="panel-title">
       <h1>لوحة الإدارة</h1>
@@ -287,7 +237,7 @@
           <div class="info-row"><strong>عدد الأكواد:</strong><span id="infoCodesCount">—</span></div>
           <div class="info-row"><strong>عدد العقود المُرسلة:</strong><span id="infoSentCount">—</span></div>
           <div class="info-row"><strong>حالة الاتصال:</strong><span style="color:#2d6a4f;">✓ متصل</span></div>
-          <div class="info-row"><strong>إصدار الواجهة:</strong><span style="color:#2d6a4f;">v10</span></div>
+          <div class="info-row"><strong>إصدار الواجهة:</strong><span style="color:#2d6a4f;">v11</span></div>
         </div>
       </div>
     </div>
@@ -310,17 +260,7 @@
   </div>
 </div>
 
-<script src="./js/admin-client.js?v=10"></script>
-
-<!-- ✅ إزالة شاشة التحميل بعد تحميل JS -->
-<script>
-(function() {
-  // امنح JS وقتاً للتحقق من الجلسة
-  setTimeout(function() {
-    document.documentElement.classList.add('ready');
-  }, 100);
-})();
-</script>
+<script src="./js/admin-client.js?v=11"></script>
 
 </body>
 </html>
