@@ -332,15 +332,14 @@ function buildCertificate(contract) {
     <div class="cert-info-strip">
       <div class="cert-info-cell">
         <div class="info-line">
-          <span class="label-de">Turnstraße 83, 10551 Berlin</span>
+          <span class="label-de">Turmstraße 83, 10551 Berlin</span>
           <span class="label-ar">عنوان المركز</span>
         </div>
       </div>
 
       <div class="cert-info-cell">
         <div class="info-line">
-          <span class="label-de">Ort</span>
-          <span class="label-ar">مكان</span>
+          <span class="label-de"> العنوان-Ort</span>
           <span class="value">Arresalah e.V.</span>
         </div>
       </div>
