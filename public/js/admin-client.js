@@ -1,13 +1,13 @@
 /* ============================================================
-   Admin Client V11 - Final
-   - Instant screen show (no refresh needed)
-   - Archive loads from D1
-   - Correct numbering (#01 for newest)
+   Admin Client V12 - Final
+   - Instant screen show (no refresh)
+   - Archive sorted correctly (#01 = newest)
+   - Safe padStart (numbers + strings)
    - Robust search
 ============================================================ */
 
 /* ============================================================
-   ✅ إظهار الصفحة فوراً حسب الجلسة — قبل أي شيء
+   ✅ إظهار الصفحة فوراً حسب الجلسة
 ============================================================ */
 (function showCorrectScreen() {
   var hasSession = false;
@@ -40,8 +40,8 @@ const adminState = {
   username: 'admin',
   role: null,
   codes: [],
-  contracts: [],           // 5 أكواد حالية
-  archiveContracts: [],    // الأرشيف من D1
+  contracts: [],
+  archiveContracts: [],
   filteredContracts: [],
   currentTab: 'codes',
   currentContract: null,
@@ -73,6 +73,22 @@ function escapeHtml(s) {
 
 function pad2num(n) {
   return String(n).padStart(2, '0');
+}
+
+/* ✅ دالة آمنة - تدعم الأرقام والنصوص */
+function pad2safe(v) {
+  if (v === undefined || v === null || v === '') return '';
+  return String(v).padStart(2, '0');
+}
+
+/* ✅ بناء تاريخ آمن */
+function buildDate(p) {
+  if (!p) return '—';
+  const d = pad2safe(p.birthDay);
+  const m = pad2safe(p.birthMonth);
+  const y = p.birthYear || '';
+  if (!d || !m || !y) return '—';
+  return `${d}.${m}.${y}`;
 }
 
 function showSystemMessage(text, type) {
@@ -392,6 +408,9 @@ function updateArchiveCount() {
   if (el) el.textContent = sentCount;
 }
 
+/* ============================================================
+   Render Archive
+============================================================ */
 function renderArchive() {
   const container = $('archiveBody');
   if (!container) return;
@@ -403,10 +422,10 @@ function renderArchive() {
     return;
   }
 
-  // ✅ ترتيب: الأحدث أولاً
+  // ✅ ترتيب قوي: الأحدث أولاً
   sentContracts.sort((a, b) => {
-    const aTime = a.sentAt || 0;
-    const bTime = b.sentAt || 0;
+    const aTime = Number(a.sentAt) || Number(a.createdAt) || 0;
+    const bTime = Number(b.sentAt) || Number(b.createdAt) || 0;
     if (bTime !== aTime) return bTime - aTime;
     return (b.code || '').localeCompare(a.code || '');
   });
@@ -467,7 +486,7 @@ function renderArchive() {
 }
 
 /* ============================================================
-   Search - Robust
+   Search
 ============================================================ */
 function filterArchive() {
   const query = ($('archiveSearch')?.value || '').trim().toLowerCase();
@@ -733,16 +752,15 @@ function renderContractModal(contract) {
   if (viewModal) viewModal.classList.remove('hidden');
 }
 
+/* ✅ إصلاح padStart */
 function renderPartyFields(p, key) {
   const idType = p.idType === 'passport' ? 'جواز سفر' : 'بطاقة هوية';
-  const birth = ((p.birthDay || '').padStart(2, '0')) + '.' +
-                ((p.birthMonth || '').padStart(2, '0')) + '.' +
-                (p.birthYear || '');
+  const birth = buildDate(p);
 
   let html = '';
   html += `<div class="contract-row"><strong>الاسم (DE):</strong><span>${escapeHtml(p.nameDe || '—')}</span></div>`;
   html += `<div class="contract-row"><strong>الاسم (AR):</strong><span>${escapeHtml(p.nameAr || '—')}</span></div>`;
-  html += `<div class="contract-row"><strong>الميلاد:</strong><span>${birth === '..' ? '—' : birth}</span></div>`;
+  html += `<div class="contract-row"><strong>الميلاد:</strong><span>${birth}</span></div>`;
   html += `<div class="contract-row"><strong>مكان الميلاد:</strong><span>${escapeHtml(p.birthRegion || '—')}, ${escapeHtml(p.birthCountry || '—')}</span></div>`;
   html += `<div class="contract-row"><strong>الهوية:</strong><span>${idType} — ${escapeHtml(p.idNumber || '—')}</span></div>`;
   html += `<div class="contract-row"><strong>العنوان:</strong><span>${escapeHtml(p.addressStreet || '')} ${escapeHtml(p.addressNumber || '')}, ${escapeHtml(p.postalCode || '')} ${escapeHtml(p.city || '')}</span></div>`;
@@ -932,7 +950,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     adminState.password = savedPassword;
     adminState.role = savedRole;
 
-    // تحقق من الجلسة في الخلفية
     try {
       const response = await fetch('/api/admin', {
         method: 'POST',
