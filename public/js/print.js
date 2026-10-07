@@ -493,7 +493,7 @@ function buildCertificate(contract) {
     <div class="cert-footer">
       <div class="cert-footer-sign">
         <div class="sign-box"><div class="sign-box-inner"></div></div>
-        <div class="sign-label-bottom">إدارة المركز</div>
+        <div class="sign-label-bottom">Vereinsvorstand إدارة المركز - Imam الإمام</div>
         <div class="sign-line"></div>
         <div class="sign-caption">التوقيع / Unterschrift</div>
       </div>
@@ -502,15 +502,11 @@ function buildCertificate(contract) {
         <div class="footer-title">صيغة العقد</div>
 
         <div class="footer-text-ar">
-          نشهد نحن الموقعين أدناه أن عقد الزواج قد تم بين الزوجين المذكورين أعلاه،
-          وقد تمّ التعريف بهما وبموافقتهما، وتمّ الاتفاق على المهر المذكور أعلاه،
-          وأن الزوجة قد رضيت بذلك رضاءً تاماً، وشهد على ذلك الشهود المذكورون أعلاه.
+          نشهد نحن الموقعين أننا حضرنا مجلس عقد زواج شرعي وفق الشرع الإسلامي بين الزوجين سالفي الذكر وولي الزوجة والشاهدين وجمع من المسلمين على كتاب الله وسنة رسوله والمهر المسمى عاليه ونسأل الله السعادة للزوجين في الدارين والذرية الصالحة
         </div>
 
         <div class="footer-text-de">
-          Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen
-          und von allen Beteiligten angenommen. Beide Ehepartner bekundeten
-          ihr Einverständnis vor Zeugen.
+          Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen und von allen Beteiligten angenommen. Beide Ehepartner bekundeten ihr Einverständnis vor Zeugen.
         </div>
 
         <div class="footer-note-center">
