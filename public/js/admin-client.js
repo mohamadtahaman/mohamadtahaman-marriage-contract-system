@@ -412,7 +412,6 @@ function updateArchiveCount() {
    Render Archive
 ============================================================ */
 function renderArchive() {
-function renderArchive() {
   const container = $('archiveBody');
   if (!container) return;
 
@@ -494,13 +493,18 @@ function filterArchive() {
 
   const all = adminState.archiveContracts || [];
 
+  // ✅ الترتيب حسب id تصاعدياً
+  const sorted = [...all].sort((a, b) => {
+    return (Number(a.id) || 0) - (Number(b.id) || 0);
+  });
+
   if (!query) {
-    adminState.filteredContracts = [...all];
+    adminState.filteredContracts = sorted;
     renderArchive();
     return;
   }
 
-  adminState.filteredContracts = all.filter(contract => {
+  adminState.filteredContracts = sorted.filter(contract => {
     if (statusFilter === 'sent' && !contract.finished) return false;
     if (statusFilter === 'pending' && contract.finished) return false;
 
