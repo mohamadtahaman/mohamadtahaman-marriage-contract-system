@@ -412,6 +412,7 @@ function updateArchiveCount() {
    Render Archive
 ============================================================ */
 function renderArchive() {
+function renderArchive() {
   const container = $('archiveBody');
   if (!container) return;
 
@@ -422,12 +423,11 @@ function renderArchive() {
     return;
   }
 
-  // ✅ ترتيب قوي: الأحدث أولاً
+  // ✅ الترتيب: حسب id تصاعدياً (الأقدم أولاً = #01)
   sentContracts.sort((a, b) => {
-    const aTime = Number(a.sentAt) || Number(a.createdAt) || 0;
-    const bTime = Number(b.sentAt) || Number(b.createdAt) || 0;
-    if (bTime !== aTime) return bTime - aTime;
-    return (b.code || '').localeCompare(a.code || '');
+    const aId = Number(a.id) || 0;
+    const bId = Number(b.id) || 0;
+    return aId - bId;
   });
 
   let html = `
@@ -452,6 +452,7 @@ function renderArchive() {
     const brideName = bride?.nameDe || bride?.nameAr || '—';
     const contractDate = contract.contractDate || '—';
 
+    // ✅ الأقدم = #01 (idx 0 → 01)
     html += `
       <tr>
         <td class="serial-cell">
@@ -484,7 +485,6 @@ function renderArchive() {
   html += `</tbody></table>`;
   container.innerHTML = html;
 }
-
 /* ============================================================
    Search
 ============================================================ */
