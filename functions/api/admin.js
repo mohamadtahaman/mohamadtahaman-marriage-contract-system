@@ -228,16 +228,15 @@ async function handleList(env) {
     }, 500);
   }
 }
-
 /* ============================================================
-   Archive - From D1 with guaranteed sentAt
+   Archive - From D1 (Oldest first = #01)
 ============================================================ */
 async function handleArchive(env) {
   try {
     const contracts = await env.DB.prepare(
       `SELECT id, code, contract_date, status, sent_at, created_at
        FROM contracts
-       ORDER BY COALESCE(sent_at, created_at) DESC, id DESC`
+       ORDER BY id ASC`
     ).all();
 
     const result = [];
@@ -258,6 +257,7 @@ async function handleArchive(env) {
       }
 
       result.push({
+        id: c.id,
         code: c.code,
         finished: c.status === 'sent',
         inD1: true,
