@@ -400,7 +400,7 @@ async function handleSearch(env, query) {
           OR p.name_de LIKE ?
           OR p.name_ar LIKE ?
           OR p.id_number LIKE ?
-       ORDER BY c.id DESC
+       ORDER BY id ASC
        LIMIT 50`
     ).bind(q, q, q, q).all();
 
