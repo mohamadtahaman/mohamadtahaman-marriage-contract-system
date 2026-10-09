@@ -422,12 +422,14 @@ function renderArchive() {
     return;
   }
 
-  // ✅ الترتيب: حسب id تصاعدياً (الأقدم أولاً = #01)
+  // ✅ الترتيب: الأقدم له أصغر رقم، الأعلى في القائمة = الأحدث
+  // نرتب حسب id تنازلياً (الأحدث أولاً) لكن نُظهر الأرقام تصاعدياً
   sentContracts.sort((a, b) => {
-    const aId = Number(a.id) || 0;
-    const bId = Number(b.id) || 0;
-    return aId - bId;
+    return (Number(b.id) || 0) - (Number(a.id) || 0);
   });
+
+  // إجمالي العقود لحساب الأرقام بشكل ثابت
+  const total = sentContracts.length;
 
   let html = `
     <table class="archive-table">
@@ -451,11 +453,15 @@ function renderArchive() {
     const brideName = bride?.nameDe || bride?.nameAr || '—';
     const contractDate = contract.contractDate || '—';
 
-    // ✅ الأقدم = #01 (idx 0 → 01)
+    // ✅ الرقم: الأحدث له أعلى رقم، الأقدم له #01
+    // idx 0 = الأحدث = total
+    // idx (total-1) = الأقدم = 1
+    const displayNumber = total - idx;
+
     html += `
       <tr>
         <td class="serial-cell">
-          <span class="serial-num">${pad2num(idx + 1)}</span>
+          <span class="serial-num">${pad2num(displayNumber)}</span>
           <span class="code-sub">${escapeHtml(contract.code)}</span>
         </td>
         <td class="name-cell">${escapeHtml(groomName)}</td>
