@@ -51,10 +51,10 @@ const adminState = {
    Icons
 ============================================================ */
 const ICONS = {
-  eye: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d[...` 
-  pencil: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><pat[...` 
-  trash: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><poly[...` 
-  print: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><poly[...` 
+  eye: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+  pencil: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>',
+  trash: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>',
+  print: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>'
 };
 
 /* ============================================================
@@ -68,20 +68,18 @@ function escapeHtml(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/\"/g, '&quot;');
 }
 
 function pad2num(n) {
   return String(n).padStart(2, '0');
 }
 
-/* ✅ دالة آمنة - تدعم الأرقام والنصوص */
 function pad2safe(v) {
   if (v === undefined || v === null || v === '') return '';
   return String(v).padStart(2, '0');
 }
 
-/* ✅ بناء تاريخ آمن */
 function buildDate(p) {
   if (!p) return '—';
   const d = pad2safe(p.birthDay);
@@ -130,8 +128,8 @@ function can(permission) {
   const role = adminState.role || 'viewer';
   const permissions = {
     archive: ['admin'],
-    view:   ['admin', 'manager', 'user', 'viewer'],
-    edit:   ['admin', 'manager'],
+    view: ['admin', 'manager', 'user', 'viewer'],
+    edit: ['admin', 'manager'],
     delete: ['admin', 'manager'],
     export: ['admin', 'manager'],
     manage_users: ['admin'],
@@ -227,7 +225,6 @@ async function login() {
     showPanel();
     await loadList();
     resetLoginButton();
-
   } catch (err) {
     showMessage('خطأ في الاتصال: ' + err.message, 'error');
     resetLoginButton();
@@ -273,23 +270,23 @@ function logout() {
 function applyRoleRestrictions() {
   const archiveTab = document.querySelector('.admin-tab[data-tab="archive"]');
   if (archiveTab) {
-    archiveTab.classList.toggle('hidden', !can('archive'));
+    archiveTab.style.display = can('archive') ? '' : 'none';
   }
 
   const settingsTab = document.querySelector('.admin-tab[data-tab="settings"]');
   if (settingsTab) {
-    settingsTab.classList.toggle('hidden', !can('manage_users'));
+    settingsTab.style.display = can('manage_users') ? '' : 'none';
   }
 
   const generateBtn = document.querySelector('button[onclick="generateNewCodes()"]');
   if (generateBtn) {
     const card = generateBtn.closest('.card');
-    if (card) card.classList.toggle('hidden', !can('generate_codes'));
+    if (card) card.style.display = can('generate_codes') ? '' : 'none';
   }
 
   const dangerCard = document.querySelector('.card-danger');
   if (dangerCard) {
-    dangerCard.classList.toggle('hidden', !can('generate_codes'));
+    dangerCard.style.display = can('generate_codes') ? '' : 'none';
   }
 }
 
@@ -371,20 +368,10 @@ function renderTable() {
       <td><span class="code-value">${escapeHtml(contract.code)}</span></td>
       <td>${statusHtml}</td>
       <td class="action-icons">
-        <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">
-          ${ICONS.eye}
-        </button>
-        <button class="icon-btn print" title="طباعة" onclick="printContractByCode('${contract.code}')">
-          ${ICONS.print}
-        </button>
-        ${contract.inD1 ? `
-          <button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">
-            ${ICONS.pencil}
-          </button>` : ''}
-        ${contract.finished && can('delete') ? `
-          <button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">
-            ${ICONS.trash}
-          </button>` : ''}
+        <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">${ICONS.eye}</button>
+        <button class="icon-btn print" title="طباعة" onclick="printContractByCode('${contract.code}')">${ICONS.print}</button>
+        ${contract.inD1 ? `<button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">${ICONS.pencil}</button>` : ''}
+        ${contract.finished && can('delete') ? `<button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">${ICONS.trash}</button>` : ''}
       </td>
     `;
     tbody.appendChild(tr);
@@ -407,9 +394,7 @@ async function loadArchiveFromD1() {
     updateArchiveCount();
     renderArchive();
   } catch (err) {
-    container.innerHTML = `<div class="loading-cell" style="color:#c0392b;">
-      خطأ: ${escapeHtml(err.message)}
-    </div>`;
+    container.innerHTML = `<div class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</div>`;
   }
 }
 
@@ -429,17 +414,11 @@ function renderArchive() {
   const sentContracts = (adminState.filteredContracts || []).filter(c => c.finished);
 
   if (sentContracts.length === 0) {
-    container.innerHTML = `<div class="loading-cell">لا توجد عقود مُرسلة بعد.</div>`;
+    container.innerHTML = '<div class="loading-cell">لا توجد عقود مُرسلة بعد.</div>';
     return;
   }
 
-  // ✅ الترتيب: الأقدم له أصغر رقم، الأعلى في القائمة = الأحدث
-  // نرتب حسب id تنازلياً (الأحدث أولاً) لكن نُظهر الأرقام تصاعدياً
-  sentContracts.sort((a, b) => {
-    return (Number(b.id) || 0) - (Number(a.id) || 0);
-  });
-
-  // إجمالي العقود لحساب الأرقام بشكل ثابت
+  sentContracts.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   const total = sentContracts.length;
 
   let html = `
@@ -459,14 +438,9 @@ function renderArchive() {
   sentContracts.forEach((contract, idx) => {
     const groom = contract.parties?.groom;
     const bride = contract.parties?.bride;
-
     const groomName = groom?.nameDe || groom?.nameAr || '—';
     const brideName = bride?.nameDe || bride?.nameAr || '—';
     const contractDate = contract.contractDate || '—';
-
-    // ✅ الرقم: الأحدث له أعلى رقم، الأقدم له #01
-    // idx 0 = الأحدث = total
-    // idx (total-1) = الأقدم = 1
     const displayNumber = total - idx;
 
     html += `
@@ -479,41 +453,27 @@ function renderArchive() {
         <td class="name-cell">${escapeHtml(brideName)}</td>
         <td class="date-cell">${escapeHtml(contractDate)}</td>
         <td class="action-icons">
-          <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">
-            ${ICONS.eye}
-          </button>
-          <button class="icon-btn print" title="طباعة" onclick="printContractByCode('${contract.code}')">
-            ${ICONS.print}
-          </button>
-          ${can('edit') ? `
-            <button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">
-              ${ICONS.pencil}
-            </button>` : ''}
-          ${can('delete') ? `
-            <button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">
-              ${ICONS.trash}
-            </button>` : ''}
+          <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">${ICONS.eye}</button>
+          <button class="icon-btn print" title="طباعة" onclick="printContractByCode('${contract.code}')">${ICONS.print}</button>
+          ${can('edit') ? `<button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">${ICONS.pencil}</button>` : ''}
+          ${can('delete') ? `<button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">${ICONS.trash}</button>` : ''}
         </td>
       </tr>
     `;
   });
 
-  html += `</tbody></table>`;
+  html += '</tbody></table>';
   container.innerHTML = html;
 }
+
 /* ============================================================
    Search
 ============================================================ */
 function filterArchive() {
   const query = ($('archiveSearch')?.value || '').trim().toLowerCase();
   const statusFilter = $('archiveFilterStatus')?.value || 'all';
-
   const all = adminState.archiveContracts || [];
-
-  // ✅ الترتيب حسب id تصاعدياً
-  const sorted = [...all].sort((a, b) => {
-    return (Number(a.id) || 0) - (Number(b.id) || 0);
-  });
+  const sorted = [...all].sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
 
   if (!query) {
     adminState.filteredContracts = sorted;
@@ -524,7 +484,6 @@ function filterArchive() {
   adminState.filteredContracts = sorted.filter(contract => {
     if (statusFilter === 'sent' && !contract.finished) return false;
     if (statusFilter === 'pending' && contract.finished) return false;
-
     if ((contract.code || '').toLowerCase().includes(query)) return true;
 
     const parties = contract.parties || {};
@@ -587,9 +546,7 @@ async function loadUsers() {
         <td>${roleLabels[user.role] || user.role}</td>
         <td>${user.is_active ? '<span style="color:#2d6a4f;">✓ نشط</span>' : '<span style="color:#c0392b;">✗ معطّل</span>'}</td>
         <td>
-          ${!isAdmin
-            ? `<button class="icon-btn delete" title="حذف" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">${ICONS.trash}</button>`
-            : '<span style="color:#999;font-size:12px;">محمي</span>'}
+          ${!isAdmin ? `<button class="icon-btn delete" title="حذف" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">${ICONS.trash}</button>` : '<span style="color:#999;font-size:12px;">محمي</span>'}
         </td>
       `;
       tbody.appendChild(tr);
@@ -738,21 +695,19 @@ function renderContractModal(contract) {
 
   ['groom', 'bride', 'wali', 'witness1', 'witness2'].forEach(key => {
     const p = contract.parties[key];
-    html += `<div class="contract-block">
-      <div class="contract-block-title">${partyLabels[key]}</div>
-      <div class="contract-block-body">`;
+    html += `<div class="contract-block"><div class="contract-block-title">${partyLabels[key]}</div><div class="contract-block-body">`;
 
     if (!p) {
-      html += `<div style="color:#999;font-style:italic;">لم يُعبّأ بعد</div>`;
+      html += '<div style="color:#999;font-style:italic;">لم يُعبّأ بعد</div>';
     } else if (key === 'wali' && p.waliIsBride) {
-      html += `<div class="contract-row"><strong>الحالة:</strong><span>الولي هي الزوجة نفسها</span></div>`;
+      html += '<div class="contract-row"><strong>الحالة:</strong><span>الولي هي الزوجة نفسها</span></div>';
     } else if ((key === 'witness1' || key === 'witness2') && p.witnessIsCenter) {
-      html += `<div class="contract-row"><strong>الحالة:</strong><span>الشاهد طرف المركز</span></div>`;
+      html += '<div class="contract-row"><strong>الحالة:</strong><span>الشاهد طرف المركز</span></div>';
     } else {
       html += renderPartyFields(p, key);
     }
 
-    html += `</div></div>`;
+    html += '</div></div>';
   });
 
   const groom = contract.parties.groom;
@@ -773,7 +728,6 @@ function renderContractModal(contract) {
   if (viewModal) viewModal.classList.remove('hidden');
 }
 
-/* ✅ إصلاح padStart */
 function renderPartyFields(p, key) {
   const idType = p.idType === 'passport' ? 'جواز سفر' : 'بطاقة هوية';
   const birth = buildDate(p);
@@ -821,10 +775,7 @@ function printContractByCode(code) {
     alert('رقم العقد مطلوب');
     return;
   }
-  window.open(
-    './print-contract.html?code=' + encodeURIComponent(code),
-    '_blank'
-  );
+  window.open('./print-contract.html?code=' + encodeURIComponent(code), '_blank');
 }
 
 /* ============================================================
