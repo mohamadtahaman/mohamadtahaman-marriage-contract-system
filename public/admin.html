@@ -8,7 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>لوحة الإدارة المتقدمة - Arresalah Zentrum Berlin</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/admin.css?v=12">
+<link rel="stylesheet" href="./css/admin.css?v=13">
 <style>
   /* ✅ إخفاء مبدئي — سيُتحكم به فوراً من JS */
   #loginScreen { display: none; }
@@ -52,7 +52,7 @@
   <div class="panel-header">
     <div class="panel-title">
       <h1>لوحة التحكم والتدقيق</h1>
-      <span class="badge">Arresalah Zentrum - Secure v12</span>
+      <span class="badge">Arresalah Zentrum - Secure v13</span>
     </div>
     <div class="panel-actions">
       <button onclick="refreshData()" class="btn-secondary">🔄 تحديث البيانات</button>
@@ -65,8 +65,9 @@
   <div class="admin-tabs">
     <button class="admin-tab active" data-tab="codes" onclick="switchTab('codes')">📋 الأكواد الحالية</button>
     <button class="admin-tab" id="archiveTabBtn" data-tab="archive" onclick="switchTab('archive')">📂 الأرشيف</button>
-    <button class="admin-tab" data-tab="audit" onclick="switchTab('audit')">🛡️ سجلات التدقيق والأمان</button>
-    <button class="admin-tab" data-tab="settings" onclick="switchTab('settings')">⚙️ الإعدادات</button>
+    <button class="admin-tab" id="trashTabBtn" data-tab="trash" onclick="switchTab('trash')">🗑️ سلة المحذوفات</button>
+    <button class="admin-tab" id="auditTabBtn" data-tab="audit" onclick="switchTab('audit')">🛡️ سجلات الأمان</button>
+    <button class="admin-tab" id="settingsTabBtn" data-tab="settings" onclick="switchTab('settings')">⚙️ الإعدادات</button>
   </div>
 
   <div class="panel-content">
@@ -128,7 +129,7 @@
       </div>
     </div>
 
-    <!-- Archive Tab -->
+    <!-- Archive Tab (Visible to all) -->
     <div id="tab-archive" class="tab-content hidden">
       <div class="card">
         <div class="card-header"><h2>البحث والفلترة في الأرشيف</h2></div>
@@ -154,7 +155,22 @@
       </div>
     </div>
 
-    <!-- Audit Logs & Security Tab (New) -->
+    <!-- Trash Bin Tab (Admin Only) -->
+    <div id="tab-trash" class="tab-content hidden">
+      <div class="card card-danger">
+        <div class="card-header">
+          <h2>🗑️ سلة المحذوفات (خاص بالمشرف العام فقط)</h2>
+          <button onclick="loadTrashFromD1()" class="btn-secondary" style="font-size:12px; padding:6px 12px;">تحديث القائمة</button>
+        </div>
+        <div class="card-body no-padding">
+          <div id="trashBody">
+            <div class="loading-cell">جارٍ التحميل...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Logs & Security Tab (Admin Only) -->
     <div id="tab-audit" class="tab-content hidden">
       <div class="card">
         <div class="card-header">
@@ -264,7 +280,7 @@
           <div class="info-row"><strong>عدد الأكواد النشطة:</strong><span id="infoCodesCount">—</span></div>
           <div class="info-row"><strong>عدد العقود المُرسلة:</strong><span id="infoSentCount">—</span></div>
           <div class="info-row"><strong>حالة الاتصال بالسيرفر:</strong><span style="color:#2d6a4f;">✓ متصل وآمن</span></div>
-          <div class="info-row"><strong>إصدار واجهة الإدارة:</strong><span style="color:#2d6a4f;">v12 (Enhanced UI & Audit)</span></div>
+          <div class="info-row"><strong>إصدار واجهة الإدارة:</strong><span style="color:#2d6a4f;">v13 (Role-Based Secure)</span></div>
         </div>
       </div>
     </div>
@@ -287,7 +303,7 @@
   </div>
 </div>
 
-<script src="./js/admin-client.js?v=12"></script>
+<script src="./js/admin-client.js?v=13"></script>
 
 </body>
 </html>
