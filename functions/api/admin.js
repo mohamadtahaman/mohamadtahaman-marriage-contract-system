@@ -1,6 +1,6 @@
 /* ============================================================
    Cloudflare Function: POST /api/admin
-   النسخة الأصلية المكتملة + نظام المصادقة الأصلي بكلمة المرور + المحذوفات
+   النسخة الكاملة النهائية + نظام المصادقة الأصلي + المحذوفات
 ============================================================ */
 
 const PERMISSIONS = {
@@ -10,7 +10,7 @@ const PERMISSIONS = {
   search:          ['admin', 'manager', 'user', 'viewer'],
   export:          ['admin', 'manager'],
   login:           ['all'],
-  delete:          ['admin', 'manager'], // تم تحويله إلى Soft Delete
+  delete:          ['admin', 'manager'],
   generate:        ['admin'],
   clear_drafts:    ['admin', 'manager'],
   list_users:      ['admin'],
@@ -39,7 +39,6 @@ export async function onRequestPost(context) {
   const password = (body.password || '').trim();
   const username = (body.username || 'admin').trim();
 
-  // 1. التحقق من وجود كلمة المرور (نظامك الأصلي)
   if (!password) {
     return jsonResponse({ success: false, error: 'missing_password', message: 'كلمة المرور مطلوبة' }, 401);
   }
@@ -65,7 +64,6 @@ export async function onRequestPost(context) {
     return jsonResponse({ success: false, error: 'forbidden', message: 'ليس لديك صلاحية لهذا الإجراء' }, 403);
   }
 
-  // 2. توجيه الطلبات
   switch (action) {
     case 'list':             return await handleList(env);
     case 'archive':          return await handleArchive(env);
@@ -82,7 +80,7 @@ export async function onRequestPost(context) {
     case 'update_party':     return await handleUpdateParty(env, body, auth);
     case 'update_contract':  return await handleUpdateContract(env, body, auth);
     
-    // دوال المحذوفات والسجلات
+    // المحذوفات والسجلات
     case 'get_trash':        return await handleGetTrash(env);
     case 'restore':          return await handleRestore(env, body.code);
     case 'permanent_delete': return await handlePermanentDelete(env, body.code);
@@ -114,7 +112,7 @@ async function authenticate(env, username, password) {
 }
 
 /* ============================================================
-   الدوال الأساسية (التي تعمل بكفاءة)
+   الدوال الأساسية
 ============================================================ */
 async function handleList(env) {
   try {
@@ -207,7 +205,7 @@ async function handleView(env, code) {
 }
 
 /* ============================================================
-   الحذف وسلة المحذوفات (Soft Delete)
+   الحذف وسلة المحذوفات (مصححة الأسماء)
 ============================================================ */
 async function handleDelete(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) return jsonResponse({ success: false, error: 'invalid_code' }, 400);
@@ -227,7 +225,7 @@ async function handleDelete(env, code) {
       deletes.push(env.CONTRACT_KV.delete(`contract_${code}_date`));
       await Promise.all(deletes);
     }
-    return jsonResponse({ success: true, message: 'تم الحذف' }, 200);
+    return jsonResponse({ success: true, message: 'تم النقل للمحذوفات' }, 200);
   } catch (err) { return jsonResponse({ success: false, error: 'delete_error' }, 500); }
 }
 
@@ -239,17 +237,11 @@ async function handleGetTrash(env) {
       const parties = await env.DB.prepare('SELECT role, name_de, name_ar FROM parties WHERE contract_id = ?').bind(c.id).all();
       let p1 = '—', p2 = '—';
       for (const p of parties.results || []) {
-        // التصحيح: قراءة الاسم الأجنبي أولاً لتجنب الحروف العشوائية
+        // تم التصحيح: الاعتماد على الاسم الأجنبي أولا لتفادي الخربشة في الاسم العربي
         if (p.role === 'groom') p1 = p.name_de || p.name_ar || '—';
         if (p.role === 'bride') p2 = p.name_de || p.name_ar || '—';
       }
-      result.push({ code: c.code, party_one_name: p1, party_two_name: p2, deleted_at: c.sent_at ? new Date(c.sent_at * 1000).toLocaleString('en-GB') : '—' });
-    }
-    return jsonResponse({ success: true, trash: result }, 200);
-  } catch (e) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
-}
-
-      result.push({ code: c.code, party_one_name: p1, party_two_name: p2, deleted_at: c.sent_at ? new Date(c.sent_at * 1000).toLocaleString('en-GB') : '—' });
+      result.push({ id: c.id, code: c.code, party_one_name: p1, party_two_name: p2, deleted_at: c.sent_at ? new Date(c.sent_at * 1000).toLocaleString('en-GB') : '—' });
     }
     return jsonResponse({ success: true, trash: result }, 200);
   } catch (e) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
@@ -281,7 +273,12 @@ async function handlePermanentDelete(env, code) {
 
 async function handleAuditLogs(env) {
   try {
-    const logs = await env.DB.prepare("SELECT * FROM audit_log ORDER BY id DESC LIMIT 100").all();
+    const logs = await env.DB.prepare(`
+      SELECT a.*, u.username as auth_user 
+      FROM audit_log a 
+      LEFT JOIN users u ON a.user_id = u.id 
+      ORDER BY a.id DESC LIMIT 100
+    `).all();
     return jsonResponse({ success: true, logs: logs.results || [] }, 200);
   } catch (e) { return jsonResponse({ success: true, logs: [] }, 200); }
 }
