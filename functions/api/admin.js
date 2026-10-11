@@ -1,8 +1,8 @@
 /* ============================================================
-   Cloudflare Function: POST /api/admin (v11 - Full Secure with Restore & Audit)
+   Cloudflare Function: POST /api/admin (v12 - Full Audit Logging)
    - Archive with guaranteed sentAt & read for all roles
    - Soft Delete & Trash Bin Support with Restore
-   - Full Audit & IP Tracking
+   - Full Audit Log Tracking & IP Detection
 ============================================================ */
 
 const PERMISSIONS = {
@@ -55,7 +55,7 @@ export async function onRequestPost(context) {
   const auth = await authenticate(env, body.username, password);
 
   if (!auth.success) {
-    await logAudit(env, null, action, 'auth_fail', null, `Failed login attempt from IP: ${clientIP}`, clientIP);
+    await logAudit(env, null, action || 'login_attempt', 'auth_fail', null, `فشل تسجيل الدخول من IP: ${clientIP}`, clientIP);
     return jsonResponse({
       success: false,
       error: auth.error || 'auth_failed',
@@ -68,7 +68,7 @@ export async function onRequestPost(context) {
   const userRole = auth.role;
 
   if (action === 'login') {
-    await logAudit(env, auth.userId, 'login', 'user', auth.userId, `User ${auth.username} logged in successfully`, clientIP);
+    await logAudit(env, auth.userId, 'login', 'user', auth.userId, `المستخدم ${auth.username} سجل دخوله بنجاح`, clientIP);
     return jsonResponse({
       success: true,
       user: {
@@ -82,7 +82,7 @@ export async function onRequestPost(context) {
   const allowedRoles = PERMISSIONS[action] || [];
 
   if (!allowedRoles.includes('all') && !allowedRoles.includes(userRole)) {
-    await logAudit(env, auth.userId, action, 'security', null, `Forbidden access attempt by ${auth.username} (Role: ${userRole})`, clientIP);
+    await logAudit(env, auth.userId, action, 'security', null, `محاولة وصول محظورة بواسطة ${auth.username} (الصلاحية: ${userRole})`, clientIP);
     return jsonResponse({
       success: false,
       error: 'forbidden',
@@ -90,14 +90,15 @@ export async function onRequestPost(context) {
     }, 403);
   }
 
-  await logAudit(env, auth.userId, action, 'action', null, `Action executed by ${auth.username}`, clientIP);
+  // تسجيل الإجراء الناجح في جدول التدقيق
+  await logAudit(env, auth.userId, action, 'action', null, `تنفيذ إجراء (${action}) بواسطة ${auth.username}`, clientIP);
 
   switch (action) {
     case 'list':             return await handleList(env);
     case 'archive':          return await handleArchive(env);
     case 'generate':         return await handleGenerate(env);
-    case 'delete':           return await handleDelete(env, body.code, auth);
-    case 'restore':          return await handleRestore(env, body.code, auth);
+    case 'delete':           return await handleDelete(env, body.code, auth, clientIP);
+    case 'restore':          return await handleRestore(env, body.code, auth, clientIP);
     case 'view':             return await handleView(env, body.code);
     case 'search':           return await handleSearch(env, body.query);
     case 'clear_drafts':     return await handleClearDrafts(env, body.code, body.all);
@@ -119,6 +120,9 @@ export async function onRequestPost(context) {
   }
 }
 
+/* ============================================================
+   Audit Log Helper
+============================================================ */
 async function logAudit(env, userId, action, entityType, entityId, details, ipAddress) {
   try {
     await env.DB.prepare(
@@ -138,6 +142,9 @@ async function logAudit(env, userId, action, entityType, entityId, details, ipAd
   }
 }
 
+/* ============================================================
+   Authentication
+============================================================ */
 async function authenticate(env, username, password) {
   username = (username || 'admin').trim().toLowerCase();
 
@@ -174,6 +181,9 @@ async function authenticate(env, username, password) {
   return { success: false, error: 'not_found' };
 }
 
+/* ============================================================
+   List - 5 current codes
+============================================================ */
 async function handleList(env) {
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
@@ -255,6 +265,9 @@ async function handleList(env) {
   }
 }
 
+/* ============================================================
+   Archive - From D1
+============================================================ */
 async function handleArchive(env) {
   try {
     const contracts = await env.DB.prepare(
@@ -309,6 +322,9 @@ async function handleArchive(env) {
   }
 }
 
+/* ============================================================
+   Trash Bin List
+============================================================ */
 async function handleListTrash(env) {
   try {
     const contracts = await env.DB.prepare(
@@ -341,6 +357,9 @@ async function handleListTrash(env) {
   }
 }
 
+/* ============================================================
+   Audit Logs List
+============================================================ */
 async function handleListAuditLogs(env) {
   try {
     const logs = await env.DB.prepare(
@@ -364,6 +383,9 @@ async function handleListAuditLogs(env) {
   }
 }
 
+/* ============================================================
+   View Contract
+============================================================ */
 async function handleView(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
     return jsonResponse({
@@ -457,6 +479,9 @@ async function handleView(env, code) {
   }
 }
 
+/* ============================================================
+   Search
+============================================================ */
 async function handleSearch(env, query) {
   if (!query || !query.trim()) {
     return jsonResponse({ success: true, results: [] }, 200);
@@ -491,6 +516,9 @@ async function handleSearch(env, query) {
   }
 }
 
+/* ============================================================
+   Generate New Codes
+============================================================ */
 async function handleGenerate(env) {
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
@@ -547,7 +575,10 @@ async function handleGenerate(env) {
   }
 }
 
-async function handleDelete(env, code, auth) {
+/* ============================================================
+   Delete Contract (Soft Delete)
+============================================================ */
+async function handleDelete(env, code, auth, clientIP) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
     return jsonResponse({
       success: false,
@@ -565,6 +596,8 @@ async function handleDelete(env, code, auth) {
       await env.DB.prepare(
         'UPDATE contracts SET status = "deleted" WHERE id = ?'
       ).bind(contractRow.id).run();
+
+      await logAudit(env, auth.userId, 'delete', 'contract', contractRow.id, `نقل العقد ${code} إلى سلة المحذوفات بواسطة ${auth.username}`, clientIP);
     }
 
     return jsonResponse({ success: true, message: 'تم نقل العقد إلى سلة المحذوفات بنجاح' }, 200);
@@ -579,7 +612,10 @@ async function handleDelete(env, code, auth) {
   }
 }
 
-async function handleRestore(env, code, auth) {
+/* ============================================================
+   Restore Contract
+============================================================ */
+async function handleRestore(env, code, auth, clientIP) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
     return jsonResponse({
       success: false,
@@ -605,6 +641,8 @@ async function handleRestore(env, code, auth) {
       'UPDATE contracts SET status = "sent" WHERE id = ?'
     ).bind(contractRow.id).run();
 
+    await logAudit(env, auth.userId, 'restore', 'contract', contractRow.id, `استعادة العقد ${code} من سلة المحذوفات بواسطة ${auth.username}`, clientIP);
+
     return jsonResponse({
       success: true,
       message: `تم استعادة العقد ${code} بنجاح`,
@@ -620,6 +658,9 @@ async function handleRestore(env, code, auth) {
   }
 }
 
+/* ============================================================
+   Clear Drafts
+============================================================ */
 async function handleClearDrafts(env, code, all) {
   if (all === true) {
     try {
@@ -688,6 +729,9 @@ async function handleClearDrafts(env, code, all) {
   }
 }
 
+/* ============================================================
+   Change Password
+============================================================ */
 async function handleChangePassword(env, auth, body) {
   const oldPw = (body.old_password || '').trim();
   const newPw = (body.new_password || '').trim();
@@ -756,6 +800,9 @@ async function handleChangePassword(env, auth, body) {
   }
 }
 
+/* ============================================================
+   List Users
+============================================================ */
 async function handleListUsers(env) {
   try {
     const users = await env.DB.prepare(
@@ -772,6 +819,9 @@ async function handleListUsers(env) {
   }
 }
 
+/* ============================================================
+   Create User
+============================================================ */
 async function handleCreateUser(env, body, auth) {
   const username = (body.user_username || '').trim().toLowerCase();
   const password = (body.user_password || '').trim();
@@ -834,6 +884,9 @@ async function handleCreateUser(env, body, auth) {
   }
 }
 
+/* ============================================================
+   Delete User
+============================================================ */
 async function handleDeleteUser(env, body, auth) {
   const userId = parseInt(body.user_id, 10);
 
@@ -878,6 +931,9 @@ async function handleDeleteUser(env, body, auth) {
   }
 }
 
+/* ============================================================
+   Export
+============================================================ */
 async function handleExport(env) {
   try {
     const contracts = await env.DB.prepare(
@@ -917,6 +973,9 @@ async function handleExport(env) {
   }
 }
 
+/* ============================================================
+   Update Party
+============================================================ */
 async function handleUpdateParty(env, body, auth) {
   const code = (body.code || '').trim().toUpperCase();
   const role = (body.role || '').trim();
@@ -1017,6 +1076,9 @@ async function handleUpdateParty(env, body, auth) {
   }
 }
 
+/* ============================================================
+   Update Contract
+============================================================ */
 async function handleUpdateContract(env, body, auth) {
   const code = (body.code || '').trim().toUpperCase();
   const contractDate = (body.contract_date || '').trim();
