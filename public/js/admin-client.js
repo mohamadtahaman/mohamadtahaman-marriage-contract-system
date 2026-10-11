@@ -1,8 +1,7 @@
 /* ============================================================
-   Admin Client V12.5 - Full Complete Version with Restore
-   - Archive visible to ALL roles
-   - Delete restricted to admin & manager
-   - Trash bin & Audit logs restricted to admin only with Restore feature
+   Admin Client V12.6 - Fixed UI & Fixed Sequence Numbers
+   - Standardized button style for restore
+   - Fixed archive numbering so contract numbers never shift
 ============================================================ */
 
 (function showCorrectScreen() {
@@ -46,7 +45,8 @@ const ICONS = {
   eye: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
   pencil: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>',
   trash: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>',
-  print: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>'
+  print: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>',
+  restore: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>'
 };
 
 function $(id) { return document.getElementById(id); }
@@ -381,6 +381,8 @@ async function loadArchiveFromD1() {
   try {
     const data = await apiCall('archive');
     adminState.archiveContracts = data.contracts || [];
+    // تثبيت الفرز تصاعدياً حسب الـ ID الأصلي لضمان ثبات أرقام العقود وعدم تغيرها أبداً
+    adminState.archiveContracts.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
     adminState.filteredContracts = [...adminState.archiveContracts];
     updateArchiveCount();
     renderArchive();
@@ -406,8 +408,8 @@ function renderArchive() {
     return;
   }
 
-  sentContracts.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-  const total = sentContracts.length;
+  // الحفاظ على الترتيب الثابت بناءً على الـ ID الأصلي لكي لا تتغير أرقام العقود أبداً
+  sentContracts.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
   const userCanDelete = can('delete');
 
   let html = `
@@ -430,7 +432,7 @@ function renderArchive() {
     const groomName = groom?.nameDe || groom?.nameAr || '—';
     const brideName = bride?.nameDe || bride?.nameAr || '—';
     const contractDate = contract.contractDate || '—';
-    const displayNumber = total - idx;
+    const displayNumber = idx + 1; // رقم ثابت لا يتغير للحفاظ على تسلسل العقود
 
     html += `
       <tr>
@@ -511,7 +513,7 @@ async function loadTrashFromD1() {
           <td>${escapeHtml(item.details || 'عقد محذوف')}</td>
           <td class="action-icons">
             <button class="icon-btn view" title="معاينة" onclick="viewContract('${item.code}')">${ICONS.eye}</button>
-            <button class="icon-btn edit" title="استعادة العقد" onclick="restoreContract('${item.code}')" style="background:#2d6a4f; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">♻️ استعادة</button>
+            <button class="icon-btn edit" title="استعادة العقد" onclick="restoreContract('${item.code}')" style="background:#2d6a4f; color:#fff; border:none; width:32px; height:32px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" aria-label="استعادة">${ICONS.restore}</button>
           </td>
         </tr>
       `;
@@ -526,7 +528,7 @@ async function loadTrashFromD1() {
 }
 
 async function restoreContract(code) {
-  if (!confirm(`هل تريد استعادة العقد ${code} إلى الأرشيف؟`)) return;
+  if (!confirm(`هل تريد استعادة العقد ${code} إلى الأرشيف بنفس رقمه الأصلي؟`)) return;
 
   try {
     await apiCall('restore', { code });
