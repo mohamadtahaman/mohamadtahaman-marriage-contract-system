@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>لوحة الإدارة - Arresalah Zentrum Berlin</title>
+<title>لوحة الإدارة المتقدمة - Arresalah Zentrum Berlin</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/admin.css?v=11">
+<link rel="stylesheet" href="./css/admin.css?v=12">
 <style>
   /* ✅ إخفاء مبدئي — سيُتحكم به فوراً من JS */
   #loginScreen { display: none; }
@@ -21,21 +21,21 @@
 <div id="loginScreen" class="login-wrap">
   <div class="login-box">
     <div class="login-header">
-      <h1>Arresalah Zentrum Berlin</h1>
-      <p>لوحة الإدارة</p>
+      <div class="login-logo-icon">🔒</div>
+      <h1>Arresalah Zentrum</h1>
+      <p>بوابة الإدارة الآمنة</p>
     </div>
 
     <div class="login-body">
       <label>اسم المستخدم</label>
       <input type="text" id="usernameInput" placeholder="admin" value="admin"
-             autocomplete="username"
-             style="text-align:right; letter-spacing:0; margin-bottom:14px;">
+             autocomplete="username">
 
       <label>كلمة المرور</label>
       <input type="password" id="passwordInput" placeholder="••••••"
              autocomplete="current-password">
 
-      <button id="loginBtn" class="btn-login">دخول</button>
+      <button id="loginBtn" class="btn-login">تسجيل الدخول</button>
 
       <div id="loginMessage" class="message hidden"></div>
     </div>
@@ -51,21 +51,22 @@
 
   <div class="panel-header">
     <div class="panel-title">
-      <h1>لوحة الإدارة</h1>
-      <span class="badge">Arresalah Zentrum</span>
+      <h1>لوحة التحكم والتدقيق</h1>
+      <span class="badge">Arresalah Zentrum - Secure v12</span>
     </div>
     <div class="panel-actions">
-      <button onclick="refreshData()" class="btn-secondary">تحديث</button>
-      <button onclick="logout()" class="btn-danger">خروج</button>
+      <button onclick="refreshData()" class="btn-secondary">🔄 تحديث البيانات</button>
+      <button onclick="logout()" class="btn-danger">🚪 خروج</button>
     </div>
   </div>
 
   <div id="systemMessage" class="system-message hidden"></div>
 
   <div class="admin-tabs">
-    <button class="admin-tab active" data-tab="codes" onclick="switchTab('codes')">الأكواد الحالية</button>
-    <button class="admin-tab" id="archiveTabBtn" data-tab="archive" onclick="switchTab('archive')">الأرشيف</button>
-    <button class="admin-tab" data-tab="settings" onclick="switchTab('settings')">الإعدادات</button>
+    <button class="admin-tab active" data-tab="codes" onclick="switchTab('codes')">📋 الأكواد الحالية</button>
+    <button class="admin-tab" id="archiveTabBtn" data-tab="archive" onclick="switchTab('archive')">📂 الأرشيف</button>
+    <button class="admin-tab" data-tab="audit" onclick="switchTab('audit')">🛡️ سجلات التدقيق والأمان</button>
+    <button class="admin-tab" data-tab="settings" onclick="switchTab('settings')">⚙️ الإعدادات</button>
   </div>
 
   <div class="panel-content">
@@ -73,7 +74,7 @@
     <!-- Codes Tab -->
     <div id="tab-codes" class="tab-content">
       <div class="card">
-        <div class="card-header"><h2>أكواد العقود (5 عقود)</h2></div>
+        <div class="card-header"><h2>أكواد العقود النشطة (5 عقود)</h2></div>
         <div class="card-body no-padding">
           <table class="codes-table">
             <thead>
@@ -92,19 +93,19 @@
       </div>
 
       <div class="card">
-        <div class="card-header"><h2>إدارة أكواد العقود</h2></div>
+        <div class="card-header"><h2>إدارة وتوليد الأكواد</h2></div>
         <div class="card-body">
           <p class="hint">
-            توليد 5 أكواد جديدة يُلغي الأكواد الحالية فقط — العقود المُرسلة تبقى في الأرشيف.
+            توليد 5 أكواد جديدة يُلغي الأكواد الحالية فقط — العقود المُرسلة مسبقاً تبقى محفوظة بأمان في الأرشيف.
           </p>
-          <button onclick="generateNewCodes()" class="btn-primary">توليد 5 أكواد جديدة</button>
+          <button onclick="generateNewCodes()" class="btn-primary">⚡ توليد 5 أكواد جديدة</button>
         </div>
       </div>
 
       <div class="card card-danger">
-        <div class="card-header"><h2>منطقة الخطر — مسح المسودات</h2></div>
+        <div class="card-header"><h2>منطقة الخطر — إدارة المسودات</h2></div>
         <div class="card-body">
-          <p class="hint">مسح المسودات المحفوظة على السيرفر (لا يحذف العقود المُرسلة).</p>
+          <p class="hint">مسح المسودات المؤقتة غير المُرسلة من السيرفر.</p>
 
           <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:15px;">
             <div style="flex:1; min-width:200px;">
@@ -120,7 +121,7 @@
           <hr style="border:none; border-top:1px dashed #f0f0f0; margin:20px 0;">
 
           <p class="hint" style="color:#c0392b;">
-            ⚠️ مسح <strong>كل</strong> المسودات (لا يمكن التراجع).
+            ⚠️ تحذير: مسح <strong>كل</strong> المسودات دفعة واحدة (لا يمكن التراجع).
           </p>
           <button onclick="clearAllDrafts()" class="btn-danger">مسح كل المسودات</button>
         </div>
@@ -130,12 +131,12 @@
     <!-- Archive Tab -->
     <div id="tab-archive" class="tab-content hidden">
       <div class="card">
-        <div class="card-header"><h2>البحث في الأرشيف</h2></div>
+        <div class="card-header"><h2>البحث والفلترة في الأرشيف</h2></div>
         <div class="card-body">
           <div class="search-bar">
             <input type="text" id="archiveSearch" placeholder="ابحث بالاسم، الكود، أو رقم الهوية..." oninput="filterArchive()">
             <select id="archiveFilterStatus" onchange="filterArchive()">
-              <option value="all">الكل</option>
+              <option value="all">جميع الحالات</option>
               <option value="sent">مُرسل</option>
               <option value="pending">قيد الانتظار</option>
             </select>
@@ -144,11 +145,37 @@
       </div>
 
       <div class="card">
-        <div class="card-header"><h2>العقود المُرسلة (<span id="archiveCount">0</span>)</h2></div>
+        <div class="card-header"><h2>العقود المُرسلة والأرشيف (<span id="archiveCount">0</span>)</h2></div>
         <div class="card-body no-padding">
           <div id="archiveBody">
             <div class="loading-cell">جارٍ التحميل...</div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audit Logs & Security Tab (New) -->
+    <div id="tab-audit" class="tab-content hidden">
+      <div class="card">
+        <div class="card-header">
+          <h2>🛡️ سجلات التدقيق الأمني وتتبع عناوين الـ IP</h2>
+          <button onclick="loadAuditLogs()" class="btn-secondary" style="font-size:12px; padding:6px 12px;">تحديث السجلات</button>
+        </div>
+        <div class="card-body no-padding">
+          <table class="codes-table">
+            <thead>
+              <tr>
+                <th style="width:140px;">التاريخ والوقت</th>
+                <th style="width:130px;">الإجراء (Action)</th>
+                <th style="width:130px;">المستخدم / النظام</th>
+                <th style="width:130px;">عنوان IP</th>
+                <th>التفاصيل والبيانات</th>
+              </tr>
+            </thead>
+            <tbody id="auditLogsBody">
+              <tr><td colspan="5" class="loading-cell">جارٍ تحميل سجلات الأمان...</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -172,12 +199,12 @@
               <input type="password" id="confirmPassword" autocomplete="off">
             </div>
           </div>
-          <button class="btn-primary" onclick="changePassword()" style="margin-top:15px;">تغيير كلمة المرور</button>
+          <button class="btn-primary" onclick="changePassword()" style="margin-top:15px;">حفظ كلمة المرور الجديدة</button>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-header"><h2>👥 المستخدمون</h2></div>
+        <div class="card-header"><h2>👥 إدارة المستخدمين والصلاحيات</h2></div>
         <div class="card-body no-padding">
           <table class="codes-table">
             <thead>
@@ -195,7 +222,7 @@
           </table>
         </div>
         <div class="card-body" style="border-top:1px solid #f0f0f0;">
-          <h3 class="sub-title">إضافة مستخدم جديد</h3>
+          <h3 class="sub-title">إضافة مستخدم جديد للنظام</h3>
           <div class="form-grid">
             <div class="field">
               <label>اسم المستخدم</label>
@@ -215,7 +242,7 @@
                 <option value="manager">مدير (Manager)</option>
                 <option value="user">مستخدم (User)</option>
                 <option value="viewer">مشاهدة فقط (Viewer)</option>
-                <option value="admin">مشرف (Admin)</option>
+                <option value="admin">مشرف عام (Admin)</option>
               </select>
             </div>
           </div>
@@ -224,20 +251,20 @@
       </div>
 
       <div class="card">
-        <div class="card-header"><h2>💾 نسخ احتياطي</h2></div>
+        <div class="card-header"><h2>💾 النسخ الاحتياطي للبيانات</h2></div>
         <div class="card-body">
-          <p class="hint">تصدير كل العقود والأطراف والمهور بصيغة JSON.</p>
+          <p class="hint">تصدير قاعدة بيانات العقود والأطراف والمهور بصيغة JSON لضمان الأمان.</p>
           <button class="btn-primary" onclick="exportBackup()">تحميل نسخة احتياطية (JSON)</button>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-header"><h2>ℹ️ معلومات النظام</h2></div>
+        <div class="card-header"><h2>ℹ️ معلومات ونظام التشغيل</h2></div>
         <div class="card-body">
-          <div class="info-row"><strong>عدد الأكواد:</strong><span id="infoCodesCount">—</span></div>
+          <div class="info-row"><strong>عدد الأكواد النشطة:</strong><span id="infoCodesCount">—</span></div>
           <div class="info-row"><strong>عدد العقود المُرسلة:</strong><span id="infoSentCount">—</span></div>
-          <div class="info-row"><strong>حالة الاتصال:</strong><span style="color:#2d6a4f;">✓ متصل</span></div>
-          <div class="info-row"><strong>إصدار الواجهة:</strong><span style="color:#2d6a4f;">v11</span></div>
+          <div class="info-row"><strong>حالة الاتصال بالسيرفر:</strong><span style="color:#2d6a4f;">✓ متصل وآمن</span></div>
+          <div class="info-row"><strong>إصدار واجهة الإدارة:</strong><span style="color:#2d6a4f;">v12 (Enhanced UI & Audit)</span></div>
         </div>
       </div>
     </div>
@@ -254,13 +281,13 @@
     </div>
     <div id="modalContent" class="modal-body"></div>
     <div class="modal-footer">
-      <button onclick="printContract()" class="btn-primary">🖨 طباعة</button>
+      <button onclick="printContract()" class="btn-primary">🖨 طباعة العقد</button>
       <button onclick="closeModal()" class="btn-secondary">إغلاق</button>
     </div>
   </div>
 </div>
 
-<script src="./js/admin-client.js?v=11"></script>
+<script src="./js/admin-client.js?v=12"></script>
 
 </body>
 </html>
