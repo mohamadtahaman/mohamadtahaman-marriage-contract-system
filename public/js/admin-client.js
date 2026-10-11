@@ -1056,6 +1056,11 @@ async function permanentDelete(code) {
 /* ============================================================
    Audit Logs (سجلات التدقيق) - ميزة جديدة
 ============================================================ */
+/* ============================================================
+   Audit Logs (سجلات التدقيق) - مع الفلترة
+============================================================ */
+let allAuditData = []; // متغير لحفظ السجلات للفلترة
+
 async function loadAuditLogs() {
   const tbody = $('auditLogsBody');
   if (!tbody) return;
@@ -1063,41 +1068,64 @@ async function loadAuditLogs() {
 
   try {
     const data = await apiCall('audit_logs');
-    const logs = data.logs || [];
-
-    if (logs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات.</td></tr>';
-      return;
-    }
-
-    let html = '';
-    logs.forEach(log => {
-      let typeBadge = '<span style="color:#0984e3;">🔵 إجراء</span>';
-      if(log.action === 'login') typeBadge = '<span style="color:#00b894;">🟢 دخول</span>';
-      else if(log.action === 'delete' || log.action === 'permanent_delete') typeBadge = '<span style="color:#d63031;">🔴 حذف</span>';
-      else if(log.action === 'restore') typeBadge = '<span style="color:#fdcb6e;">♻️ استرجاع</span>';
-      else if(log.action === 'generate') typeBadge = '<span style="color:#6c5ce7;">✨ توليد أكواد</span>';
-      else if(log.action === 'clear_all_drafts') typeBadge = '<span style="color:#e17055;">🧹 مسح شامل</span>';
-
-      const user = log.username || log.user_id || 'نظام';
-      const date = log.timestamp || log.created_at || '-';
-      const details = log.details || '-';
-
-      html += `
-        <tr>
-          <td class="date-cell" style="direction:ltr; font-weight:bold;">${escapeHtml(date)}</td>
-          <td>${typeBadge}</td>
-          <td style="font-weight:bold;">${escapeHtml(user)}</td>
-          <td style="font-family:monospace; direction:ltr;">-</td>
-          <td style="font-size:12px; color:#636e72;">${escapeHtml(details)}</td>
-        </tr>
-      `;
-    });
-    tbody.innerHTML = html;
+    allAuditData = data.logs || []; 
+    renderAuditLogs(allAuditData);
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`;
   }
 }
+
+function renderAuditLogs(logs) {
+  const tbody = $('auditLogsBody');
+  if (!tbody) return;
+
+  if (logs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات مطابقة.</td></tr>';
+    return;
+  }
+
+  let html = '';
+  logs.forEach(log => {
+    let typeBadge = '<span style="color:#0984e3;">🔵 إجراء</span>';
+    if(log.action === 'login') typeBadge = '<span style="color:#00b894;">🟢 دخول</span>';
+    else if(log.action === 'delete' || log.action === 'permanent_delete') typeBadge = '<span style="color:#d63031;">🔴 حذف</span>';
+    else if(log.action === 'restore') typeBadge = '<span style="color:#fdcb6e;">♻️ استرجاع</span>';
+    else if(log.action === 'generate') typeBadge = '<span style="color:#6c5ce7;">✨ توليد أكواد</span>';
+    else if(log.action === 'clear_all_drafts') typeBadge = '<span style="color:#e17055;">🧹 مسح شامل</span>';
+
+    const user = log.username || log.user_id || 'نظام';
+    const date = log.timestamp || log.created_at || '-';
+    const details = log.details || '-';
+
+    html += `
+      <tr>
+        <td class="date-cell" style="direction:ltr; font-weight:bold;">${escapeHtml(date)}</td>
+        <td>${typeBadge}</td>
+        <td style="font-weight:bold;">${escapeHtml(user)}</td>
+        <td style="font-family:monospace; direction:ltr;">-</td>
+        <td style="font-size:12px; color:#636e72;">${escapeHtml(details)}</td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+// دالة الفلترة المربوطة بمربعات التحديد (Checkboxes)
+window.filterAuditLogs = function() {
+  const checkboxes = document.querySelectorAll('.audit-filter:checked');
+  const allowed = Array.from(checkboxes).map(cb => cb.value);
+  
+  const filtered = allAuditData.filter(log => {
+    const act = log.action || '';
+    if (allowed.includes('login') && act === 'login') return true;
+    if (allowed.includes('security') && ['delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
+    if (allowed.includes('action') && !['login', 'delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
+    return false;
+  });
+  
+  renderAuditLogs(filtered);
+};
+
 
 /* ============================================================
    Exports
@@ -1126,3 +1154,4 @@ window.loadTrashLogs = loadTrashLogs;
 window.restoreContract = restoreContract;
 window.permanentDelete = permanentDelete;
 window.loadAuditLogs = loadAuditLogs;
+window.filterAuditLogs = filterAuditLogs;
