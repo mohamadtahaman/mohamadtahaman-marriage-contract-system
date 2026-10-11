@@ -1,9 +1,5 @@
 /* ============================================================
-   Admin Client V12 - Final (Original Layout + Trash & Audit)
-   - Instant screen show (no refresh)
-   - Archive sorted correctly (#01 = newest)
-   - Safe padStart (numbers + strings)
-   - Robust search
+   Admin Client V12 - Final (Fixed Table, Audits, Serial ID)
 ============================================================ */
 
 /* ============================================================
@@ -340,10 +336,7 @@ async function loadList() {
     adminState.contracts = data.contracts || [];
     renderTable();
   } catch (err) {
-    tbody.innerHTML = `
-      <tr><td colspan="4" class="loading-cell" style="color:#c0392b;">
-        خطأ: ${escapeHtml(err.message)}
-      </td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`;
   }
 }
 
@@ -353,10 +346,7 @@ function renderTable() {
   tbody.innerHTML = '';
 
   if (!adminState.contracts || adminState.contracts.length === 0) {
-    tbody.innerHTML = `
-      <tr><td colspan="4" class="loading-cell">
-        لا توجد أكواد. اضغط "توليد 5 أكواد جديدة".
-      </td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" class="loading-cell">لا توجد أكواد. اضغط "توليد 5 أكواد جديدة".</td></tr>`;
     return;
   }
 
@@ -422,7 +412,6 @@ function renderArchive() {
   }
 
   sentContracts.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
-  const total = sentContracts.length;
 
   let html = `
     <table class="archive-table">
@@ -438,13 +427,15 @@ function renderArchive() {
       <tbody>
   `;
 
-  sentContracts.forEach((contract, idx) => {
+  sentContracts.forEach((contract) => {
     const groom = contract.parties?.groom;
     const bride = contract.parties?.bride;
     const groomName = groom?.nameDe || groom?.nameAr || '—';
     const brideName = bride?.nameDe || bride?.nameAr || '—';
     const contractDate = contract.contractDate || '—';
-    const displayNumber = total - idx;
+    
+    // الميزة الجديدة: الحفاظ على رقم العقد تسلسلياً بربطه بقيمة الـ ID الثابتة
+    const displayNumber = contract.id; 
 
     html += `
       <tr>
@@ -504,7 +495,7 @@ function filterArchive() {
 }
 
 /* ============================================================
-   Settings
+   Settings & Users
 ============================================================ */
 function renderSettings() {
   const sentCount = (adminState.archiveContracts || []).filter(c => c.finished).length;
@@ -514,49 +505,29 @@ function renderSettings() {
   if (sentCountEl) sentCountEl.textContent = sentCount;
 }
 
-/* ============================================================
-   Users
-============================================================ */
 async function loadUsers() {
   const tbody = $('usersBody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ التحميل...</td></tr>';
-
   try {
     const data = await apiCall('list_users');
     const users = data.users || [];
-
-    if (users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا يوجد مستخدمون</td></tr>';
-      return;
-    }
-
-    const roleLabels = {
-      admin: 'مشرف',
-      manager: 'مدير',
-      user: 'مستخدم',
-      viewer: 'مشاهدة',
-    };
-
+    if (users.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا يوجد مستخدمون</td></tr>'; return; }
+    const roleLabels = { admin: 'مشرف', manager: 'مدير', user: 'مستخدم', viewer: 'مشاهدة' };
     tbody.innerHTML = '';
     users.forEach(user => {
       const tr = document.createElement('tr');
       const isAdmin = user.username === 'admin';
-
       tr.innerHTML = `
         <td><code style="font-family:'Courier New',monospace; font-weight:700; color:#2d6a4f;">${escapeHtml(user.username)}</code></td>
         <td>${escapeHtml(user.full_name || '—')}</td>
         <td>${roleLabels[user.role] || user.role}</td>
         <td>${user.is_active ? '<span style="color:#2d6a4f;">✓ نشط</span>' : '<span style="color:#c0392b;">✗ معطّل</span>'}</td>
-        <td>
-          ${!isAdmin ? `<button class="icon-btn delete" title="حذف" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">${ICONS.trash}</button>` : '<span style="color:#999;font-size:12px;">محمي</span>'}
-        </td>
+        <td>${!isAdmin ? `<button class="icon-btn delete" title="حذف" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">${ICONS.trash}</button>` : '<span style="color:#999;font-size:12px;">محمي</span>'}</td>
       `;
       tbody.appendChild(tr);
     });
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`;
-  }
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`; }
 }
 
 async function createUser() {
@@ -564,95 +535,45 @@ async function createUser() {
   const password = $('newUserPassword').value.trim();
   const fullName = $('newFullName').value.trim();
   const role = $('newRole').value;
-
-  if (!username || !password) {
-    showSystemMessage('اسم المستخدم وكلمة المرور مطلوبان', 'error');
-    return;
-  }
-
+  if (!username || !password) { showSystemMessage('اسم المستخدم وكلمة المرور مطلوبان', 'error'); return; }
   try {
-    await apiCall('create_user', {
-      user_username: username,
-      user_password: password,
-      full_name: fullName,
-      role: role,
-    });
+    await apiCall('create_user', { user_username: username, user_password: password, full_name: fullName, role: role });
     showSystemMessage('✓ تم إنشاء المستخدم', 'success');
-    $('newUsername').value = '';$('newUserPassword').value = '';
-    $('newFullName').value = '';$('newRole').value = 'manager';
+    $('newUsername').value = '';$('newUserPassword').value = ''; $('newFullName').value = '';$('newRole').value = 'manager';
     await loadUsers();
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
+  } catch (err) { showSystemMessage('فشل: ' + err.message, 'error'); }
 }
 
 async function deleteUser(userId, username) {
   if (!confirm(`حذف المستخدم "${username}"؟`)) return;
-  try {
-    await apiCall('delete_user', { user_id: userId });
-    showSystemMessage('✓ تم الحذف', 'success');
-    await loadUsers();
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
+  try { await apiCall('delete_user', { user_id: userId }); showSystemMessage('✓ تم الحذف', 'success'); await loadUsers(); } catch (err) { showSystemMessage('فشل: ' + err.message, 'error'); }
 }
 
-/* ============================================================
-   Change Password
-============================================================ */
 async function changePassword() {
   const oldPw = $('oldPassword').value.trim();
   const newPw = $('newPassword').value.trim();
   const confirmPw = $('confirmPassword').value.trim();
-
-  if (!oldPw || !newPw || !confirmPw) {
-    showSystemMessage('جميع الحقول مطلوبة', 'error');
-    return;
-  }
-  if (newPw !== confirmPw) {
-    showSystemMessage('كلمتا المرور غير متطابقتين', 'error');
-    return;
-  }
-  if (newPw.length < 6) {
-    showSystemMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
-    return;
-  }
-
+  if (!oldPw || !newPw || !confirmPw) { showSystemMessage('جميع الحقول مطلوبة', 'error'); return; }
+  if (newPw !== confirmPw) { showSystemMessage('كلمتا المرور غير متطابقتين', 'error'); return; }
+  if (newPw.length < 6) { showSystemMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error'); return; }
   try {
-    await apiCall('change_password', {
-      old_password: oldPw,
-      new_password: newPw,
-      confirm_password: confirmPw,
-    });
+    await apiCall('change_password', { old_password: oldPw, new_password: newPw, confirm_password: confirmPw });
     showSystemMessage('✓ تم تغيير كلمة المرور بنجاح', 'success');
-    $('oldPassword').value = '';
-    $('newPassword').value = '';$('confirmPassword').value = '';
-    adminState.password = newPw;
-    sessionStorage.setItem('admin_password', newPw);
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
+    $('oldPassword').value = ''; $('newPassword').value = '';$('confirmPassword').value = '';
+    adminState.password = newPw; sessionStorage.setItem('admin_password', newPw);
+  } catch (err) { showSystemMessage('فشل: ' + err.message, 'error'); }
 }
 
-/* ============================================================
-   Export
-============================================================ */
 async function exportBackup() {
   try {
     const data = await apiCall('export');
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `contracts-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    a.href = url; a.download = `contracts-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
     showSystemMessage(`✓ تم تصدير ${data.total} عقد`, 'success');
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
+  } catch (err) { showSystemMessage('فشل: ' + err.message, 'error'); }
 }
 
 /* ============================================================
@@ -663,26 +584,14 @@ async function viewContract(code) {
     const data = await apiCall('view', { code });
     adminState.currentContract = data.contract;
     renderContractModal(data.contract);
-  } catch (err) {
-    alert('فشل العرض: ' + err.message);
-  }
+  } catch (err) { alert('فشل العرض: ' + err.message); }
 }
 
 function renderContractModal(contract) {
   const modalTitle = $('modalTitle');
   if (modalTitle) modalTitle.textContent = 'تفاصيل العقد: ' + contract.code;
-
-  const partyLabels = {
-    groom: 'الزوج',
-    bride: 'الزوجة',
-    wali: 'الولي',
-    witness1: 'الشاهد الأول',
-    witness2: 'الشاهد الثاني',
-  };
-
-  let html = '';
-
-  html += `
+  const partyLabels = { groom: 'الزوج', bride: 'الزوجة', wali: 'الولي', witness1: 'الشاهد الأول', witness2: 'الشاهد الثاني' };
+  let html = `
     <div class="contract-block">
       <div class="contract-block-title">معلومات العقد</div>
       <div class="contract-block-body">
@@ -696,17 +605,10 @@ function renderContractModal(contract) {
   ['groom', 'bride', 'wali', 'witness1', 'witness2'].forEach(key => {
     const p = contract.parties[key];
     html += `<div class="contract-block"><div class="contract-block-title">${partyLabels[key]}</div><div class="contract-block-body">`;
-
-    if (!p) {
-      html += '<div style="color:#999;font-style:italic;">لم يُعبّأ بعد</div>';
-    } else if (key === 'wali' && p.waliIsBride) {
-      html += '<div class="contract-row"><strong>الحالة:</strong><span>الولي هي الزوجة نفسها</span></div>';
-    } else if ((key === 'witness1' || key === 'witness2') && p.witnessIsCenter) {
-      html += '<div class="contract-row"><strong>الحالة:</strong><span>الشاهد طرف المركز</span></div>';
-    } else {
-      html += renderPartyFields(p, key);
-    }
-
+    if (!p) html += '<div style="color:#999;font-style:italic;">لم يُعبّأ بعد</div>';
+    else if (key === 'wali' && p.waliIsBride) html += '<div class="contract-row"><strong>الحالة:</strong><span>الولي هي الزوجة نفسها</span></div>';
+    else if ((key === 'witness1' || key === 'witness2') && p.witnessIsCenter) html += '<div class="contract-row"><strong>الحالة:</strong><span>الشاهد طرف المركز</span></div>';
+    else html += renderPartyFields(p, key);
     html += '</div></div>';
   });
 
@@ -721,7 +623,6 @@ function renderContractModal(contract) {
       </div>
     </div>`;
   }
-
   const modalContent = $('modalContent');
   if (modalContent) modalContent.innerHTML = html;
   const viewModal = $('viewModal');
@@ -731,7 +632,6 @@ function renderContractModal(contract) {
 function renderPartyFields(p, key) {
   const idType = p.idType === 'passport' ? 'جواز سفر' : 'بطاقة هوية';
   const birth = buildDate(p);
-
   let html = '';
   html += `<div class="contract-row"><strong>الاسم (DE):</strong><span>${escapeHtml(p.nameDe || '—')}</span></div>`;
   html += `<div class="contract-row"><strong>الاسم (AR):</strong><span>${escapeHtml(p.nameAr || '—')}</span></div>`;
@@ -739,12 +639,10 @@ function renderPartyFields(p, key) {
   html += `<div class="contract-row"><strong>مكان الميلاد:</strong><span>${escapeHtml(p.birthRegion || '—')}, ${escapeHtml(p.birthCountry || '—')}</span></div>`;
   html += `<div class="contract-row"><strong>الهوية:</strong><span>${idType} — ${escapeHtml(p.idNumber || '—')}</span></div>`;
   html += `<div class="contract-row"><strong>العنوان:</strong><span>${escapeHtml(p.addressStreet || '')} ${escapeHtml(p.addressNumber || '')}, ${escapeHtml(p.postalCode || '')} ${escapeHtml(p.city || '')}</span></div>`;
-
   if (key === 'groom' || key === 'bride') {
     html += `<div class="contract-row"><strong>الأم (DE):</strong><span>${escapeHtml(p.motherNameDe || '—')}</span></div>`;
     html += `<div class="contract-row"><strong>الأم (AR):</strong><span>${escapeHtml(p.motherNameAr || '—')}</span></div>`;
   }
-
   return html;
 }
 
@@ -755,152 +653,53 @@ function closeModal() {
 }
 
 /* ============================================================
-   Print
+   Print / Edit / Generate / Clear Drafts
 ============================================================ */
 function printContract() {
-  if (!adminState.currentContract) {
-    alert('لا يوجد عقد مفتوح');
-    return;
-  }
-  const code = adminState.currentContract.code;
-  if (!code) {
-    alert('رقم العقد غير معروف');
-    return;
-  }
-  printContractByCode(code);
+  if (!adminState.currentContract) { alert('لا يوجد عقد مفتوح'); return; }
+  printContractByCode(adminState.currentContract.code);
 }
-
 function printContractByCode(code) {
-  if (!code) {
-    alert('رقم العقد مطلوب');
-    return;
-  }
+  if (!code) { alert('رقم العقد مطلوب'); return; }
   window.open('./print-contract.html?code=' + encodeURIComponent(code), '_blank');
 }
-
-/* ============================================================
-   Edit
-============================================================ */
 function editContract(code) {
-  if (!can('edit')) {
-    alert('ليس لديك صلاحية التعديل');
-    return;
-  }
+  if (!can('edit')) { alert('ليس لديك صلاحية التعديل'); return; }
   window.location.href = `./admin-edit.html?code=${encodeURIComponent(code)}`;
 }
-
-/* ============================================================
-   Delete
-============================================================ */
-async function deleteContract(code) {
-  if (!can('delete')) {
-    alert('ليس لديك صلاحية الحذف');
-    return;
-  }
-
-  if (!confirm('حذف العقد ' + code + ' نهائياً؟\n\nلا يمكن التراجع.')) return;
-
-  try {
-    await apiCall('delete', { code });
-    showSystemMessage('✓ تم الحذف ونقل العقد للمحذوفات', 'success');
-    await loadList();
-    if (adminState.currentTab === 'archive') {
-      await loadArchiveFromD1();
-    }
-  } catch (err) {
-    alert('فشل الحذف: ' + err.message);
-  }
-}
-
-/* ============================================================
-   Generate New Codes
-============================================================ */
 async function generateNewCodes() {
   const sentCount = (adminState.archiveContracts || []).filter(c => c.finished).length;
   const pendingCount = (adminState.contracts || []).filter(c => !c.finished && c.savedCount > 0).length;
-
   if (pendingCount > 0) {
-    if (!confirm(
-      `⚠️ تنبيه\n\n` +
-      `يوجد ${pendingCount} عقد قيد التعبئة (لم يُرسل بعد).\n\n` +
-      `إذا ولّدت أكواداً جديدة الآن، ستفقد الوصول لهذه العقود.\n\n` +
-      `هل تريد المتابعة؟`
-    )) return;
+    if (!confirm(`⚠️ تنبيه\n\nيوجد ${pendingCount} عقد قيد التعبئة (لم يُرسل بعد).\n\nإذا ولّدت أكواداً جديدة الآن، ستفقد الوصول لهذه العقود.\n\nهل تريد المتابعة؟`)) return;
   }
-
-  const msg = sentCount > 0
-    ? `توليد 5 أكواد جديدة؟\n\n✅ العقود المُرسلة (${sentCount}) ستبقى في الأرشيف\n✅ الأكواد القديمة لن تعمل بعد الآن`
-    : `توليد 5 أكواد جديدة؟\n\n✅ الأكواد القديمة لن تعمل بعد الآن`;
-
+  const msg = sentCount > 0 ? `توليد 5 أكواد جديدة؟\n\n✅ العقود المُرسلة (${sentCount}) ستبقى في الأرشيف\n✅ الأكواد القديمة لن تعمل بعد الآن` : `توليد 5 أكواد جديدة؟\n\n✅ الأكواد القديمة لن تعمل بعد الآن`;
   if (!confirm(msg)) return;
-
   try {
-    const data = await apiCall('generate');
-    showSystemMessage('✓ ' + data.message, 'success');
-    await loadList();
-    if (adminState.currentTab === 'archive') {
-      await loadArchiveFromD1();
-    }
-  } catch (err) {
-    alert('فشل التوليد: ' + err.message);
-  }
+    const data = await apiCall('generate'); showSystemMessage('✓ ' + data.message, 'success');
+    await loadList(); if (adminState.currentTab === 'archive') { await loadArchiveFromD1(); }
+  } catch (err) { alert('فشل التوليد: ' + err.message); }
 }
-
-/* ============================================================
-   Clear Drafts
-============================================================ */
 async function clearDraftForCode() {
-  const input = $('clearDraftCode');
-  if (!input) return;
-
+  const input = $('clearDraftCode'); if (!input) return;
   const code = input.value.trim().toUpperCase();
-
-  if (!code) {
-    showSystemMessage('أدخل رقم العقد', 'error');
-    return;
-  }
-
-  if (!/^[A-Z0-9]{6}$/.test(code)) {
-    showSystemMessage('رقم العقد يجب أن يكون 6 خانات بالضبط', 'error');
-    return;
-  }
-
+  if (!code || !/^[A-Z0-9]{6}$/.test(code)) { showSystemMessage('أدخل رقم العقد (6 خانات)', 'error'); return; }
   if (!confirm(`مسح كل مسودات العقد ${code}؟`)) return;
-
   try {
     const data = await apiCall('clear_drafts', { code: code });
-    showSystemMessage('✓ ' + data.message, 'success');
-    input.value = '';
-    await loadList();
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
+    showSystemMessage('✓ ' + data.message, 'success'); input.value = ''; await loadList();
+  } catch (err) { showSystemMessage('فشل: ' + err.message, 'error'); }
 }
-
 async function clearAllDrafts() {
   if (!confirm('⚠️ مسح كل المسودات؟\n\n(لن تُحذف العقود المُرسلة)')) return;
-
   try {
-    const data = await apiCall('clear_drafts', { all: true });
-    showSystemMessage('✓ ' + data.message, 'success');
-    await loadList();
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
+    const data = await apiCall('clear_drafts', { all: true }); showSystemMessage('✓ ' + data.message, 'success'); await loadList();
+  } catch (err) { showSystemMessage('فشل: ' + err.message, 'error'); }
 }
-
-/* ============================================================
-   Refresh
-============================================================ */
 async function refreshData() {
   await loadList();
-  if (adminState.currentTab === 'archive') {
-    await loadArchiveFromD1();
-  }
-  if (adminState.currentTab === 'settings') {
-    renderSettings();
-    loadUsers();
-  }
+  if (adminState.currentTab === 'archive') await loadArchiveFromD1();
+  if (adminState.currentTab === 'settings') { renderSettings(); loadUsers(); }
   showSystemMessage('✓ تم التحديث', 'success');
 }
 
@@ -914,63 +713,47 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (savedUsername) {
     adminState.username = savedUsername;
-    const userInput = $('usernameInput');
-    if (userInput) userInput.value = savedUsername;
+    const userInput = $('usernameInput'); if (userInput) userInput.value = savedUsername;
   }
-
   if (savedPassword) {
-    adminState.password = savedPassword;
-    adminState.role = savedRole;
-
+    adminState.password = savedPassword; adminState.role = savedRole;
     try {
       const response = await fetch('/api/admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: savedUsername,
-          password: savedPassword,
-          action: 'login',
-        }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: savedUsername, password: savedPassword, action: 'login' }),
       });
-
       const data = await response.json();
-
       if (response.ok && data.success) {
         adminState.role = data.user?.role || savedRole || 'user';
         sessionStorage.setItem('admin_role', adminState.role);
-        applyRoleRestrictions();
-        await loadList();
-        return;
+        applyRoleRestrictions(); await loadList(); return;
       } else {
-        sessionStorage.removeItem('admin_password');
-        sessionStorage.removeItem('admin_username');
-        sessionStorage.removeItem('admin_role');
-        showLogin();
+        sessionStorage.removeItem('admin_password'); sessionStorage.removeItem('admin_username'); sessionStorage.removeItem('admin_role'); showLogin();
       }
-    } catch (err) {
-      console.warn('Session check failed:', err);
-    }
+    } catch (err) { console.warn('Session check failed:', err); }
     return;
   }
-
   showLogin();
-
-  const input = $('passwordInput');
-  const btn = $('loginBtn');
-
-  if (input) {
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') login();
-    });
-  }
-  if (btn) {
-    btn.addEventListener('click', login);
-  }
+  const input = $('passwordInput'); const btn =$('loginBtn');
+  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  if (btn) btn.addEventListener('click', login);
 });
 
 /* ============================================================
-   Trash (المحذوفات) - ميزة جديدة
+   المحذوفات وسجلات التدقيق (مصححة بالكامل)
 ============================================================ */
+async function deleteContract(code) {
+  if (!can('delete')) { alert('ليس لديك صلاحية الحذف'); return; }
+  // تم تغيير الرسالة لتناسب النقل للمحذوفات
+  if (!confirm('هل تريد نقل العقد ' + code + ' إلى سلة المحذوفات؟\n\n(يمكنك استرجاعه لاحقاً)')) return;
+  try {
+    await apiCall('delete', { code });
+    showSystemMessage('✓ تم نقل العقد لسلة المحذوفات', 'success');
+    await loadList();
+    if (adminState.currentTab === 'archive') { await loadArchiveFromD1(); }
+  } catch (err) { alert('فشل الحذف: ' + err.message); }
+}
+
 async function loadTrashLogs() {
   const tbody = $('trashBody');
   if (!tbody) return;
@@ -988,47 +771,32 @@ async function loadTrashLogs() {
       return;
     }
 
-    let html = `
-      <table class="archive-table">
-        <thead>
-          <tr>
-            <th style="width:70px; text-align:center;">#</th>
-            <th>الزوج</th>
-            <th>الزوجة</th>
-            <th style="width:140px;">تاريخ الحذف</th>
-            <th style="width:180px;">إجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
-    trashData.forEach((item, idx) => {
+    let html = ''; 
+    trashData.forEach((item) => {
       const groomName = item.party_one_name || '—';
       const brideName = item.party_two_name || '—';
       const deletedDate = item.deleted_at || '—';
+      // الميزة الجديدة: الحفاظ على رقم العقد تسلسلياً بربطه بقيمة الـ ID الثابتة
+      const displayNumber = item.id; 
 
       html += `
         <tr>
           <td class="serial-cell">
-            <span class="serial-num">${pad2num(idx + 1)}</span>
+            <span class="serial-num">${pad2num(displayNumber)}</span>
             <span class="code-sub">${escapeHtml(item.code)}</span>
           </td>
           <td class="name-cell">${escapeHtml(groomName)}</td>
           <td class="name-cell">${escapeHtml(brideName)}</td>
           <td class="date-cell" style="direction:ltr;">${escapeHtml(deletedDate)}</td>
           <td class="action-icons">
-            <button class="icon-btn edit" title="استرجاع" onclick="restoreContract('${item.code}')">${ICONS.restore}</button>
-            <button class="icon-btn delete" title="حذف نهائي" onclick="permanentDelete('${item.code}')">${ICONS.trash}</button>
+            <button class="icon-btn edit" title="استرجاع" onclick="restoreContract('${item.code}')">${ICONS.restore || '♻️'}</button>
+            <button class="icon-btn delete" title="حذف نهائي" onclick="permanentDelete('${item.code}')">${ICONS.trash || '🗑️'}</button>
           </td>
         </tr>
       `;
     });
-    
-    html += '</tbody></table>';
     tbody.innerHTML = html;
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`;
-  }
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`; }
 }
 
 async function restoreContract(code) {
@@ -1037,9 +805,7 @@ async function restoreContract(code) {
     await apiCall('restore', { code });
     showSystemMessage('✓ تم الاسترجاع بنجاح', 'success');
     await loadTrashLogs();
-  } catch (err) {
-    alert('فشل الاسترجاع: ' + err.message);
-  }
+  } catch (err) { alert('فشل الاسترجاع: ' + err.message); }
 }
 
 async function permanentDelete(code) {
@@ -1048,18 +814,11 @@ async function permanentDelete(code) {
     await apiCall('permanent_delete', { code });
     showSystemMessage('✓ تم الحذف النهائي', 'success');
     await loadTrashLogs();
-  } catch (err) {
-    alert('فشل الحذف: ' + err.message);
-  }
+  } catch (err) { alert('فشل الحذف: ' + err.message); }
 }
 
-/* ============================================================
-   Audit Logs (سجلات التدقيق) - ميزة جديدة
-============================================================ */
-/* ============================================================
-   Audit Logs (سجلات التدقيق) - مع الفلترة
-============================================================ */
-let allAuditData = []; // متغير لحفظ السجلات للفلترة
+// ------------------------------------------------------------
+let allAuditData = []; 
 
 async function loadAuditLogs() {
   const tbody = $('auditLogsBody');
@@ -1069,20 +828,19 @@ async function loadAuditLogs() {
   try {
     const data = await apiCall('audit_logs');
     allAuditData = data.logs || []; 
+    
+    // ربط مربعات الفلترة
+    document.querySelectorAll('.audit-filter').forEach(cb => {
+        cb.addEventListener('change', window.filterAuditLogs);
+    });
     renderAuditLogs(allAuditData);
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`;
-  }
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`; }
 }
 
 function renderAuditLogs(logs) {
   const tbody = $('auditLogsBody');
   if (!tbody) return;
-
-  if (logs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات مطابقة.</td></tr>';
-    return;
-  }
+  if (logs.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات مطابقة.</td></tr>'; return; }
 
   let html = '';
   logs.forEach(log => {
@@ -1093,15 +851,23 @@ function renderAuditLogs(logs) {
     else if(log.action === 'generate') typeBadge = '<span style="color:#6c5ce7;">✨ توليد أكواد</span>';
     else if(log.action === 'clear_all_drafts') typeBadge = '<span style="color:#e17055;">🧹 مسح شامل</span>';
 
-    const user = log.username || log.user_id || 'نظام';
-    const date = log.timestamp || log.created_at || '-';
+    let user = log.auth_user || log.username;
+    if (!user) user = (log.user_id == 1) ? 'admin' : (log.user_id || 'نظام');
+    
+    let dateStr = '-';
+    if (log.timestamp) {
+        const ts = String(log.timestamp).length <= 10 ? log.timestamp * 1000 : log.timestamp;
+        const d = new Date(ts);
+        dateStr = d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    } else if (log.created_at) { dateStr = log.created_at; }
+
     const details = log.details || '-';
 
     html += `
       <tr>
-        <td class="date-cell" style="direction:ltr; font-weight:bold;">${escapeHtml(date)}</td>
+        <td class="date-cell" style="direction:ltr; font-weight:bold; font-size:13px;">${escapeHtml(dateStr)}</td>
         <td>${typeBadge}</td>
-        <td style="font-weight:bold;">${escapeHtml(user)}</td>
+        <td style="font-weight:bold; color:#2d6a4f;">${escapeHtml(user)}</td>
         <td style="font-family:monospace; direction:ltr;">-</td>
         <td style="font-size:12px; color:#636e72;">${escapeHtml(details)}</td>
       </tr>
@@ -1110,22 +876,22 @@ function renderAuditLogs(logs) {
   tbody.innerHTML = html;
 }
 
-// دالة الفلترة المربوطة بمربعات التحديد (Checkboxes)
 window.filterAuditLogs = function() {
   const checkboxes = document.querySelectorAll('.audit-filter:checked');
   const allowed = Array.from(checkboxes).map(cb => cb.value);
+  let filtered = allAuditData;
   
-  const filtered = allAuditData.filter(log => {
-    const act = log.action || '';
-    if (allowed.includes('login') && act === 'login') return true;
-    if (allowed.includes('security') && ['delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
-    if (allowed.includes('action') && !['login', 'delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
-    return false;
-  });
-  
+  if (allowed.length > 0) {
+      filtered = allAuditData.filter(log => {
+        const act = log.action || '';
+        if (allowed.includes('login') && act === 'login') return true;
+        if (allowed.includes('security') && ['delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
+        if (allowed.includes('action') && !['login', 'delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
+        return false;
+      });
+  }
   renderAuditLogs(filtered);
 };
-
 
 /* ============================================================
    Exports
@@ -1139,7 +905,7 @@ window.closeModal = closeModal;
 window.printContract = printContract;
 window.printContractByCode = printContractByCode;
 window.editContract = editContract;
-window.deleteContract = deleteContract;
+window.deleteContract = deleteContract; // الدالة المحدثة
 window.generateNewCodes = generateNewCodes;
 window.clearDraftForCode = clearDraftForCode;
 window.clearAllDrafts = clearAllDrafts;
@@ -1149,9 +915,8 @@ window.loadUsers = loadUsers;
 window.createUser = createUser;
 window.deleteUser = deleteUser;
 window.exportBackup = exportBackup;
-// التصديرات الجديدة
+// الميزات الجديدة
 window.loadTrashLogs = loadTrashLogs;
 window.restoreContract = restoreContract;
 window.permanentDelete = permanentDelete;
 window.loadAuditLogs = loadAuditLogs;
-window.filterAuditLogs = filterAuditLogs;
