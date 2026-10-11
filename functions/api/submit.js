@@ -1,11 +1,14 @@
 /* ============================================================
-   Cloudflare Function: POST /api/submit (v4 - Final)
+   Cloudflare Function: POST /api/submit (v4 - Final with Audit & IP)
    - تنسيق التاريخ DD.MM.YYYY
-   - تحديث D1 + إرسال البريد
+   - تحديث D1 + إرسال البريد + تتبع التدقيق والأمان
 ============================================================ */
 
 export async function onRequestPost(context) {
   const { request, env } = context;
+
+  // استخراج عنوان الـ IP الخاص بالمستخدم من هيدرز Cloudflare للأمان والتدقيق
+  const ipAddress = request.headers.get("CF-Connecting-IP") || "unknown";
 
   let body;
   try {
@@ -196,16 +199,29 @@ export async function onRequestPost(context) {
       ).run();
     }
 
-    // Audit log
+    // Audit log (محدث ليتضمن تسجيل الـ IP وتفاصيل الأمان الكاملة)[span_1](start_span)[span_1](end_span)
     try {
       await env.DB.prepare(
-        `INSERT INTO audit_log (action, entity_type, entity_id, details)
-         VALUES ('submit', 'contract', ?, ?)`
+        `INSERT INTO audit_logs (action, admin_user, details, ip_address)
+         VALUES (?, ?, ?, ?)`
       ).bind(
-        contractId,
-        `Contract ${code} finalized with date ${contractDate}`
+        'SUBMIT_CONTRACT',
+        'System / Public',
+        `Contract ${code} finalized with date ${contractDate}`,
+        ipAddress
       ).run();
-    } catch (e) { /* تجاهل */ }
+    } catch (auditErr) { 
+      // دعم الجدول القديم أو الجديد إن وجد لتفادي أي خطأ
+      try {
+        await env.DB.prepare(
+          `INSERT INTO audit_log (action, entity_type, entity_id, details)
+           VALUES ('submit', 'contract', ?, ?)`
+        ).bind(
+          contractId,
+          `Contract ${code} finalized with date ${contractDate}`
+        ).run();
+      } catch (e) { /* تجاهل */ }
+    }
 
   } catch (err) {
     console.error('D1 update error:', err);
