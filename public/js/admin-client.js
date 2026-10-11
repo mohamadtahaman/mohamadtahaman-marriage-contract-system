@@ -8,13 +8,38 @@ let allArchiveData = [];
 let allAuditData = [];
 
 // ==========================================
-// التهيئة والتحقق من تسجيل الدخول
+// التهيئة والتحقق من تسجيل الدخول (الحل الجذري والآمن)
 // ==========================================
-window.onload = () => {
+window.onload = async () => {
     const token = localStorage.getItem('adminToken');
     if (token) {
-        showPanel();
-        loadInitialData();
+        try {
+            // التحقق من صلاحية التوكن بصمت قبل عرض أي شيء
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                },
+                body: JSON.stringify({ action: 'list' })
+            });
+            
+            if (response.status === 401) {
+                // التوكن غير صالح أو انتهت صلاحيته
+                logout();
+            } else {
+                const data = await response.json();
+                if (data.success) {
+                    showPanel();
+                    switchTab('codes');
+                } else {
+                    logout();
+                }
+            }
+        } catch(e) {
+            console.error("خطأ في الاتصال بالسيرفر أثناء التحقق من الجلسة", e);
+            showLogin(); 
+        }
     } else {
         showLogin();
     }
@@ -53,7 +78,7 @@ async function login() {
         if (data.success) {
             localStorage.setItem('adminToken', data.token || 'temp-token');
             showPanel();
-            loadInitialData();
+            switchTab('codes'); // تحميل البيانات بعد تسجيل الدخول
         } else {
             msg.textContent = data.message || 'بيانات الدخول غير صحيحة';
             msg.classList.remove('hidden');
@@ -108,10 +133,6 @@ function showSystemMessage(text, type = 'success') {
     msg.className = `system-message ${type === 'success' ? 'msg-success' : 'msg-error'}`;
     msg.classList.remove('hidden');
     setTimeout(() => msg.classList.add('hidden'), 3000);
-}
-
-function loadInitialData() {
-    switchTab('codes');
 }
 
 // دالة مساعدة لإرسال الطلبات للسيرفر
@@ -208,7 +229,7 @@ async function loadArchive() {
         if (data.success && data.archives) {
             allArchiveData = data.archives;
             
-            // ترتيب الأرشيف تنازلياً ليكون الأحدث (03، 02، 01) في الأعلى
+            // ترتيب الأرشيف تنازلياً ليكون الأحدث في الأعلى
             allArchiveData.sort((a, b) => b.id - a.id);
             
             document.getElementById('infoSentCount').textContent = allArchiveData.length;
@@ -287,7 +308,7 @@ async function loadTrashLogs() {
             }
 
             trashBody.innerHTML = '';
-            // عرض المحذوفات تنازلياً أيضاً
+            // عرض المحذوفات تنازلياً
             trashData.sort((a, b) => b.id - a.id);
 
             trashData.forEach((item, index) => {
@@ -348,7 +369,6 @@ async function loadAuditLogs() {
         const data = await fetchAPI({ action: 'audit_logs' });
         if (data.success && data.logs) {
             allAuditData = data.logs;
-            // ترتيب تنازلي لتظهر الحركات الأخيرة أولاً
             allAuditData.sort((a, b) => b.id - a.id); 
             filterAuditLogs();
         } else {
@@ -486,7 +506,7 @@ async function exportBackup() {
 // ==========================================
 // 6. النوافذ المنبثقة (Modals) والطباعة
 // ==========================================
-let viewContractCode = null; // تخزين الكود الحالي المفتوح للمعاينة
+let viewContractCode = null;
 
 async function viewContract(code) {
     viewContractCode = code;
@@ -523,6 +543,5 @@ function closeModal() {
 
 function printContract() {
     if (!viewContractCode) return;
-    // يتم التوجيه لصفحة الطباعة باستخدام الكود في الرابط
     window.open(`print-contract.html?code=${viewContractCode}`, '_blank');
 }
