@@ -239,9 +239,16 @@ async function handleGetTrash(env) {
       const parties = await env.DB.prepare('SELECT role, name_de, name_ar FROM parties WHERE contract_id = ?').bind(c.id).all();
       let p1 = '—', p2 = '—';
       for (const p of parties.results || []) {
-        if (p.role === 'groom') p1 = p.name_ar || p.name_de || '—';
-        if (p.role === 'bride') p2 = p.name_ar || p.name_de || '—';
+        // التصحيح: قراءة الاسم الأجنبي أولاً لتجنب الحروف العشوائية
+        if (p.role === 'groom') p1 = p.name_de || p.name_ar || '—';
+        if (p.role === 'bride') p2 = p.name_de || p.name_ar || '—';
       }
+      result.push({ code: c.code, party_one_name: p1, party_two_name: p2, deleted_at: c.sent_at ? new Date(c.sent_at * 1000).toLocaleString('en-GB') : '—' });
+    }
+    return jsonResponse({ success: true, trash: result }, 200);
+  } catch (e) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
+}
+
       result.push({ code: c.code, party_one_name: p1, party_two_name: p2, deleted_at: c.sent_at ? new Date(c.sent_at * 1000).toLocaleString('en-GB') : '—' });
     }
     return jsonResponse({ success: true, trash: result }, 200);
