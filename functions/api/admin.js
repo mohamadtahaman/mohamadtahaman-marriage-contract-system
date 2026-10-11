@@ -1,7 +1,7 @@
 /* ============================================================
-   Cloudflare Function: POST /api/admin (v10 - Full Secure & Audit)
+   Cloudflare Function: POST /api/admin (v11 - Full Secure with Restore & Audit)
    - Archive with guaranteed sentAt & read for all roles
-   - Soft Delete & Trash Bin Support
+   - Soft Delete & Trash Bin Support with Restore
    - Full Audit & IP Tracking
 ============================================================ */
 
@@ -23,6 +23,7 @@ const PERMISSIONS = {
   update_contract: ['admin', 'manager'],
   list_trash:      ['admin'],
   list_audit_logs: ['admin'],
+  restore:         ['admin'],
 };
 
 export async function onRequestPost(context) {
@@ -89,7 +90,6 @@ export async function onRequestPost(context) {
     }, 403);
   }
 
-  // تسجيل الإجراء في سجل التدقيق
   await logAudit(env, auth.userId, action, 'action', null, `Action executed by ${auth.username}`, clientIP);
 
   switch (action) {
@@ -97,6 +97,7 @@ export async function onRequestPost(context) {
     case 'archive':          return await handleArchive(env);
     case 'generate':         return await handleGenerate(env);
     case 'delete':           return await handleDelete(env, body.code, auth);
+    case 'restore':          return await handleRestore(env, body.code, auth);
     case 'view':             return await handleView(env, body.code);
     case 'search':           return await handleSearch(env, body.query);
     case 'clear_drafts':     return await handleClearDrafts(env, body.code, body.all);
@@ -118,9 +119,6 @@ export async function onRequestPost(context) {
   }
 }
 
-/* ============================================================
-   Audit Log Helper
-============================================================ */
 async function logAudit(env, userId, action, entityType, entityId, details, ipAddress) {
   try {
     await env.DB.prepare(
@@ -140,9 +138,6 @@ async function logAudit(env, userId, action, entityType, entityId, details, ipAd
   }
 }
 
-/* ============================================================
-   Authentication
-============================================================ */
 async function authenticate(env, username, password) {
   username = (username || 'admin').trim().toLowerCase();
 
@@ -159,7 +154,7 @@ async function authenticate(env, username, password) {
         await env.DB.prepare(
           'UPDATE users SET last_login = ? WHERE id = ?'
         ).bind(Math.floor(Date.now() / 1000), user.id).run();
-      } catch (e) { /* تجاهل */ }
+      } catch (e) {}
 
       return {
         success: true,
@@ -179,9 +174,6 @@ async function authenticate(env, username, password) {
   return { success: false, error: 'not_found' };
 }
 
-/* ============================================================
-   List - 5 current codes
-============================================================ */
 async function handleList(env) {
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
@@ -194,7 +186,7 @@ async function handleList(env) {
         contractRow = await env.DB.prepare(
           'SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ? AND (status != "deleted" AND status != "trash")'
         ).bind(code).first();
-      } catch (e) { /* تجاهل */ }
+      } catch (e) {}
 
       const partySummary = {};
       const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
@@ -213,7 +205,7 @@ async function handleList(env) {
               witnessIsCenter: !!p.witness_is_center,
             };
           }
-        } catch (e) { /* تجاهل */ }
+        } catch (e) {}
       } else {
         for (const key of partyKeys) {
           const partyRaw = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
@@ -263,9 +255,6 @@ async function handleList(env) {
   }
 }
 
-/* ============================================================
-   Archive - From D1 (Excluding deleted)
-============================================================ */
 async function handleArchive(env) {
   try {
     const contracts = await env.DB.prepare(
@@ -320,9 +309,6 @@ async function handleArchive(env) {
   }
 }
 
-/* ============================================================
-   Trash Bin List (Admin Only)
-============================================================ */
 async function handleListTrash(env) {
   try {
     const contracts = await env.DB.prepare(
@@ -355,9 +341,6 @@ async function handleListTrash(env) {
   }
 }
 
-/* ============================================================
-   Audit Logs List (Admin Only)
-============================================================ */
 async function handleListAuditLogs(env) {
   try {
     const logs = await env.DB.prepare(
@@ -381,9 +364,6 @@ async function handleListAuditLogs(env) {
   }
 }
 
-/* ============================================================
-   View Contract
-============================================================ */
 async function handleView(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
     return jsonResponse({
@@ -460,7 +440,7 @@ async function handleView(env, code) {
         if (raw) {
           try {
             contract.parties[r] = JSON.parse(raw);
-          } catch (e) { /* تجاهل */ }
+          } catch (e) {}
         }
       }
     }
@@ -477,9 +457,6 @@ async function handleView(env, code) {
   }
 }
 
-/* ============================================================
-   Search
-============================================================ */
 async function handleSearch(env, query) {
   if (!query || !query.trim()) {
     return jsonResponse({ success: true, results: [] }, 200);
@@ -514,9 +491,6 @@ async function handleSearch(env, query) {
   }
 }
 
-/* ============================================================
-   Generate New Codes
-============================================================ */
 async function handleGenerate(env) {
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
@@ -526,7 +500,7 @@ async function handleGenerate(env) {
     try {
       const histRaw = await env.CONTRACT_KV.get('codes_history');
       if (histRaw) history = JSON.parse(histRaw);
-    } catch (e) { /* تجاهل */ }
+    } catch (e) {}
 
     for (const c of oldCodes) {
       if (!history.includes(c)) history.push(c);
@@ -573,9 +547,6 @@ async function handleGenerate(env) {
   }
 }
 
-/* ============================================================
-   Delete Contract (Soft Delete to Trash Bin)
-============================================================ */
 async function handleDelete(env, code, auth) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
     return jsonResponse({
@@ -591,7 +562,6 @@ async function handleDelete(env, code, auth) {
     ).bind(code).first();
 
     if (contractRow) {
-      // تطبيق الحذف الناعم (Soft Delete) بنقل الحالة إلى trash
       await env.DB.prepare(
         'UPDATE contracts SET status = "deleted" WHERE id = ?'
       ).bind(contractRow.id).run();
@@ -609,9 +579,47 @@ async function handleDelete(env, code, auth) {
   }
 }
 
-/* ============================================================
-   Clear Drafts
-============================================================ */
+async function handleRestore(env, code, auth) {
+  if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
+    return jsonResponse({
+      success: false,
+      error: 'invalid_code',
+      message: 'رقم العقد غير صالح',
+    }, 400);
+  }
+
+  try {
+    const contractRow = await env.DB.prepare(
+      'SELECT id FROM contracts WHERE code = ?'
+    ).bind(code).first();
+
+    if (!contractRow) {
+      return jsonResponse({
+        success: false,
+        error: 'not_found',
+        message: 'العقد غير موجود',
+      }, 404);
+    }
+
+    await env.DB.prepare(
+      'UPDATE contracts SET status = "sent" WHERE id = ?'
+    ).bind(contractRow.id).run();
+
+    return jsonResponse({
+      success: true,
+      message: `تم استعادة العقد ${code} بنجاح`,
+    }, 200);
+
+  } catch (err) {
+    console.error('handleRestore error:', err);
+    return jsonResponse({
+      success: false,
+      error: 'db_error',
+      message: 'فشل عملية الاستعادة',
+    }, 500);
+  }
+}
+
 async function handleClearDrafts(env, code, all) {
   if (all === true) {
     try {
@@ -652,7 +660,7 @@ async function handleClearDrafts(env, code, all) {
         message: 'العقد مُرسل — احذفه من الأرشيف',
       }, 409);
     }
-  } catch (e) { /* تجاهل */ }
+  } catch (e) {}
 
   try {
     const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
@@ -680,9 +688,6 @@ async function handleClearDrafts(env, code, all) {
   }
 }
 
-/* ============================================================
-   Change Password
-============================================================ */
 async function handleChangePassword(env, auth, body) {
   const oldPw = (body.old_password || '').trim();
   const newPw = (body.new_password || '').trim();
@@ -751,9 +756,6 @@ async function handleChangePassword(env, auth, body) {
   }
 }
 
-/* ============================================================
-   List Users
-============================================================ */
 async function handleListUsers(env) {
   try {
     const users = await env.DB.prepare(
@@ -770,9 +772,6 @@ async function handleListUsers(env) {
   }
 }
 
-/* ============================================================
-   Create User
-============================================================ */
 async function handleCreateUser(env, body, auth) {
   const username = (body.user_username || '').trim().toLowerCase();
   const password = (body.user_password || '').trim();
@@ -835,9 +834,6 @@ async function handleCreateUser(env, body, auth) {
   }
 }
 
-/* ============================================================
-   Delete User
-============================================================ */
 async function handleDeleteUser(env, body, auth) {
   const userId = parseInt(body.user_id, 10);
 
@@ -882,9 +878,6 @@ async function handleDeleteUser(env, body, auth) {
   }
 }
 
-/* ============================================================
-   Export
-============================================================ */
 async function handleExport(env) {
   try {
     const contracts = await env.DB.prepare(
@@ -924,9 +917,6 @@ async function handleExport(env) {
   }
 }
 
-/* ============================================================
-   Update Party
-============================================================ */
 async function handleUpdateParty(env, body, auth) {
   const code = (body.code || '').trim().toUpperCase();
   const role = (body.role || '').trim();
@@ -1027,9 +1017,6 @@ async function handleUpdateParty(env, body, auth) {
   }
 }
 
-/* ============================================================
-   Update Contract
-============================================================ */
 async function handleUpdateContract(env, body, auth) {
   const code = (body.code || '').trim().toUpperCase();
   const contractDate = (body.contract_date || '').trim();
@@ -1082,9 +1069,6 @@ async function handleUpdateContract(env, body, auth) {
   }
 }
 
-/* ============================================================
-   Helpers
-============================================================ */
 function generateRandomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';
