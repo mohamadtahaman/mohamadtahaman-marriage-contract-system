@@ -1,13 +1,10 @@
 /* ============================================================
-   Admin Client V12.4 - Full Complete Version
-   - Archive visible to ALL roles (Manager, User, Viewer, Admin)
-   - Delete restricted to admin & manager only
-   - Trash bin & Audit logs strictly restricted to admin only
+   Admin Client V12.5 - Full Complete Version with Restore
+   - Archive visible to ALL roles
+   - Delete restricted to admin & manager
+   - Trash bin & Audit logs restricted to admin only with Restore feature
 ============================================================ */
 
-/* ============================================================
-   ✅ إظهار الصفحة فوراً حسب الجلسة
-============================================================ */
 (function showCorrectScreen() {
   var hasSession = false;
   try {
@@ -31,9 +28,6 @@
   }
 })();
 
-/* ============================================================
-   State
-============================================================ */
 const adminState = {
   password: null,
   username: 'admin',
@@ -48,9 +42,6 @@ const adminState = {
   currentContract: null,
 };
 
-/* ============================================================
-   Icons
-============================================================ */
 const ICONS = {
   eye: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
   pencil: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>',
@@ -58,9 +49,6 @@ const ICONS = {
   print: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>'
 };
 
-/* ============================================================
-   Helpers
-============================================================ */
 function $(id) { return document.getElementById(id); }
 
 function escapeHtml(s) {
@@ -122,16 +110,13 @@ function resetLoginButton() {
   }
 }
 
-/* ============================================================
-   Permissions
-============================================================ */
 function can(permission) {
   const role = adminState.role || 'viewer';
   const permissions = {
-    archive_view: ['admin', 'manager', 'user', 'viewer'], // الأرشيف متاح للجميع للاطلاع
-    delete: ['admin', 'manager'],                         // الحذف للمشرف والمدير فقط
-    trash: ['admin'],                                     // صفحة المحذوفات للمشرف العام فقط
-    audit: ['admin'],                                     // سجلات التدقيق للمشرف العام فقط
+    archive_view: ['admin', 'manager', 'user', 'viewer'],
+    delete: ['admin', 'manager'],
+    trash: ['admin'],
+    audit: ['admin'],
     edit: ['admin', 'manager'],
     export: ['admin', 'manager'],
     manage_users: ['admin'],
@@ -140,9 +125,6 @@ function can(permission) {
   return (permissions[permission] || []).includes(role);
 }
 
-/* ============================================================
-   API
-============================================================ */
 async function apiCall(action, extra = {}) {
   const response = await fetch('/api/admin', {
     method: 'POST',
@@ -173,9 +155,6 @@ async function apiCall(action, extra = {}) {
   return data;
 }
 
-/* ============================================================
-   Login
-============================================================ */
 async function login() {
   const userInput = $('usernameInput');
   const input = $('passwordInput');
@@ -233,9 +212,6 @@ async function login() {
   }
 }
 
-/* ============================================================
-   Show/Hide
-============================================================ */
 function showPanel() {
   const loginScreen = $('loginScreen');
   const adminPanel = $('adminPanel');
@@ -272,31 +248,26 @@ function logout() {
 }
 
 function applyRoleRestrictions() {
-  // تبويب الأرشيف متاح ومرئي للجميع
   const archiveTab = document.querySelector('.admin-tab[data-tab="archive"]');
   if (archiveTab) {
     archiveTab.style.display = ''; 
   }
 
-  // صفحة / تبويب المحذوفات (للمشرف العام admin فقط)
   const trashTab = document.querySelector('.admin-tab[data-tab="trash"]');
   if (trashTab) {
     trashTab.style.display = can('trash') ? '' : 'none';
   }
 
-  // سجلات التدقيق والأمان (للمشرف العام admin فقط)
   const auditTab = document.querySelector('.admin-tab[data-tab="audit"]');
   if (auditTab) {
     auditTab.style.display = can('audit') ? '' : 'none';
   }
 
-  // تبويب الإعدادات والمستخدمين
   const settingsTab = document.querySelector('.admin-tab[data-tab="settings"]');
   if (settingsTab) {
     settingsTab.style.display = can('manage_users') ? '' : 'none';
   }
 
-  // أزرار توليد الأكواد ومنطقة الخطر
   const generateBtn = document.querySelector('button[onclick="generateNewCodes()"]');
   if (generateBtn) {
     const card = generateBtn.closest('.card');
@@ -309,9 +280,6 @@ function applyRoleRestrictions() {
   }
 }
 
-/* ============================================================
-   Tabs
-============================================================ */
 function switchTab(tab) {
   if (tab === 'trash' && !can('trash')) {
     alert('ليس لديك صلاحية الوصول إلى سلة المحذوفات');
@@ -352,9 +320,6 @@ function switchTab(tab) {
   }
 }
 
-/* ============================================================
-   Load Codes (5 current)
-============================================================ */
 async function loadList() {
   const tbody = $('codesBody');
   if (!tbody) return;
@@ -407,9 +372,6 @@ function renderTable() {
   });
 }
 
-/* ============================================================
-   Archive - Load from D1 (Visible to ALL roles)
-============================================================ */
 async function loadArchiveFromD1() {
   const container = $('archiveBody');
   if (!container) return;
@@ -433,9 +395,6 @@ function updateArchiveCount() {
   if (el) el.textContent = sentCount;
 }
 
-/* ============================================================
-   Render Archive
-============================================================ */
 function renderArchive() {
   const container = $('archiveBody');
   if (!container) return;
@@ -449,7 +408,7 @@ function renderArchive() {
 
   sentContracts.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   const total = sentContracts.length;
-  const userCanDelete = can('delete'); // الحذف للمشرف والمدير فقط
+  const userCanDelete = can('delete');
 
   let html = `
     <table class="archive-table">
@@ -496,9 +455,6 @@ function renderArchive() {
   container.innerHTML = html;
 }
 
-/* ============================================================
-   Trash Bin Loader (Admin Only)
-============================================================ */
 async function loadTrashFromD1() {
   if (!can('trash')) return;
   const container = $('trashBody');
@@ -554,7 +510,8 @@ async function loadTrashFromD1() {
           <td><span class="code-value">${escapeHtml(item.code)}</span></td>
           <td>${escapeHtml(item.details || 'عقد محذوف')}</td>
           <td class="action-icons">
-            <button class="icon-btn view" title="استعادة أو معاينة" onclick="viewContract('${item.code}')">${ICONS.eye}</button>
+            <button class="icon-btn view" title="معاينة" onclick="viewContract('${item.code}')">${ICONS.eye}</button>
+            <button class="icon-btn edit" title="استعادة العقد" onclick="restoreContract('${item.code}')" style="background:#2d6a4f; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">♻️ استعادة</button>
           </td>
         </tr>
       `;
@@ -568,9 +525,18 @@ async function loadTrashFromD1() {
   }
 }
 
-/* ============================================================
-   Audit Logs Loader (Admin Only)
-============================================================ */
+async function restoreContract(code) {
+  if (!confirm(`هل تريد استعادة العقد ${code} إلى الأرشيف؟`)) return;
+
+  try {
+    await apiCall('restore', { code });
+    showSystemMessage(`✓ تم استعادة العقد ${code} بنجاح`, 'success');
+    await loadTrashFromD1();
+  } catch (err) {
+    alert('فشل الاستعادة: ' + err.message);
+  }
+}
+
 async function loadAuditLogs() {
   if (!can('audit')) return;
   const tbody = $('auditLogsBody');
@@ -622,9 +588,6 @@ async function loadAuditLogs() {
   }
 }
 
-/* ============================================================
-   Search
-============================================================ */
 function filterArchive() {
   const query = ($('archiveSearch')?.value || '').trim().toLowerCase();
   const statusFilter = $('archiveFilterStatus')?.value || 'all';
@@ -656,9 +619,6 @@ function filterArchive() {
   renderArchive();
 }
 
-/* ============================================================
-   Settings
-============================================================ */
 function renderSettings() {
   const sentCount = (adminState.archiveContracts || []).filter(c => c.finished).length;
   const codesCountEl = $('infoCodesCount');
@@ -667,9 +627,6 @@ function renderSettings() {
   if (sentCountEl) sentCountEl.textContent = sentCount;
 }
 
-/* ============================================================
-   Users
-============================================================ */
 async function loadUsers() {
   const tbody = $('usersBody');
   if (!tbody) return;
@@ -750,9 +707,6 @@ async function deleteUser(userId, username) {
   }
 }
 
-/* ============================================================
-   Change Password
-============================================================ */
 async function changePassword() {
   const oldPw = $('oldPassword').value.trim();
   const newPw = $('newPassword').value.trim();
@@ -787,9 +741,6 @@ async function changePassword() {
   }
 }
 
-/* ============================================================
-   Export
-============================================================ */
 async function exportBackup() {
   try {
     const data = await apiCall('export');
@@ -808,9 +759,6 @@ async function exportBackup() {
   }
 }
 
-/* ============================================================
-   View Contract
-============================================================ */
 async function viewContract(code) {
   try {
     const data = await apiCall('view', { code });
@@ -907,9 +855,6 @@ function closeModal() {
   adminState.currentContract = null;
 }
 
-/* ============================================================
-   Print
-============================================================ */
 function printContract() {
   if (!adminState.currentContract) {
     alert('لا يوجد عقد مفتوح');
@@ -931,9 +876,6 @@ function printContractByCode(code) {
   window.open('./print-contract.html?code=' + encodeURIComponent(code), '_blank');
 }
 
-/* ============================================================
-   Edit
-============================================================ */
 function editContract(code) {
   if (!can('edit')) {
     alert('ليس لديك صلاحية التعديل');
@@ -942,20 +884,17 @@ function editContract(code) {
   window.location.href = `./admin-edit.html?code=${encodeURIComponent(code)}`;
 }
 
-/* ============================================================
-   Delete
-============================================================ */
 async function deleteContract(code) {
   if (!can('delete')) {
     alert('ليس لديك صلاحية الحذف (الحذف مقتصر على المشرف والمدير فقط)');
     return;
   }
 
-  if (!confirm('حذف العقد ' + code + ' نهائياً؟\n\nلا يمكن التراجع.')) return;
+  if (!confirm('نقل العقد ' + code + ' إلى سلة المحذوفات؟')) return;
 
   try {
     await apiCall('delete', { code });
-    showSystemMessage('✓ تم حذف العقد', 'success');
+    showSystemMessage('✓ تم نقل العقد إلى سلة المحذوفات', 'success');
     await loadList();
     if (adminState.currentTab === 'archive') {
       await loadArchiveFromD1();
@@ -965,9 +904,6 @@ async function deleteContract(code) {
   }
 }
 
-/* ============================================================
-   Generate New Codes
-============================================================ */
 async function generateNewCodes() {
   if (!can('generate_codes')) {
     alert('ليس لديك صلاحية توليد الأكواد');
@@ -1004,9 +940,6 @@ async function generateNewCodes() {
   }
 }
 
-/* ============================================================
-   Clear Drafts
-============================================================ */
 async function clearDraftForCode() {
   if (!can('generate_codes')) return;
   const input = $('clearDraftCode');
@@ -1049,9 +982,6 @@ async function clearAllDrafts() {
   }
 }
 
-/* ============================================================
-   Refresh
-============================================================ */
 async function refreshData() {
   await loadList();
   if (adminState.currentTab === 'archive') {
@@ -1070,9 +1000,6 @@ async function refreshData() {
   showSystemMessage('✓ تم التحديث', 'success');
 }
 
-/* ============================================================
-   Init
-============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
   const savedPassword = sessionStorage.getItem('admin_password');
   const savedUsername = sessionStorage.getItem('admin_username') || 'admin';
@@ -1134,9 +1061,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-/* ============================================================
-   Exports
-============================================================ */
 window.login = login;
 window.logout = logout;
 window.switchTab = switchTab;
@@ -1147,6 +1071,7 @@ window.printContract = printContract;
 window.printContractByCode = printContractByCode;
 window.editContract = editContract;
 window.deleteContract = deleteContract;
+window.restoreContract = restoreContract;
 window.generateNewCodes = generateNewCodes;
 window.clearDraftForCode = clearDraftForCode;
 window.clearAllDrafts = clearAllDrafts;
