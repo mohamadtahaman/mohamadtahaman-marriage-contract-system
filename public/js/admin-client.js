@@ -1,8 +1,8 @@
 /* ============================================================
-   Admin Client V12.2 - Updated Permissions & Trash Tab
-   - Archive visible to all roles
-   - Delete restricted to admin & manager
-   - Trash bin strictly restricted to admin only
+   Admin Client V12.4 - Full Complete Version
+   - Archive visible to ALL roles (Manager, User, Viewer, Admin)
+   - Delete restricted to admin & manager only
+   - Trash bin & Audit logs strictly restricted to admin only
 ============================================================ */
 
 /* ============================================================
@@ -129,9 +129,9 @@ function can(permission) {
   const role = adminState.role || 'viewer';
   const permissions = {
     archive_view: ['admin', 'manager', 'user', 'viewer'], // الأرشيف متاح للجميع للاطلاع
-    delete: ['admin', 'manager'],                         // الحذف للمشرف والمدير فقط[span_3](start_span)[span_3](end_span)
-    trash: ['admin'],                                     // صفحة المحذوفات للمشرف العام فقط[span_4](start_span)[span_4](end_span)
-    audit: ['admin'],                                     // سجلات التدقيق للمشرف العام فقط[span_5](start_span)[span_5](end_span)
+    delete: ['admin', 'manager'],                         // الحذف للمشرف والمدير فقط
+    trash: ['admin'],                                     // صفحة المحذوفات للمشرف العام فقط
+    audit: ['admin'],                                     // سجلات التدقيق للمشرف العام فقط
     edit: ['admin', 'manager'],
     export: ['admin', 'manager'],
     manage_users: ['admin'],
@@ -272,19 +272,19 @@ function logout() {
 }
 
 function applyRoleRestrictions() {
-  // تبويب الأرشيف متاح للجميع للاطلاع
+  // تبويب الأرشيف متاح ومرئي للجميع
   const archiveTab = document.querySelector('.admin-tab[data-tab="archive"]');
   if (archiveTab) {
     archiveTab.style.display = ''; 
   }
 
-  // صفحة / تبويب المحذوفات (للمشرف العام admin فقط)[span_6](start_span)[span_6](end_span)
+  // صفحة / تبويب المحذوفات (للمشرف العام admin فقط)
   const trashTab = document.querySelector('.admin-tab[data-tab="trash"]');
   if (trashTab) {
     trashTab.style.display = can('trash') ? '' : 'none';
   }
 
-  // سجلات التدقيق والأمان (للمشرف العام admin فقط)[span_7](start_span)[span_7](end_span)
+  // سجلات التدقيق والأمان (للمشرف العام admin فقط)
   const auditTab = document.querySelector('.admin-tab[data-tab="audit"]');
   if (auditTab) {
     auditTab.style.display = can('audit') ? '' : 'none';
@@ -408,7 +408,7 @@ function renderTable() {
 }
 
 /* ============================================================
-   Archive - Load from D1 (Visible to all)
+   Archive - Load from D1 (Visible to ALL roles)
 ============================================================ */
 async function loadArchiveFromD1() {
   const container = $('archiveBody');
@@ -449,7 +449,7 @@ function renderArchive() {
 
   sentContracts.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   const total = sentContracts.length;
-  const userCanDelete = can('delete'); // التحقق من صلاحية الحذف (مدير أو مشرف فقط)
+  const userCanDelete = can('delete'); // الحذف للمشرف والمدير فقط
 
   let html = `
     <table class="archive-table">
@@ -497,7 +497,7 @@ function renderArchive() {
 }
 
 /* ============================================================
-   Trash Bin Loader (Admin Only)[span_8](start_span)[span_8](end_span)
+   Trash Bin Loader (Admin Only)
 ============================================================ */
 async function loadTrashFromD1() {
   if (!can('trash')) return;
@@ -507,7 +507,6 @@ async function loadTrashFromD1() {
   container.innerHTML = '<div class="loading-cell">جارٍ تحميل المحذوفات...</div>';
 
   try {
-    // جلب العقود المحذوفة أو المؤرشفة في سلة المحذوفات
     const response = await fetch('/api/admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -570,7 +569,7 @@ async function loadTrashFromD1() {
 }
 
 /* ============================================================
-   Audit Logs Loader (Admin Only)[span_9](start_span)[span_9](end_span)
+   Audit Logs Loader (Admin Only)
 ============================================================ */
 async function loadAuditLogs() {
   if (!can('audit')) return;
