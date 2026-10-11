@@ -1,6 +1,6 @@
 /* ============================================================
    Cloudflare Function: POST /api/admin
-   النسخة الأصلية المستعادة بالكامل + نظام الجلسات والمحذوفات
+   النسخة الأصلية المكتملة + نظام المصادقة الأصلي بكلمة المرور + المحذوفات
 ============================================================ */
 
 const PERMISSIONS = {
@@ -10,7 +10,7 @@ const PERMISSIONS = {
   search:          ['admin', 'manager', 'user', 'viewer'],
   export:          ['admin', 'manager'],
   login:           ['all'],
-  delete:          ['admin', 'manager'], 
+  delete:          ['admin', 'manager'], // تم تحويله إلى Soft Delete
   generate:        ['admin'],
   clear_drafts:    ['admin', 'manager'],
   list_users:      ['admin'],
@@ -36,49 +36,36 @@ export async function onRequestPost(context) {
   }
 
   const action = (body.action || '').trim();
-  const authHeader = request.headers.get('Authorization') || '';
-  const token = authHeader.replace('Bearer ', '').trim();
-  let auth = null;
+  const password = (body.password || '').trim();
+  const username = (body.username || 'admin').trim();
 
-  // 1. تسجيل الدخول وإصدار التوكن
-  if (action === 'login') {
-    const password = (body.password || '').trim();
-    const username = (body.username || 'admin').trim();
-    
-    if (!password) {
-      return jsonResponse({ success: false, error: 'missing_password', message: 'كلمة المرور مطلوبة' }, 401);
-    }
-
-    auth = await authenticate(env, username, password);
-
-    if (!auth.success) {
-      return jsonResponse({ success: false, error: auth.error, message: 'بيانات الدخول غير صحيحة' }, 401);
-    }
-
-    const sessionToken = crypto.randomUUID();
-    await env.CONTRACT_KV.put('session_' + sessionToken, JSON.stringify({
-      userId: auth.userId, username: auth.username, role: auth.role
-    }), { expirationTtl: 86400 });
-
-    try { await env.DB.prepare(`INSERT INTO audit_log (user_id, action, details) VALUES (?, 'login', ?)`).bind(auth.userId || 0, `Login by ${auth.username}`).run(); } catch(e) {}
-
-    return jsonResponse({ success: true, token: sessionToken, user: { id: auth.userId, username: auth.username, role: auth.role } }, 200);
+  // 1. التحقق من وجود كلمة المرور (نظامك الأصلي)
+  if (!password) {
+    return jsonResponse({ success: false, error: 'missing_password', message: 'كلمة المرور مطلوبة' }, 401);
   }
 
-  // 2. التحقق من التوكن لباقي الإجراءات
-  if (!token) return jsonResponse({ success: false, message: 'جلسة الدخول غير صالحة.' }, 401);
-  const sessionStr = await env.CONTRACT_KV.get('session_' + token);
-  if (!sessionStr) return jsonResponse({ success: false, message: 'انتهت صلاحية الجلسة' }, 401);
+  const auth = await authenticate(env, username, password);
 
-  auth = JSON.parse(sessionStr);
+  if (!auth.success) {
+    return jsonResponse({ success: false, error: auth.error, message: 'بيانات الدخول غير صحيحة' }, 401);
+  }
+
   const userRole = auth.role;
+
+  if (action === 'login') {
+    return jsonResponse({
+      success: true,
+      user: { id: auth.userId, username: auth.username, role: auth.role },
+    }, 200);
+  }
+
   const allowedRoles = PERMISSIONS[action] || [];
 
   if (!allowedRoles.includes('all') && !allowedRoles.includes(userRole)) {
     return jsonResponse({ success: false, error: 'forbidden', message: 'ليس لديك صلاحية لهذا الإجراء' }, 403);
   }
 
-  // 3. توجيه الطلبات للدوال الأصلية
+  // 2. توجيه الطلبات
   switch (action) {
     case 'list':             return await handleList(env);
     case 'archive':          return await handleArchive(env);
@@ -95,7 +82,7 @@ export async function onRequestPost(context) {
     case 'update_party':     return await handleUpdateParty(env, body, auth);
     case 'update_contract':  return await handleUpdateContract(env, body, auth);
     
-    // إضافات المحذوفات والسجلات
+    // دوال المحذوفات والسجلات
     case 'get_trash':        return await handleGetTrash(env);
     case 'restore':          return await handleRestore(env, body.code);
     case 'permanent_delete': return await handlePermanentDelete(env, body.code);
@@ -106,11 +93,10 @@ export async function onRequestPost(context) {
 }
 
 /* ============================================================
-   الدوال الأساسية (النسخة الأصلية التي تعمل بكفاءة)
+   Authentication Core (الأصلي)
 ============================================================ */
-
 async function authenticate(env, username, password) {
-  username = (username || 'admin').trim().toLowerCase();
+  username = username.toLowerCase();
   try {
     const user = await env.DB.prepare('SELECT id, username, password_hash, role, is_active FROM users WHERE username = ?').bind(username).first();
     if (user) {
@@ -119,7 +105,7 @@ async function authenticate(env, username, password) {
       try { await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?').bind(Math.floor(Date.now() / 1000), user.id).run(); } catch (e) {}
       return { success: true, userId: user.id, username: user.username, role: user.role };
     }
-  } catch (e) { console.error('DB auth error:', e); }
+  } catch (e) {}
 
   if (username === 'admin' && password === env.ADMIN_PASSWORD) {
     return { success: true, userId: null, username: 'admin', role: 'admin' };
@@ -127,6 +113,9 @@ async function authenticate(env, username, password) {
   return { success: false, error: 'not_found' };
 }
 
+/* ============================================================
+   الدوال الأساسية (التي تعمل بكفاءة)
+============================================================ */
 async function handleList(env) {
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
@@ -137,7 +126,7 @@ async function handleList(env) {
       let contractRow = null;
       try {
         contractRow = await env.DB.prepare("SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ? AND status != 'deleted'").bind(code).first();
-      } catch (e) { /* تجاهل */ }
+      } catch (e) {}
 
       const partySummary = {};
       const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
@@ -148,7 +137,7 @@ async function handleList(env) {
           for (const p of parties.results || []) {
             partySummary[p.role] = { nameDe: p.name_de || '—', nameAr: p.name_ar || '—', waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center };
           }
-        } catch (e) { /* تجاهل */ }
+        } catch (e) {}
       } else {
         for (const key of partyKeys) {
           const partyRaw = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
@@ -157,12 +146,9 @@ async function handleList(env) {
               const party = JSON.parse(partyRaw);
               partySummary[key] = { nameDe: party.nameDe || '—', nameAr: party.nameAr || '—', waliIsBride: !!party.waliIsBride, witnessIsCenter: !!party.witnessIsCenter };
             } catch (e) { partySummary[key] = null; }
-          } else {
-            partySummary[key] = null;
-          }
+          } else { partySummary[key] = null; }
         }
       }
-
       const savedCount = partyKeys.filter(k => partySummary[k] !== null && partySummary[k] !== undefined).length;
       contracts.push({
         code: code, finished: contractRow ? contractRow.status === 'sent' : false, inD1: !!contractRow,
@@ -170,81 +156,66 @@ async function handleList(env) {
       });
     }
     return jsonResponse({ success: true, codes: codes, contracts: contracts }, 200);
-  } catch (err) { return jsonResponse({ success: false, error: 'kv_error', message: 'فشل في قراءة البيانات' }, 500); }
+  } catch (err) { return jsonResponse({ success: false, error: 'kv_error', message: 'فشل القراءة' }, 500); }
 }
 
 async function handleArchive(env) {
   try {
     const contracts = await env.DB.prepare("SELECT id, code, contract_date, status, sent_at, created_at FROM contracts WHERE status != 'deleted' ORDER BY id DESC").all();
     const result = [];
-
     for (const c of contracts.results || []) {
       const parties = await env.DB.prepare('SELECT role, name_de, name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?').bind(c.id).all();
       const partySummary = {};
       for (const p of parties.results || []) {
         partySummary[p.role] = { nameDe: p.name_de || '—', nameAr: p.name_ar || '—', waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center };
       }
-
       result.push({
         id: c.id, code: c.code, finished: c.status === 'sent', inD1: true,
         contractDate: c.contract_date, sentAt: c.sent_at || c.created_at || 0, createdAt: c.created_at || 0, parties: partySummary,
       });
     }
     return jsonResponse({ success: true, contracts: result }, 200);
-  } catch (err) { return jsonResponse({ success: false, error: 'db_error', message: 'فشل في القراءة' }, 500); }
+  } catch (err) { return jsonResponse({ success: false, error: 'db_error', message: 'فشل القراءة' }, 500); }
 }
 
 async function handleView(env, code) {
-  if (!code || !/^[A-Z0-9]{6}$/.test(code)) return jsonResponse({ success: false, error: 'invalid_code', message: 'رقم العقد غير صالح' }, 400);
+  if (!code || !/^[A-Z0-9]{6}$/.test(code)) return jsonResponse({ success: false, error: 'invalid_code' }, 400);
   try {
     const contract = { code: code, finished: false, finishedAt: null, contractDate: null, parties: {} };
     const contractRow = await env.DB.prepare('SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?').bind(code).first();
-
     if (contractRow) {
       contract.finished = contractRow.status === 'sent';
       contract.contractDate = contractRow.contract_date;
       if (contractRow.sent_at) contract.finishedAt = new Date(contractRow.sent_at * 1000).toISOString();
-
-      const parties = await env.DB.prepare(
-        `SELECT role, name_de, name_ar, birth_day, birth_month, birth_year, birth_country, birth_region, id_type, id_number,
-                address_number, address_street, postal_code, city, mother_name_de, mother_name_ar, wali_is_bride, witness_is_center
-         FROM parties WHERE contract_id = ?`
-      ).bind(contractRow.id).all();
-
+      const parties = await env.DB.prepare(`SELECT role, name_de, name_ar, birth_day, birth_month, birth_year, birth_country, birth_region, id_type, id_number, address_number, address_street, postal_code, city, mother_name_de, mother_name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?`).bind(contractRow.id).all();
       for (const p of parties.results || []) {
-        contract.parties[p.role] = {
-          nameDe: p.name_de, nameAr: p.name_ar, birthDay: p.birth_day, birthMonth: p.birth_month, birthYear: p.birth_year,
-          birthCountry: p.birth_country, birthRegion: p.birth_region, idType: p.id_type, idNumber: p.id_number,
-          addressNumber: p.address_number, addressStreet: p.address_street, postalCode: p.postal_code, city: p.city,
-          motherNameDe: p.mother_name_de, motherNameAr: p.mother_name_ar, waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center,
-        };
+        contract.parties[p.role] = { nameDe: p.name_de, nameAr: p.name_ar, birthDay: p.birth_day, birthMonth: p.birth_month, birthYear: p.birth_year, birthCountry: p.birth_country, birthRegion: p.birth_region, idType: p.id_type, idNumber: p.id_number, addressNumber: p.address_number, addressStreet: p.address_street, postalCode: p.postal_code, city: p.city, motherNameDe: p.mother_name_de, motherNameAr: p.mother_name_ar, waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center };
       }
       const dowry = await env.DB.prepare('SELECT amount_advance, amount_deferred, notes FROM dowries WHERE contract_id = ?').bind(contractRow.id).first();
       if (dowry && contract.parties.groom) {
-        contract.parties.groom.dowryAdvance = dowry.amount_advance;
-        contract.parties.groom.dowryDeferred = dowry.amount_deferred;
-        contract.parties.groom.dowryNotes = dowry.notes;
+        contract.parties.groom.dowryAdvance = dowry.amount_advance; contract.parties.groom.dowryDeferred = dowry.amount_deferred; contract.parties.groom.dowryNotes = dowry.notes;
       }
     } else {
       const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
       for (const r of roles) {
         const raw = await env.CONTRACT_KV.get(`contract_${code}_${r}`);
-        if (raw) { try { contract.parties[r] = JSON.parse(raw); } catch (e) { /* تجاهل */ } }
+        if (raw) { try { contract.parties[r] = JSON.parse(raw); } catch (e) {} }
       }
     }
     return jsonResponse({ success: true, contract }, 200);
-  } catch (err) { return jsonResponse({ success: false, error: 'db_error', message: 'فشل في القراءة' }, 500); }
+  } catch (err) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
 }
 
+/* ============================================================
+   الحذف وسلة المحذوفات (Soft Delete)
+============================================================ */
 async function handleDelete(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) return jsonResponse({ success: false, error: 'invalid_code' }, 400);
   try {
     const contractRow = await env.DB.prepare('SELECT id FROM contracts WHERE code = ?').bind(code).first();
     if (contractRow) {
-      // Soft Delete (النقل لسلة المحذوفات)
       await env.DB.prepare("UPDATE contracts SET status = 'deleted', sent_at = ? WHERE id = ?").bind(Math.floor(Date.now() / 1000), contractRow.id).run();
     } else {
-      // مسح المسودة نهائيا
       const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
       const deletes = [];
       for (const key of partyKeys) {
@@ -257,12 +228,9 @@ async function handleDelete(env, code) {
       await Promise.all(deletes);
     }
     return jsonResponse({ success: true, message: 'تم الحذف' }, 200);
-  } catch (err) { return jsonResponse({ success: false, error: 'delete_error', message: 'فشل في الحذف' }, 500); }
+  } catch (err) { return jsonResponse({ success: false, error: 'delete_error' }, 500); }
 }
 
-/* ============================================================
-   دوال المحذوفات وسجلات التدقيق (الجديدة الآمنة)
-============================================================ */
 async function handleGetTrash(env) {
   try {
     const trashContracts = await env.DB.prepare("SELECT id, code, sent_at FROM contracts WHERE status = 'deleted' ORDER BY id DESC").all();
@@ -312,7 +280,7 @@ async function handleAuditLogs(env) {
 }
 
 /* ============================================================
-   باقي الدوال الأصلية المساعدة
+   باقي الدوال الأساسية المساعدة
 ============================================================ */
 async function handleSearch(env, query) {
   if (!query || !query.trim()) return jsonResponse({ success: true, results: [] }, 200);
@@ -332,22 +300,14 @@ async function handleGenerate(env) {
     const codesRaw = await env.CONTRACT_KV.get('codes');
     const oldCodes = codesRaw ? JSON.parse(codesRaw) : [];
     let history = [];
-    try {
-      const histRaw = await env.CONTRACT_KV.get('codes_history');
-      if (histRaw) history = JSON.parse(histRaw);
-    } catch (e) { /* تجاهل */ }
-
+    try { const histRaw = await env.CONTRACT_KV.get('codes_history'); if (histRaw) history = JSON.parse(histRaw); } catch (e) {}
     for (const c of oldCodes) if (!history.includes(c)) history.push(c);
     await env.CONTRACT_KV.put('codes_history', JSON.stringify(history));
-
-    const used = new Set(history);
-    const newCodes = [];
-    let attempts = 0;
+    const used = new Set(history); const newCodes = []; let attempts = 0;
     while (newCodes.length < 5 && attempts < 1000) {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
       for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
-      if (!used.has(code)) { used.add(code); newCodes.push(code); }
-      attempts++;
+      if (!used.has(code)) { used.add(code); newCodes.push(code); } attempts++;
     }
     await env.CONTRACT_KV.put('codes', JSON.stringify(newCodes));
     return jsonResponse({ success: true, codes: newCodes, oldCodes: oldCodes }, 200);
