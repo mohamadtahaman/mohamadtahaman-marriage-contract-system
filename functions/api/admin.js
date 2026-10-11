@@ -7,7 +7,7 @@
 
 const PERMISSIONS = {
   list:            ['admin', 'manager', 'user', 'viewer'],
-  archive:         ['admin'],
+  archive:         ['admin', 'manager', 'user', 'viewer'], // تم تعديلها لتسمح للجميع بالاطلاع
   view:            ['admin', 'manager', 'user', 'viewer'],
   search:          ['admin', 'manager', 'user', 'viewer'],
   export:          ['admin', 'manager'],
