@@ -1,1109 +1,528 @@
-/* ============================================================
-   Admin Client V12.7 - Full Complete Version with Audit Filters & Restore
-   - Archive visible to ALL roles
-   - Delete restricted to admin & manager
-   - Trash bin & Audit logs restricted to admin only with Restore feature & Checkbox filters
-============================================================ */
+/* admin-client.js - Arresalah Zentrum Berlin */
 
-(function showCorrectScreen() {
-  var hasSession = false;
-  try {
-    hasSession = !!sessionStorage.getItem('admin_password');
-  } catch (e) {}
+// ==========================================
+// الإعدادات العامة والمتغيرات
+// ==========================================
+const API_URL = '/api/admin'; // مسار الـ API الخاص بـ Cloudflare Worker
+let allArchiveData = [];
+let allAuditData = [];
 
-  var loginScreen = $('loginScreen');
-  var adminPanel = $('adminPanel');
-
-  if (!loginScreen || !adminPanel) {
-    document.addEventListener('DOMContentLoaded', showCorrectScreen);
-    return;
-  }
-
-  if (hasSession) {
-    loginScreen.style.display = 'none';
-    adminPanel.style.display = 'block';
-  } else {
-    loginScreen.style.display = 'flex';
-    adminPanel.style.display = 'none';
-  }
-})();
-
-const adminState = {
-  password: null,
-  username: 'admin',
-  role: null,
-  codes: [],
-  contracts: [],
-  archiveContracts: [],
-  trashContracts: [],
-  auditLogs: [],
-  filteredContracts: [],
-  currentTab: 'codes',
-  currentContract: null,
+// ==========================================
+// التهيئة والتحقق من تسجيل الدخول
+// ==========================================
+window.onload = () => {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
+        showPanel();
+        loadInitialData();
+    } else {
+        showLogin();
+    }
 };
 
-let rawAuditLogs = []; // لتخزين سجلات التدقيق الخام للفلترة
-
-const ICONS = {
-  eye: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
-  pencil: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>',
-  trash: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>',
-  print: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>',
-  restore: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>'
-};
-
-function $(id) { return document.getElementById(id); }
-
-function escapeHtml(s) {
-  if (s === undefined || s === null) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\"/g, '&quot;');
-}
-
-function pad2num(n) {
-  return String(n).padStart(2, '0');
-}
-
-function pad2safe(v) {
-  if (v === undefined || v === null || v === '') return '';
-  return String(v).padStart(2, '0');
-}
-
-function buildDate(p) {
-  if (!p) return '—';
-  const d = pad2safe(p.birthDay);
-  const m = pad2safe(p.birthMonth);
-  const y = p.birthYear || '';
-  if (!d || !m || !y) return '—';
-  return `${d}.${m}.${y}`;
-}
-
-function showSystemMessage(text, type) {
-  const msg = $('systemMessage');
-  if (!msg) return;
-  msg.textContent = text;
-  msg.className = 'system-message ' + type;
-  msg.classList.remove('hidden');
-  if (type === 'success') {
-    setTimeout(() => msg.classList.add('hidden'), 3500);
-  }
-}
-
-function showMessage(text, type) {
-  const msg = $('loginMessage');
-  if (!msg) return;
-  msg.textContent = text;
-  msg.className = 'message ' + type;
-  msg.classList.remove('hidden');
-}
-
-function hideMessage() {
-  const msg = $('loginMessage');
-  if (msg) msg.classList.add('hidden');
-}
-
-function resetLoginButton() {
-  const btn = $('loginBtn');
-  if (btn) {
-    btn.disabled = false;
-    btn.textContent = 'تسجيل الدخول';
-  }
-}
-
-function can(permission) {
-  const role = adminState.role || 'viewer';
-  const permissions = {
-    archive_view: ['admin', 'manager', 'user', 'viewer'],
-    delete: ['admin', 'manager'],
-    trash: ['admin'],
-    audit: ['admin'],
-    edit: ['admin', 'manager'],
-    export: ['admin', 'manager'],
-    manage_users: ['admin'],
-    generate_codes: ['admin'],
-  };
-  return (permissions[permission] || []).includes(role);
-}
-
-async function apiCall(action, extra = {}) {
-  const response = await fetch('/api/admin', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      username: adminState.username,
-      password: adminState.password,
-      action,
-      ...extra,
-    }),
-  });
-
-  const text = await response.text();
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    throw new Error('استجابة غير صالحة');
-  }
-
-  if (!response.ok || !data.success) {
-    if (data.error === 'wrong_password' || data.error === 'missing_password') {
-      logout();
-    }
-    throw new Error(data.message || 'خطأ ' + response.status);
-  }
-
-  return data;
-}
-
-async function login() {
-  const userInput = $('usernameInput');
-  const input = $('passwordInput');
-  const btn = $('loginBtn');
-  const username = (userInput?.value || 'admin').trim().toLowerCase();
-  const password = input.value.trim();
-
-  hideMessage();
-
-  if (!password) {
-    showMessage('أدخل كلمة المرور', 'error');
-    return;
-  }
-
-  btn.disabled = true;
-  btn.textContent = 'جارٍ التحقق...';
-
-  try {
-    const response = await fetch('/api/admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, action: 'login' }),
-    });
-
-    const text = await response.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      showMessage('خطأ في استجابة الخادم', 'error');
-      resetLoginButton();
-      return;
-    }
-
-    if (!response.ok || !data.success) {
-      showMessage(data.message || 'فشل الدخول', 'error');
-      resetLoginButton();
-      return;
-    }
-
-    adminState.password = password;
-    adminState.username = username;
-    adminState.role = data.user?.role || 'user';
-
-    sessionStorage.setItem('admin_password', password);
-    sessionStorage.setItem('admin_username', username);
-    sessionStorage.setItem('admin_role', adminState.role);
-
-    showPanel();
-    await loadList();
-    resetLoginButton();
-  } catch (err) {
-    showMessage('خطأ في الاتصال: ' + err.message, 'error');
-    resetLoginButton();
-  }
+function showLogin() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('adminPanel').style.display = 'none';
 }
 
 function showPanel() {
-  const loginScreen = $('loginScreen');
-  const adminPanel = $('adminPanel');
-  if (loginScreen) loginScreen.style.display = 'none';
-  if (adminPanel) adminPanel.style.display = 'block';
-  applyRoleRestrictions();
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
 }
 
-function showLogin() {
-  const loginScreen = $('loginScreen');
-  const adminPanel = $('adminPanel');
-  if (loginScreen) loginScreen.style.display = 'flex';
-  if (adminPanel) adminPanel.style.display = 'none';
-  const pwInput = $('passwordInput');
-  if (pwInput) pwInput.value = '';
-  hideMessage();
-  resetLoginButton();
+// دالة تسجيل الدخول
+async function login() {
+    const user = document.getElementById('usernameInput').value;
+    const pass = document.getElementById('passwordInput').value;
+    const msg = document.getElementById('loginMessage');
+    
+    if(!user || !pass) {
+        msg.textContent = 'الرجاء إدخال اسم المستخدم وكلمة المرور';
+        msg.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'login', username: user, password: pass })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            localStorage.setItem('adminToken', data.token || 'temp-token');
+            showPanel();
+            loadInitialData();
+        } else {
+            msg.textContent = data.message || 'بيانات الدخول غير صحيحة';
+            msg.classList.remove('hidden');
+        }
+    } catch (err) {
+        msg.textContent = 'خطأ في الاتصال بالخادم';
+        msg.classList.remove('hidden');
+    }
 }
 
+// ربط أزرار تسجيل الدخول
+document.getElementById('loginBtn').addEventListener('click', login);
+document.getElementById('passwordInput').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') login();
+});
+
+// دالة تسجيل الخروج
 function logout() {
-  adminState.password = null;
-  adminState.username = 'admin';
-  adminState.role = null;
-  adminState.codes = [];
-  adminState.contracts = [];
-  adminState.archiveContracts = [];
-  adminState.trashContracts = [];
-  adminState.auditLogs = [];
-  adminState.filteredContracts = [];
-  sessionStorage.removeItem('admin_password');
-  sessionStorage.removeItem('admin_username');
-  sessionStorage.removeItem('admin_role');
-  showLogin();
+    localStorage.removeItem('adminToken');
+    showLogin();
 }
 
-function applyRoleRestrictions() {
-  const archiveTab = document.querySelector('.admin-tab[data-tab="archive"]');
-  if (archiveTab) {
-    archiveTab.style.display = ''; 
-  }
+// ==========================================
+// إدارة التبويبات والرسائل النظامية
+// ==========================================
+function switchTab(tabName) {
+    // إزالة النشاط من كل الأزرار
+    document.querySelectorAll('.admin-tab').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    
+    // إخفاء كل المحتوى
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+    document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
-  const trashTab = document.querySelector('.admin-tab[data-tab="trash"]');
-  if (trashTab) {
-    trashTab.style.display = can('trash') ? '' : 'none';
-  }
-
-  const auditTab = document.querySelector('.admin-tab[data-tab="audit"]');
-  if (auditTab) {
-    auditTab.style.display = can('audit') ? '' : 'none';
-  }
-
-  const settingsTab = document.querySelector('.admin-tab[data-tab="settings"]');
-  if (settingsTab) {
-    settingsTab.style.display = can('manage_users') ? '' : 'none';
-  }
-
-  const generateBtn = document.querySelector('button[onclick="generateNewCodes()"]');
-  if (generateBtn) {
-    const card = generateBtn.closest('.card');
-    if (card) card.style.display = can('generate_codes') ? '' : 'none';
-  }
-
-  const dangerCard = document.querySelector('.card-danger');
-  if (dangerCard) {
-    dangerCard.style.display = can('generate_codes') ? '' : 'none';
-  }
+    // تشغيل الدالة المناسبة حسب التبويب المفتوح
+    if (tabName === 'codes') loadCodes();
+    else if (tabName === 'archive') loadArchive();
+    else if (tabName === 'trash') loadTrashLogs();
+    else if (tabName === 'audit') loadAuditLogs();
+    else if (tabName === 'settings') loadSettings();
 }
 
-function switchTab(tab) {
-  if (tab === 'trash' && !can('trash')) {
-    alert('ليس لديك صلاحية الوصول إلى سلة المحذوفات');
-    return;
-  }
-  if (tab === 'audit' && !can('audit')) {
-    alert('ليس لديك صلاحية الوصول إلى سجلات التدقيق والأمان');
-    return;
-  }
-
-  adminState.currentTab = tab;
-
-  document.querySelectorAll('.admin-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.tab === tab);
-  });
-
-  document.querySelectorAll('.tab-content').forEach(c => {
-    c.classList.add('hidden');
-  });
-
-  const target = $('tab-' + tab);
-  if (target) target.classList.remove('hidden');
-
-  if (tab === 'archive') {
-    const searchInput = $('archiveSearch');
-    if (searchInput) searchInput.value = '';
-    loadArchiveFromD1();
-  }
-  if (tab === 'trash') {
-    loadTrashFromD1();
-  }
-  if (tab === 'audit') {
-    loadAuditLogs();
-  }
-  if (tab === 'settings') {
-    renderSettings();
-    loadUsers();
-  }
+function refreshData() {
+    const activeTab = document.querySelector('.admin-tab.active').getAttribute('data-tab');
+    switchTab(activeTab);
+    showSystemMessage('تم تحديث البيانات', 'success');
 }
 
-async function loadList() {
-  const tbody = $('codesBody');
-  if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="4" class="loading-cell">جارٍ التحميل...</td></tr>';
-
-  try {
-    const data = await apiCall('list');
-    adminState.codes = data.codes || [];
-    adminState.contracts = data.contracts || [];
-    renderTable();
-  } catch (err) {
-    tbody.innerHTML = `
-      <tr><td colspan="4" class="loading-cell" style="color:#c0392b;">
-        خطأ: ${escapeHtml(err.message)}
-      </td></tr>`;
-  }
+function showSystemMessage(text, type = 'success') {
+    const msg = document.getElementById('systemMessage');
+    msg.textContent = text;
+    msg.className = `system-message ${type === 'success' ? 'msg-success' : 'msg-error'}`;
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 3000);
 }
 
-function renderTable() {
-  const tbody = $('codesBody');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-
-  if (!adminState.contracts || adminState.contracts.length === 0) {
-    tbody.innerHTML = `
-      <tr><td colspan="4" class="loading-cell">
-        لا توجد أكواد. اضغط "توليد 5 أكواد جديدة".
-      </td></tr>`;
-    return;
-  }
-
-  adminState.contracts.forEach((contract, idx) => {
-    const tr = document.createElement('tr');
-    const statusHtml = contract.finished
-      ? '<span class="status-sent">● مُرسل</span>'
-      : `<span class="status-available">○ متاح (${contract.savedCount || 0}/5)</span>`;
-
-    tr.innerHTML = `
-      <td>${idx + 1}</td>
-      <td><span class="code-value">${escapeHtml(contract.code)}</span></td>
-      <td>${statusHtml}</td>
-      <td class="action-icons">
-        <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">${ICONS.eye}</button>
-        <button class="icon-btn print" title="طباعة" onclick="printContractByCode('${contract.code}')">${ICONS.print}</button>
-        ${contract.inD1 ? `<button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">${ICONS.pencil}</button>` : ''}
-        ${contract.finished && can('delete') ? `<button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">${ICONS.trash}</button>` : ''}
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
+function loadInitialData() {
+    switchTab('codes');
 }
 
-async function loadArchiveFromD1() {
-  const container = $('archiveBody');
-  if (!container) return;
-
-  container.innerHTML = '<div class="loading-cell">جارٍ التحميل...</div>';
-
-  try {
-    const data = await apiCall('archive');
-    adminState.archiveContracts = data.contracts || [];
-    adminState.archiveContracts.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
-    adminState.filteredContracts = [...adminState.archiveContracts];
-    updateArchiveCount();
-    renderArchive();
-  } catch (err) {
-    container.innerHTML = `<div class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</div>`;
-  }
-}
-
-function updateArchiveCount() {
-  const sentCount = (adminState.archiveContracts || []).filter(c => c.finished).length;
-  const el = $('archiveCount');
-  if (el) el.textContent = sentCount;
-}
-
-function renderArchive() {
-  const container = $('archiveBody');
-  if (!container) return;
-
-  const sentContracts = (adminState.filteredContracts || []).filter(c => c.finished);
-
-  if (sentContracts.length === 0) {
-    container.innerHTML = '<div class="loading-cell">لا توجد عقود مُرسلة بعد.</div>';
-    return;
-  }
-
-  sentContracts.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
-  const userCanDelete = can('delete');
-
-  let html = `
-    <table class="archive-table">
-      <thead>
-        <tr>
-          <th style="width:70px; text-align:center;">#</th>
-          <th>الزوج</th>
-          <th>الزوجة</th>
-          <th style="width:140px;">تاريخ العقد</th>
-          <th style="width:180px;">إجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  sentContracts.forEach((contract, idx) => {
-    const groom = contract.parties?.groom;
-    const bride = contract.parties?.bride;
-    const groomName = groom?.nameDe || groom?.nameAr || '—';
-    const brideName = bride?.nameDe || bride?.nameAr || '—';
-    const contractDate = contract.contractDate || '—';
-    const displayNumber = idx + 1;
-
-    html += `
-      <tr>
-        <td class="serial-cell">
-          <span class="serial-num">${pad2num(displayNumber)}</span>
-          <span class="code-sub">${escapeHtml(contract.code)}</span>
-        </td>
-        <td class="name-cell">${escapeHtml(groomName)}</td>
-        <td class="name-cell">${escapeHtml(brideName)}</td>
-        <td class="date-cell">${escapeHtml(contractDate)}</td>
-        <td class="action-icons">
-          <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">${ICONS.eye}</button>
-          <button class="icon-btn print" title="طباعة" onclick="printContractByCode('${contract.code}')">${ICONS.print}</button>
-          ${can('edit') ? `<button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">${ICONS.pencil}</button>` : ''}
-          ${userCanDelete ? `<button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">${ICONS.trash}</button>` : ''}
-        </td>
-      </tr>
-    `;
-  });
-
-  html += '</tbody></table>';
-  container.innerHTML = html;
-}
-
-async function loadTrashFromD1() {
-  if (!can('trash')) return;
-  const container = $('trashBody');
-  if (!container) return;
-
-  container.innerHTML = '<div class="loading-cell">جارٍ تحميل المحذوفات...</div>';
-
-  try {
-    const response = await fetch('/api/admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: adminState.username,
-        password: adminState.password,
-        action: 'list_trash',
-      }),
+// دالة مساعدة لإرسال الطلبات للسيرفر
+async function fetchAPI(payload) {
+    const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + (localStorage.getItem('adminToken') || '')
+        },
+        body: JSON.stringify(payload)
     });
+    if(response.status === 401) { logout(); throw new Error('Unauthorized'); }
+    return response.json();
+}
 
-    const text = await response.text();
-    let data;
+// ==========================================
+// 1. الأكواد الحالية (Codes)
+// ==========================================
+async function loadCodes() {
+    const tbody = document.getElementById('codesBody');
+    tbody.innerHTML = '<tr><td colspan="4" class="loading-cell">جارٍ التحميل...</td></tr>';
+    
     try {
-      data = JSON.parse(text);
+        const data = await fetchAPI({ action: 'list' });
+        if (data.success && data.codes) {
+            tbody.innerHTML = '';
+            document.getElementById('infoCodesCount').textContent = data.codes.length;
+            data.codes.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td style="font-family:monospace; font-weight:bold;">${item.code}</td>
+                    <td>${item.status === 'sent' ? '✅ مُرسل' : '⏳ قيد الانتظار'}</td>
+                    <td><button onclick="viewContract('${item.code}')" class="btn-secondary" style="padding:4px 8px;font-size:12px;">معاينة</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
     } catch (e) {
-      data = { success: false, contracts: [] };
+        tbody.innerHTML = '<tr><td colspan="4" class="loading-cell">خطأ في التحميل</td></tr>';
     }
-
-    const trashItems = data.contracts || [];
-    const trashCountEl = $('trashCount');
-    if (trashCountEl) trashCountEl.textContent = trashItems.length;
-
-    if (trashItems.length === 0) {
-      container.innerHTML = '<div class="loading-cell">سلة المحذوفات فارغة.</div>';
-      return;
-    }
-
-    let html = `
-      <table class="archive-table">
-        <thead>
-          <tr>
-            <th style="width:70px; text-align:center;">#</th>
-            <th>الكود</th>
-            <th>التفاصيل</th>
-            <th style="width:160px;">إجراءات</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
-    trashItems.forEach((item, idx) => {
-      html += `
-        <tr>
-          <td class="serial-cell"><span class="serial-num">${pad2num(idx + 1)}</span></td>
-          <td><span class="code-value">${escapeHtml(item.code)}</span></td>
-          <td>${escapeHtml(item.details || 'عقد محذوف')}</td>
-          <td class="action-icons">
-            <button class="icon-btn view" title="معاينة" onclick="viewContract('${item.code}')">${ICONS.eye}</button>
-            <button class="icon-btn" title="استعادة العقد" onclick="restoreContract('${item.code}')" style="background:#2d6a4f; color:#fff; border:none; width:32px; height:32px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" aria-label="استعادة">${ICONS.restore}</button>
-          </td>
-        </tr>
-      `;
-    });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
-
-  } catch (err) {
-    container.innerHTML = `<div class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</div>`;
-  }
-}
-
-async function restoreContract(code) {
-  if (!confirm(`هل تريد استعادة العقد ${code} إلى الأرشيف بنفس رقمه الأصلي؟`)) return;
-
-  try {
-    await apiCall('restore', { code });
-    showSystemMessage(`✓ تم استعادة العقد ${code} بنجاح`, 'success');
-    await loadTrashFromD1();
-  } catch (err) {
-    alert('فشل الاستعادة: ' + err.message);
-  }
-}
-
-async function loadAuditLogs() {
-  if (!can('audit')) return;
-  const tbody = $('auditLogsBody');
-  if (!tbody) return;
-
-  tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ تحميل سجلات الأمان والتدقيق...</td></tr>';
-
-  try {
-    const response = await fetch('/api/admin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: adminState.username,
-        password: adminState.password,
-        action: 'list_audit_logs',
-      }),
-    });
-
-    const text = await response.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      data = { success: false, logs: [] };
-    }
-
-    rawAuditLogs = data.logs || [];
-    filterAuditLogs();
-
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ في تحميل سجلات التدقيق: ${escapeHtml(err.message)}</td></tr>`;
-  }
-}
-
-function filterAuditLogs() {
-  const checkedActions = Array.from(document.querySelectorAll('.audit-filter:checked'))
-    .map(cb => cb.value);
-
-  const filtered = rawAuditLogs.filter(log => {
-    const act = (log.action || '').toLowerCase();
-    const type = (log.entity_type || '').toLowerCase();
-    return checkedActions.some(ca => act.includes(ca) || type.includes(ca));
-  });
-
-  renderAuditLogs(filtered);
-}
-
-function renderAuditLogs(logs) {
-  const tbody = $('auditLogsBody');
-  if (!tbody) return;
-
-  if (logs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات مطابقة للعرض.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = '';
-  logs.forEach(log => {
-    const tr = document.createElement('tr');
-    const timeStr = log.created_at ? new Date(log.created_at * 1000).toLocaleString('de-DE') : '—';
-    tr.innerHTML = `
-      <td style="font-family:'Courier New',monospace; font-size:12px;">${escapeHtml(timeStr)}</td>
-      <td><strong style="color:#2d6a4f;">${escapeHtml(log.action)}</strong></td>
-      <td>${escapeHtml(log.admin_user || 'System')}</td>
-      <td><code style="background:#f1f4f2; padding:2px 6px; border-radius:4px; font-family:'Courier New',monospace;">${escapeHtml(log.ip_address || 'unknown')}</code></td>
-      <td style="font-size:13px; color:#555;">${escapeHtml(log.details)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function filterArchive() {
-  const query = ($('archiveSearch')?.value || '').trim().toLowerCase();
-  const statusFilter = $('archiveFilterStatus')?.value || 'all';
-  const all = adminState.archiveContracts || [];
-  const sorted = [...all].sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
-
-  if (!query) {
-    adminState.filteredContracts = sorted;
-    renderArchive();
-    return;
-  }
-
-  adminState.filteredContracts = sorted.filter(contract => {
-    if (statusFilter === 'sent' && !contract.finished) return false;
-    if (statusFilter === 'pending' && contract.finished) return false;
-    if ((contract.code || '').toLowerCase().includes(query)) return true;
-
-    const parties = contract.parties || {};
-    for (const key of Object.keys(parties)) {
-      const p = parties[key];
-      if (!p) continue;
-      if (p.nameDe && String(p.nameDe).toLowerCase().includes(query)) return true;
-      if (p.nameAr && String(p.nameAr).includes(query)) return true;
-    }
-
-    return false;
-  });
-
-  renderArchive();
-}
-
-function renderSettings() {
-  const sentCount = (adminState.archiveContracts || []).filter(c => c.finished).length;
-  const codesCountEl = $('infoCodesCount');
-  const sentCountEl = $('infoSentCount');
-  if (codesCountEl) codesCountEl.textContent = adminState.codes.length;
-  if (sentCountEl) sentCountEl.textContent = sentCount;
-}
-
-async function loadUsers() {
-  const tbody = $('usersBody');
-  if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ التحميل...</td></tr>';
-
-  try {
-    const data = await apiCall('list_users');
-    const users = data.users || [];
-
-    if (users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا يوجد مستخدمون</td></tr>';
-      return;
-    }
-
-    const roleLabels = {
-      admin: 'مشرف عام',
-      manager: 'مدير',
-      user: 'مستخدم',
-      viewer: 'مشاهدة',
-    };
-
-    tbody.innerHTML = '';
-    users.forEach(user => {
-      const tr = document.createElement('tr');
-      const isAdmin = user.username === 'admin';
-
-      tr.innerHTML = `
-        <td><code style="font-family:'Courier New',monospace; font-weight:700; color:#2d6a4f;">${escapeHtml(user.username)}</code></td>
-        <td>${escapeHtml(user.full_name || '—')}</td>
-        <td>${roleLabels[user.role] || user.role}</td>
-        <td>${user.is_active ? '<span style="color:#2d6a4f;">✓ نشط</span>' : '<span style="color:#c0392b;">✗ معطّل</span>'}</td>
-        <td>
-          ${!isAdmin ? `<button class="icon-btn delete" title="حذف" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">${ICONS.trash}</button>` : '<span style="color:#999;font-size:12px;">محمي</span>'}
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`;
-  }
-}
-
-async function createUser() {
-  const username = $('newUsername').value.trim().toLowerCase();
-  const password = $('newUserPassword').value.trim();
-  const fullName = $('newFullName').value.trim();
-  const role = $('newRole').value;
-
-  if (!username || !password) {
-    showSystemMessage('اسم المستخدم وكلمة المرور مطلوبان', 'error');
-    return;
-  }
-
-  try {
-    await apiCall('create_user', {
-      user_username: username,
-      user_password: password,
-      full_name: fullName,
-      role: role,
-    });
-    showSystemMessage('✓ تم إنشاء المستخدم', 'success');
-    $('newUsername').value = '';$('newUserPassword').value = '';
-    $('newFullName').value = '';$('newRole').value = 'manager';
-    await loadUsers();
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
-}
-
-async function deleteUser(userId, username) {
-  if (!confirm(`حذف المستخدم "${username}"؟`)) return;
-  try {
-    await apiCall('delete_user', { user_id: userId });
-    showSystemMessage('✓ تم الحذف', 'success');
-    await loadUsers();
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
-}
-
-async function changePassword() {
-  const oldPw = $('oldPassword').value.trim();
-  const newPw = $('newPassword').value.trim();
-  const confirmPw = $('confirmPassword').value.trim();
-
-  if (!oldPw || !newPw || !confirmPw) {
-    showSystemMessage('جميع الحقول مطلوبة', 'error');
-    return;
-  }
-  if (newPw !== confirmPw) {
-    showSystemMessage('كلمتا المرور غير متطابقتين', 'error');
-    return;
-  }
-  if (newPw.length < 6) {
-    showSystemMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل', 'error');
-    return;
-  }
-
-  try {
-    await apiCall('change_password', {
-      old_password: oldPw,
-      new_password: newPw,
-      confirm_password: confirmPw,
-    });
-    showSystemMessage('✓ تم تغيير كلمة المرور بنجاح', 'success');
-    $('oldPassword').value = '';
-    $('newPassword').value = '';$('confirmPassword').value = '';
-    adminState.password = newPw;
-    sessionStorage.setItem('admin_password', newPw);
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
-}
-
-async function exportBackup() {
-  try {
-    const data = await apiCall('export');
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `contracts-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showSystemMessage(`✓ تم تصدير ${data.total} عقد`, 'success');
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
-}
-
-async function viewContract(code) {
-  try {
-    const data = await apiCall('view', { code });
-    adminState.currentContract = data.contract;
-    renderContractModal(data.contract);
-  } catch (err) {
-    alert('فشل العرض: ' + err.message);
-  }
-}
-
-function renderContractModal(contract) {
-  const modalTitle = $('modalTitle');
-  if (modalTitle) modalTitle.textContent = 'تفاصيل العقد: ' + contract.code;
-
-  const partyLabels = {
-    groom: 'الزوج',
-    bride: 'الزوجة',
-    wali: 'الولي',
-    witness1: 'الشاهد الأول',
-    witness2: 'الشاهد الثاني',
-  };
-
-  let html = '';
-
-  html += `
-    <div class="contract-block">
-      <div class="contract-block-title">معلومات العقد</div>
-      <div class="contract-block-body">
-        <div class="contract-row"><strong>الكود:</strong><span>${escapeHtml(contract.code)}</span></div>
-        <div class="contract-row"><strong>الحالة:</strong><span>${contract.finished ? 'مُرسل' : 'قيد الانتظار'}</span></div>
-        ${contract.contractDate ? `<div class="contract-row"><strong>تاريخ العقد:</strong><span>${escapeHtml(contract.contractDate)}</span></div>` : ''}
-        ${contract.finishedAt ? `<div class="contract-row"><strong>تاريخ الإرسال:</strong><span>${new Date(contract.finishedAt).toLocaleString('de-DE')}</span></div>` : ''}
-      </div>
-    </div>`;
-
-  ['groom', 'bride', 'wali', 'witness1', 'witness2'].forEach(key => {
-    const p = contract.parties[key];
-    html += `<div class="contract-block"><div class="contract-block-title">${partyLabels[key]}</div><div class="contract-block-body">`;
-
-    if (!p) {
-      html += '<div style="color:#999;font-style:italic;">لم يُعبّأ بعد</div>';
-    } else if (key === 'wali' && p.waliIsBride) {
-      html += '<div class="contract-row"><strong>الحالة:</strong><span>الولي هي الزوجة نفسها</span></div>';
-    } else if ((key === 'witness1' || key === 'witness2') && p.witnessIsCenter) {
-      html += '<div class="contract-row"><strong>الحالة:</strong><span>الشاهد طرف المركز</span></div>';
-    } else {
-      html += renderPartyFields(p, key);
-    }
-
-    html += '</div></div>';
-  });
-
-  const groom = contract.parties.groom;
-  if (groom && (groom.dowryAdvance || groom.dowryDeferred || groom.dowryNotes)) {
-    html += `<div class="contract-block gold">
-      <div class="contract-block-title">المهر (Brautgabe)</div>
-      <div class="contract-block-body">
-        <div class="contract-row"><strong>المقدم:</strong><span>${escapeHtml(groom.dowryAdvance || '—')} €</span></div>
-        <div class="contract-row"><strong>المؤخر:</strong><span>${escapeHtml(groom.dowryDeferred || '—')} €</span></div>
-        <div class="contract-row"><strong>ملاحظات:</strong><span>${escapeHtml(groom.dowryNotes || '—')}</span></div>
-      </div>
-    </div>`;
-  }
-
-  const modalContent = $('modalContent');
-  if (modalContent) modalContent.innerHTML = html;
-  const viewModal = $('viewModal');
-  if (viewModal) viewModal.classList.remove('hidden');
-}
-
-function renderPartyFields(p, key) {
-  const idType = p.idType === 'passport' ? 'جواز سفر' : 'بطاقة هوية';
-  const birth = buildDate(p);
-
-  let html = '';
-  html += `<div class="contract-row"><strong>الاسم (DE):</strong><span>${escapeHtml(p.nameDe || '—')}</span></div>`;
-  html += `<div class="contract-row"><strong>الاسم (AR):</strong><span>${escapeHtml(p.nameAr || '—')}</span></div>`;
-  html += `<div class="contract-row"><strong>الميلاد:</strong><span>${birth}</span></div>`;
-  html += `<div class="contract-row"><strong>مكان الميلاد:</strong><span>${escapeHtml(p.birthRegion || '—')}, ${escapeHtml(p.birthCountry || '—')}</span></div>`;
-  html += `<div class="contract-row"><strong>الهوية:</strong><span>${idType} — ${escapeHtml(p.idNumber || '—')}</span></div>`;
-  html += `<div class="contract-row"><strong>العنوان:</strong><span>${escapeHtml(p.addressStreet || '')} ${escapeHtml(p.addressNumber || '')}, ${escapeHtml(p.postalCode || '')} ${escapeHtml(p.city || '')}</span></div>`;
-
-  if (key === 'groom' || key === 'bride') {
-    html += `<div class="contract-row"><strong>الأم (DE):</strong><span>${escapeHtml(p.motherNameDe || '—')}</span></div>`;
-    html += `<div class="contract-row"><strong>الأم (AR):</strong><span>${escapeHtml(p.motherNameAr || '—')}</span></div>`;
-  }
-
-  return html;
-}
-
-function closeModal() {
-  const viewModal = $('viewModal');
-  if (viewModal) viewModal.classList.add('hidden');
-  adminState.currentContract = null;
-}
-
-function printContract() {
-  if (!adminState.currentContract) {
-    alert('لا يوجد عقد مفتوح');
-    return;
-  }
-  const code = adminState.currentContract.code;
-  if (!code) {
-    alert('رقم العقد غير معروف');
-    return;
-  }
-  printContractByCode(code);
-}
-
-function printContractByCode(code) {
-  if (!code) {
-    alert('رقم العقد مطلوب');
-    return;
-  }
-  window.open('./print-contract.html?code=' + encodeURIComponent(code), '_blank');
-}
-
-function editContract(code) {
-  if (!can('edit')) {
-    alert('ليس لديك صلاحية التعديل');
-    return;
-  }
-  window.location.href = `./admin-edit.html?code=${encodeURIComponent(code)}`;
-}
-
-async function deleteContract(code) {
-  if (!can('delete')) {
-    alert('ليس لديك صلاحية الحذف (الحذف مقتصر على المشرف والمدير فقط)');
-    return;
-  }
-
-  if (!confirm('نقل العقد ' + code + ' إلى سلة المحذوفات؟')) return;
-
-  try {
-    await apiCall('delete', { code });
-    showSystemMessage('✓ تم نقل العقد إلى سلة المحذوفات', 'success');
-    await loadList();
-    if (adminState.currentTab === 'archive') {
-      await loadArchiveFromD1();
-    }
-  } catch (err) {
-    alert('فشل الحذف: ' + err.message);
-  }
 }
 
 async function generateNewCodes() {
-  if (!can('generate_codes')) {
-    alert('ليس لديك صلاحية توليد الأكواد');
-    return;
-  }
-
-  const sentCount = (adminState.archiveContracts || []).filter(c => c.finished).length;
-  const pendingCount = (adminState.contracts || []).filter(c => !c.finished && c.savedCount > 0).length;
-
-  if (pendingCount > 0) {
-    if (!confirm(
-      `⚠️ تنبيه\n\n` +
-      `يوجد ${pendingCount} عقد قيد التعبئة (لم يُرسل بعد).\n\n` +
-      `إذا ولّدت أكواداً جديدة الآن، ستفقد الوصول لهذه العقود.\n\n` +
-      `هل تريد المتابعة؟`
-    )) return;
-  }
-
-  const msg = sentCount > 0
-    ? `توليد 5 أكواد جديدة؟\n\n✅ العقود المُرسلة (${sentCount}) ستبقى في الأرشيف\n✅ الأكواد القديمة لن تعمل بعد الآن`
-    : `توليد 5 أكواد جديدة؟\n\n✅ الأكواد القديمة لن تعمل بعد الآن`;
-
-  if (!confirm(msg)) return;
-
-  try {
-    const data = await apiCall('generate');
-    showSystemMessage('✓ ' + data.message, 'success');
-    await loadList();
-    if (adminState.currentTab === 'archive') {
-      await loadArchiveFromD1();
+    if(!confirm('تأكيد توليد 5 أكواد جديدة؟ (المسودات الحالية ستُمسح)')) return;
+    try {
+        const data = await fetchAPI({ action: 'generate' });
+        if(data.success) {
+            showSystemMessage('تم توليد الأكواد بنجاح');
+            loadCodes();
+        } else {
+            showSystemMessage(data.message, 'error');
+        }
+    } catch(e) {
+        showSystemMessage('خطأ في الاتصال', 'error');
     }
-  } catch (err) {
-    alert('فشل التوليد: ' + err.message);
-  }
 }
 
 async function clearDraftForCode() {
-  if (!can('generate_codes')) return;
-  const input = $('clearDraftCode');
-  if (!input) return;
-
-  const code = input.value.trim().toUpperCase();
-
-  if (!code) {
-    showSystemMessage('أدخل رقم العقد', 'error');
-    return;
-  }
-
-  if (!/^[A-Z0-9]{6}$/.test(code)) {
-    showSystemMessage('رقم العقد يجب أن يكون 6 خانات بالضبط', 'error');
-    return;
-  }
-
-  if (!confirm(`مسح كل مسودات العقد ${code}؟`)) return;
-
-  try {
-    const data = await apiCall('clear_drafts', { code: code });
-    showSystemMessage('✓ ' + data.message, 'success');
-    input.value = '';
-    await loadList();
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
+    const code = document.getElementById('clearDraftCode').value.trim();
+    if(!code) return alert('أدخل الكود أولاً');
+    if(!confirm(`تأكيد مسح المسودة للكود ${code}؟`)) return;
+    
+    try {
+        const data = await fetchAPI({ action: 'delete', code: code });
+        if(data.success) {
+            showSystemMessage('تم المسح بنجاح');
+            document.getElementById('clearDraftCode').value = '';
+        } else {
+            showSystemMessage(data.message, 'error');
+        }
+    } catch(e) { showSystemMessage('خطأ', 'error'); }
 }
 
 async function clearAllDrafts() {
-  if (!can('generate_codes')) return;
-  if (!confirm('⚠️ مسح كل المسودات؟\n\n(لن تُحذف العقود المُرسلة)')) return;
-
-  try {
-    const data = await apiCall('clear_drafts', { all: true });
-    showSystemMessage('✓ ' + data.message, 'success');
-    await loadList();
-  } catch (err) {
-    showSystemMessage('فشل: ' + err.message, 'error');
-  }
+    if(!confirm('⚠️ هل أنت متأكد من مسح جميع المسودات؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+    try {
+        const data = await fetchAPI({ action: 'clear_drafts' });
+        if(data.success) showSystemMessage('تم مسح جميع المسودات');
+        else showSystemMessage(data.message, 'error');
+    } catch(e) { showSystemMessage('خطأ', 'error'); }
 }
 
-async function refreshData() {
-  await loadList();
-  if (adminState.currentTab === 'archive') {
-    await loadArchiveFromD1();
-  }
-  if (adminState.currentTab === 'trash' && can('trash')) {
-    await loadTrashFromD1();
-  }
-  if (adminState.currentTab === 'audit' && can('audit')) {
-    await loadAuditLogs();
-  }
-  if (adminState.currentTab === 'settings') {
-    renderSettings();
-    loadUsers();
-  }
-  showSystemMessage('✓ تم التحديث', 'success');
+// ==========================================
+// 2. الأرشيف (Archive)
+// ==========================================
+async function loadArchive() {
+    const tbody = document.getElementById('archiveBody');
+    tbody.innerHTML = '<div class="loading-cell">جارٍ التحميل...</div>';
+    
+    try {
+        const data = await fetchAPI({ action: 'archive' });
+        if (data.success && data.archives) {
+            allArchiveData = data.archives;
+            
+            // ترتيب الأرشيف تنازلياً ليكون الأحدث (03، 02، 01) في الأعلى
+            allArchiveData.sort((a, b) => b.id - a.id);
+            
+            document.getElementById('infoSentCount').textContent = allArchiveData.length;
+            renderArchive(allArchiveData);
+        }
+    } catch (e) {
+        tbody.innerHTML = '<div class="loading-cell">خطأ في التحميل</div>';
+    }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const savedPassword = sessionStorage.getItem('admin_password');
-  const savedUsername = sessionStorage.getItem('admin_username') || 'admin';
-  const savedRole = sessionStorage.getItem('admin_role');
+function renderArchive(dataList) {
+    const tbody = document.getElementById('archiveBody');
+    const count = document.getElementById('archiveCount');
+    count.textContent = dataList.length;
 
-  if (savedUsername) {
-    adminState.username = savedUsername;
-    const userInput = $('usernameInput');
-    if (userInput) userInput.value = savedUsername;
-  }
+    if (dataList.length === 0) {
+        tbody.innerHTML = '<div style="padding:20px; text-align:center;">لا يوجد عقود في الأرشيف</div>';
+        return;
+    }
 
-  if (savedPassword) {
-    adminState.password = savedPassword;
-    adminState.role = savedRole;
+    let html = '<table class="codes-table"><thead><tr><th>#</th><th>الكود</th><th>الطرف الأول</th><th>الطرف الثاني</th><th>تاريخ الإرسال</th><th>إجراءات</th></tr></thead><tbody>';
+    dataList.forEach((item, idx) => {
+        html += `
+            <tr>
+                <td>${idx + 1}</td>
+                <td style="font-family:monospace; font-weight:bold;">${item.code}</td>
+                <td>${item.party_one_name || '-'}</td>
+                <td>${item.party_two_name || '-'}</td>
+                <td style="direction:ltr;">${item.created_at || item.contractDate || '-'}</td>
+                <td>
+                    <button onclick="viewContract('${item.code}')" class="btn-primary" style="padding:4px 8px;font-size:12px;">عرض / طباعة</button>
+                </td>
+            </tr>
+        `;
+    });
+    html += '</tbody></table>';
+    tbody.innerHTML = html;
+}
+
+function filterArchive() {
+    const search = document.getElementById('archiveSearch').value.toLowerCase();
+    const status = document.getElementById('archiveFilterStatus').value;
+    
+    const filtered = allArchiveData.filter(item => {
+        const matchSearch = (item.code || '').toLowerCase().includes(search) || 
+                            (item.party_one_name || '').toLowerCase().includes(search) || 
+                            (item.party_two_name || '').toLowerCase().includes(search);
+        
+        let matchStatus = true;
+        if(status === 'sent') matchStatus = item.status === 'sent';
+        if(status === 'pending') matchStatus = item.status !== 'sent';
+        
+        return matchSearch && matchStatus;
+    });
+    
+    renderArchive(filtered);
+}
+
+// ==========================================
+// 3. المحذوفات (Trash & Restore)
+// ==========================================
+async function loadTrashLogs() {
+    const trashBody = document.getElementById('trashBody');
+    const trashCount = document.getElementById('trashCount');
+    trashBody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ تحميل العقود المحذوفة...</td></tr>';
 
     try {
-      const response = await fetch('/api/admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: savedUsername,
-          password: savedPassword,
-          action: 'login',
-        }),
-      });
+        const data = await fetchAPI({ action: 'get_trash' });
+        if (data.success) {
+            const trashData = data.trash || [];
+            trashCount.innerText = trashData.length;
 
-      const data = await response.json();
+            if (trashData.length === 0) {
+                trashBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#777;">سلة المحذوفات فارغة حالياً</td></tr>';
+                return;
+            }
 
-      if (response.ok && data.success) {
-        adminState.role = data.user?.role || savedRole || 'user';
-        sessionStorage.setItem('admin_role', adminState.role);
-        showPanel();
-        await loadList();
-        return;
-      } else {
-        sessionStorage.removeItem('admin_password');
-        sessionStorage.removeItem('admin_username');
-        sessionStorage.removeItem('admin_role');
-        showLogin();
-      }
-    } catch (err) {
-      console.warn('Session check failed:', err);
+            trashBody.innerHTML = '';
+            // عرض المحذوفات تنازلياً أيضاً
+            trashData.sort((a, b) => b.id - a.id);
+
+            trashData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td style="font-family:monospace; font-weight:bold;">${item.code || '---'}</td>
+                    <td>${item.party_one_name || 'غير محدد'} / ${item.party_two_name || 'غير محدد'}</td>
+                    <td style="direction:ltr;">${item.deleted_at || 'غير متوفر'}</td>
+                    <td>
+                        <button onclick="restoreContract('${item.code}')" class="btn-primary" style="font-size:12px; padding:5px 10px; background-color:#2ecc71;">استرجاع</button>
+                        <button onclick="permanentDelete('${item.code}')" class="btn-danger" style="font-size:12px; padding:5px 10px; margin-right:5px;">حذف نهائي</button>
+                    </td>
+                `;
+                trashBody.appendChild(row);
+            });
+        } else {
+            trashBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">خطأ: ${data.message}</td></tr>`;
+        }
+    } catch (error) {
+        trashBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">خطأ في الاتصال</td></tr>';
     }
-    return;
-  }
+}
 
-  showLogin();
+async function restoreContract(code) {
+    if (!confirm(`هل أنت متأكد من استرجاع العقد ذو الكود: ${code}؟`)) return;
+    try {
+        const data = await fetchAPI({ action: 'restore', code: code });
+        if (data.success) {
+            showSystemMessage('تم استرجاع العقد بنجاح');
+            loadTrashLogs();
+        } else {
+            showSystemMessage('خطأ: ' + data.message, 'error');
+        }
+    } catch (e) { showSystemMessage('خطأ في الاتصال', 'error'); }
+}
 
-  const input = $('passwordInput');
-  const btn = $('loginBtn');
+async function permanentDelete(code) {
+    if (!confirm(`⚠️ تحذير: هل أنت متأكد من الحذف النهائي للعقد ${code}؟ لن يمكنك التراجع.`)) return;
+    try {
+        const data = await fetchAPI({ action: 'permanent_delete', code: code });
+        if (data.success) {
+            showSystemMessage('تم الحذف النهائي');
+            loadTrashLogs();
+        } else {
+            showSystemMessage('خطأ: ' + data.message, 'error');
+        }
+    } catch (e) { showSystemMessage('خطأ في الاتصال', 'error'); }
+}
 
-  if (input) {
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') login();
+// ==========================================
+// 4. سجلات التدقيق (Audit Logs)
+// ==========================================
+async function loadAuditLogs() {
+    const tbody = document.getElementById('auditLogsBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ تحميل السجلات...</td></tr>';
+    try {
+        const data = await fetchAPI({ action: 'audit_logs' });
+        if (data.success && data.logs) {
+            allAuditData = data.logs;
+            // ترتيب تنازلي لتظهر الحركات الأخيرة أولاً
+            allAuditData.sort((a, b) => b.id - a.id); 
+            filterAuditLogs();
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات حالياً</td></tr>';
+        }
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">خطأ في التحميل</td></tr>';
+    }
+}
+
+function filterAuditLogs() {
+    const checkboxes = document.querySelectorAll('.audit-filter:checked');
+    const allowedTypes = Array.from(checkboxes).map(cb => cb.value);
+    
+    const filtered = allAuditData.filter(log => allowedTypes.includes(log.action_type));
+    renderAuditLogs(filtered);
+}
+
+function renderAuditLogs(dataList) {
+    const tbody = document.getElementById('auditLogsBody');
+    if (dataList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">لا توجد سجلات مطابقة</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    dataList.forEach(log => {
+        let typeBadge = '';
+        if(log.action_type === 'login') typeBadge = '🟢 دخول';
+        else if(log.action_type === 'security') typeBadge = '🔴 أمان';
+        else if(log.action_type === 'auth_fail') typeBadge = '❌ فشل';
+        else typeBadge = '🔵 إجراء';
+
+        html += `
+            <tr>
+                <td style="direction:ltr; text-align:right;">${log.timestamp || '-'}</td>
+                <td>${typeBadge}</td>
+                <td>${log.username || 'نظام'}</td>
+                <td style="font-family:monospace; direction:ltr;">${log.ip_address || '-'}</td>
+                <td style="font-size:12px;">${log.details || ''}</td>
+            </tr>
+        `;
     });
-  }
-  if (btn) {
-    btn.addEventListener('click', login);
-  }
-});
+    tbody.innerHTML = html;
+}
 
-window.login = login;
-window.logout = logout;
-window.switchTab = switchTab;
-window.refreshData = refreshData;
-window.viewContract = viewContract;
-window.closeModal = closeModal;
-window.printContract = printContract;
-window.printContractByCode = printContractByCode;
-window.editContract = editContract;
-window.deleteContract = deleteContract;
-window.restoreContract = restoreContract;
-window.generateNewCodes = generateNewCodes;
-window.clearDraftForCode = clearDraftForCode;
-window.clearAllDrafts = clearAllDrafts;
-window.filterArchive = filterArchive;
-window.filterAuditLogs = filterAuditLogs;
-window.changePassword = changePassword;
-window.loadUsers = loadUsers;
-window.createUser = createUser;
-window.deleteUser = deleteUser;
-window.exportBackup = exportBackup;
-window.loadTrashFromD1 = loadTrashFromD1;
-window.loadAuditLogs = loadAuditLogs;
+// ==========================================
+// 5. الإعدادات وإدارة المستخدمين
+// ==========================================
+function loadSettings() {
+    loadUsers();
+}
+
+async function loadUsers() {
+    const tbody = document.getElementById('usersBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ التحميل...</td></tr>';
+    try {
+        const data = await fetchAPI({ action: 'list_users' });
+        if (data.success && data.users) {
+            tbody.innerHTML = '';
+            data.users.forEach(u => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${u.username}</td>
+                        <td>${u.full_name || '-'}</td>
+                        <td>${u.role}</td>
+                        <td>نشط</td>
+                        <td><button onclick="deleteUser('${u.username}')" class="btn-danger" style="padding:4px 8px;font-size:12px;">حذف</button></td>
+                    </tr>
+                `;
+            });
+        }
+    } catch(e) {}
+}
+
+async function createUser() {
+    const user = document.getElementById('newUsername').value;
+    const pass = document.getElementById('newUserPassword').value;
+    const name = document.getElementById('newFullName').value;
+    const role = document.getElementById('newRole').value;
+    
+    if(!user || !pass) return alert('أدخل بيانات المستخدم وكلمة المرور');
+    
+    try {
+        const data = await fetchAPI({ action: 'create_user', username: user, password: pass, full_name: name, role: role });
+        if(data.success) {
+            showSystemMessage('تم إضافة المستخدم');
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newUserPassword').value = '';
+            loadUsers();
+        } else alert(data.message);
+    } catch(e) {}
+}
+
+async function deleteUser(username) {
+    if(!confirm(`هل أنت متأكد من حذف المستخدم ${username}؟`)) return;
+    try {
+        const data = await fetchAPI({ action: 'delete_user', username: username });
+        if(data.success) loadUsers();
+    } catch(e) {}
+}
+
+async function changePassword() {
+    const oldP = document.getElementById('oldPassword').value;
+    const newP = document.getElementById('newPassword').value;
+    const confP = document.getElementById('confirmPassword').value;
+    
+    if(newP !== confP) return alert('كلمة المرور غير متطابقة');
+    try {
+        const data = await fetchAPI({ action: 'change_password', old_password: oldP, new_password: newP });
+        if(data.success) {
+            showSystemMessage('تم تغيير كلمة المرور بنجاح');
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        } else alert(data.message);
+    } catch(e) {}
+}
+
+async function exportBackup() {
+    try {
+        const data = await fetchAPI({ action: 'export' });
+        if (data.success) {
+            const jsonStr = JSON.stringify(data.backup, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_arresalah_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+    } catch (e) { showSystemMessage('خطأ في تصدير النسخة الاحتياطية', 'error'); }
+}
+
+// ==========================================
+// 6. النوافذ المنبثقة (Modals) والطباعة
+// ==========================================
+let viewContractCode = null; // تخزين الكود الحالي المفتوح للمعاينة
+
+async function viewContract(code) {
+    viewContractCode = code;
+    document.getElementById('modalTitle').textContent = `معاينة العقد: ${code}`;
+    const content = document.getElementById('modalContent');
+    content.innerHTML = '<div style="padding:20px;text-align:center;">جارٍ جلب البيانات...</div>';
+    document.getElementById('viewModal').classList.remove('hidden');
+
+    try {
+        const data = await fetchAPI({ action: 'view', code: code });
+        if (data.success && data.contract) {
+            content.innerHTML = `
+                <div style="background:#f9f9f9; padding:15px; border-radius:8px;">
+                    <h3 style="color:#2d6a4f; margin-bottom:10px;">بيانات الطرف الأول</h3>
+                    <p>الاسم: ${data.contract.party_one_name || '-'}</p>
+                    <p>الجنسية: ${data.contract.party_one_nationality || '-'}</p>
+                    <h3 style="color:#2d6a4f; margin-top:15px; margin-bottom:10px;">بيانات الطرف الثاني</h3>
+                    <p>الاسم: ${data.contract.party_two_name || '-'}</p>
+                    <p>الجنسية: ${data.contract.party_two_nationality || '-'}</p>
+                </div>
+            `;
+        } else {
+            content.innerHTML = '<div style="color:red; text-align:center;">حدث خطأ في عرض البيانات</div>';
+        }
+    } catch (e) {
+        content.innerHTML = '<div style="color:red; text-align:center;">خطأ في الاتصال بالخادم</div>';
+    }
+}
+
+function closeModal() {
+    document.getElementById('viewModal').classList.add('hidden');
+    viewContractCode = null;
+}
+
+function printContract() {
+    if (!viewContractCode) return;
+    // يتم التوجيه لصفحة الطباعة باستخدام الكود في الرابط
+    window.open(`print-contract.html?code=${viewContractCode}`, '_blank');
+}
