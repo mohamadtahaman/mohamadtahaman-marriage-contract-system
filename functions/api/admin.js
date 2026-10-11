@@ -6,7 +6,7 @@
 
 const PERMISSIONS = {
   list:            ['admin', 'manager', 'user', 'viewer'],
-  archive:         ['admin', 'manager', 'user', 'viewer'],
+  archive:         ['admin'],
   view:            ['admin', 'manager', 'user', 'viewer'],
   search:          ['admin', 'manager', 'user', 'viewer'],
   export:          ['admin', 'manager'],
