@@ -1,9 +1,8 @@
 /* ============================================================
-   Admin Client V12.1 - Final with Role-Based Security Restrictions
-   - Instant screen show (no refresh)
-   - Archive sorted correctly (#01 = newest)
-   - Safe padStart (numbers + strings)
-   - Robust search & strict permission checks for Audit & Archive
+   Admin Client V12.2 - Updated Permissions & Trash Tab
+   - Archive visible to all roles
+   - Delete restricted to admin & manager
+   - Trash bin strictly restricted to admin only
 ============================================================ */
 
 /* ============================================================
@@ -42,6 +41,7 @@ const adminState = {
   codes: [],
   contracts: [],
   archiveContracts: [],
+  trashContracts: [],
   auditLogs: [],
   filteredContracts: [],
   currentTab: 'codes',
@@ -123,16 +123,16 @@ function resetLoginButton() {
 }
 
 /* ============================================================
-   Permissions (Strict Role Control)
+   Permissions
 ============================================================ */
 function can(permission) {
   const role = adminState.role || 'viewer';
   const permissions = {
-    archive: ['admin'],         // الأرشيف للمشرف العام فقط
-    audit: ['admin'],           // سجلات التدقيق والأمان للمشرف العام فقط
-    view: ['admin', 'manager', 'user', 'viewer'],
+    archive_view: ['admin', 'manager', 'user', 'viewer'], // الأرشيف متاح للجميع للاطلاع
+    delete: ['admin', 'manager'],                         // الحذف للمشرف والمدير فقط[span_3](start_span)[span_3](end_span)
+    trash: ['admin'],                                     // صفحة المحذوفات للمشرف العام فقط[span_4](start_span)[span_4](end_span)
+    audit: ['admin'],                                     // سجلات التدقيق للمشرف العام فقط[span_5](start_span)[span_5](end_span)
     edit: ['admin', 'manager'],
-    delete: ['admin', 'manager'],
     export: ['admin', 'manager'],
     manage_users: ['admin'],
     generate_codes: ['admin'],
@@ -262,6 +262,7 @@ function logout() {
   adminState.codes = [];
   adminState.contracts = [];
   adminState.archiveContracts = [];
+  adminState.trashContracts = [];
   adminState.auditLogs = [];
   adminState.filteredContracts = [];
   sessionStorage.removeItem('admin_password');
@@ -271,13 +272,19 @@ function logout() {
 }
 
 function applyRoleRestrictions() {
-  // تبويب الأرشيف (للمشرف العام admin فقط)
+  // تبويب الأرشيف متاح للجميع للاطلاع
   const archiveTab = document.querySelector('.admin-tab[data-tab="archive"]');
   if (archiveTab) {
-    archiveTab.style.display = can('archive') ? '' : 'none';
+    archiveTab.style.display = ''; 
   }
 
-  // تبويب سجلات التدقيق والأمان (للمشرف العام admin فقط)
+  // صفحة / تبويب المحذوفات (للمشرف العام admin فقط)[span_6](start_span)[span_6](end_span)
+  const trashTab = document.querySelector('.admin-tab[data-tab="trash"]');
+  if (trashTab) {
+    trashTab.style.display = can('trash') ? '' : 'none';
+  }
+
+  // سجلات التدقيق والأمان (للمشرف العام admin فقط)[span_7](start_span)[span_7](end_span)
   const auditTab = document.querySelector('.admin-tab[data-tab="audit"]');
   if (auditTab) {
     auditTab.style.display = can('audit') ? '' : 'none';
@@ -306,8 +313,8 @@ function applyRoleRestrictions() {
    Tabs
 ============================================================ */
 function switchTab(tab) {
-  if (tab === 'archive' && !can('archive')) {
-    alert('ليس لديك صلاحية الوصول إلى الأرشيف');
+  if (tab === 'trash' && !can('trash')) {
+    alert('ليس لديك صلاحية الوصول إلى سلة المحذوفات');
     return;
   }
   if (tab === 'audit' && !can('audit')) {
@@ -332,6 +339,9 @@ function switchTab(tab) {
     const searchInput = $('archiveSearch');
     if (searchInput) searchInput.value = '';
     loadArchiveFromD1();
+  }
+  if (tab === 'trash') {
+    loadTrashFromD1();
   }
   if (tab === 'audit') {
     loadAuditLogs();
@@ -398,10 +408,9 @@ function renderTable() {
 }
 
 /* ============================================================
-   Archive - Load from D1
+   Archive - Load from D1 (Visible to all)
 ============================================================ */
 async function loadArchiveFromD1() {
-  if (!can('archive')) return;
   const container = $('archiveBody');
   if (!container) return;
 
@@ -440,6 +449,7 @@ function renderArchive() {
 
   sentContracts.sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0));
   const total = sentContracts.length;
+  const userCanDelete = can('delete'); // التحقق من صلاحية الحذف (مدير أو مشرف فقط)
 
   let html = `
     <table class="archive-table">
@@ -476,7 +486,7 @@ function renderArchive() {
           <button class="icon-btn view" title="معاينة" onclick="viewContract('${contract.code}')">${ICONS.eye}</button>
           <button class="icon-btn print" title="طباعة" onclick="printContractByCode('${contract.code}')">${ICONS.print}</button>
           ${can('edit') ? `<button class="icon-btn edit" title="تعديل" onclick="editContract('${contract.code}')">${ICONS.pencil}</button>` : ''}
-          ${can('delete') ? `<button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">${ICONS.trash}</button>` : ''}
+          ${userCanDelete ? `<button class="icon-btn delete" title="حذف" onclick="deleteContract('${contract.code}')">${ICONS.trash}</button>` : ''}
         </td>
       </tr>
     `;
@@ -487,7 +497,80 @@ function renderArchive() {
 }
 
 /* ============================================================
-   Audit Logs Loader (Admin Only)
+   Trash Bin Loader (Admin Only)[span_8](start_span)[span_8](end_span)
+============================================================ */
+async function loadTrashFromD1() {
+  if (!can('trash')) return;
+  const container = $('trashBody');
+  if (!container) return;
+
+  container.innerHTML = '<div class="loading-cell">جارٍ تحميل المحذوفات...</div>';
+
+  try {
+    // جلب العقود المحذوفة أو المؤرشفة في سلة المحذوفات
+    const response = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: adminState.username,
+        password: adminState.password,
+        action: 'list_trash',
+      }),
+    });
+
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      data = { success: false, contracts: [] };
+    }
+
+    const trashItems = data.contracts || [];
+    const trashCountEl = $('trashCount');
+    if (trashCountEl) trashCountEl.textContent = trashItems.length;
+
+    if (trashItems.length === 0) {
+      container.innerHTML = '<div class="loading-cell">سلة المحذوفات فارغة.</div>';
+      return;
+    }
+
+    let html = `
+      <table class="archive-table">
+        <thead>
+          <tr>
+            <th style="width:70px; text-align:center;">#</th>
+            <th>الكود</th>
+            <th>التفاصيل</th>
+            <th style="width:160px;">إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    trashItems.forEach((item, idx) => {
+      html += `
+        <tr>
+          <td class="serial-cell"><span class="serial-num">${pad2num(idx + 1)}</span></td>
+          <td><span class="code-value">${escapeHtml(item.code)}</span></td>
+          <td>${escapeHtml(item.details || 'عقد محذوف')}</td>
+          <td class="action-icons">
+            <button class="icon-btn view" title="استعادة أو معاينة" onclick="viewContract('${item.code}')">${ICONS.eye}</button>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+
+  } catch (err) {
+    container.innerHTML = `<div class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+/* ============================================================
+   Audit Logs Loader (Admin Only)[span_9](start_span)[span_9](end_span)
 ============================================================ */
 async function loadAuditLogs() {
   if (!can('audit')) return;
@@ -497,19 +580,16 @@ async function loadAuditLogs() {
   tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ تحميل سجلات الأمان والتدقيق...</td></tr>';
 
   try {
-    // جلب السجلات من نقطة نهاية مخصصة أو عبر بيانات الأرشيف / استدعاء API
     const response = await fetch('/api/admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: adminState.username,
         password: adminState.password,
-        action: 'list_audit_logs', // أو جلب من جدول audit_logs مباشرة
+        action: 'list_audit_logs',
       }),
     });
 
-    // ملاحظة: إذا لم تكن نقطة النهاية هذه معرفة في الـ backend كـ action منفصل، 
-    // يمكنك إضافتها أو جلبها كجزء من دولار الأدمن. سنقوم بعرض رسالة آمنة أو الجدول.
     const text = await response.text();
     let data;
     try {
@@ -868,7 +948,7 @@ function editContract(code) {
 ============================================================ */
 async function deleteContract(code) {
   if (!can('delete')) {
-    alert('ليس لديك صلاحية الحذف');
+    alert('ليس لديك صلاحية الحذف (الحذف مقتصر على المشرف والمدير فقط)');
     return;
   }
 
@@ -975,8 +1055,11 @@ async function clearAllDrafts() {
 ============================================================ */
 async function refreshData() {
   await loadList();
-  if (adminState.currentTab === 'archive' && can('archive')) {
+  if (adminState.currentTab === 'archive') {
     await loadArchiveFromD1();
+  }
+  if (adminState.currentTab === 'trash' && can('trash')) {
+    await loadTrashFromD1();
   }
   if (adminState.currentTab === 'audit' && can('audit')) {
     await loadAuditLogs();
@@ -1074,4 +1157,5 @@ window.loadUsers = loadUsers;
 window.createUser = createUser;
 window.deleteUser = deleteUser;
 window.exportBackup = exportBackup;
+window.loadTrashFromD1 = loadTrashFromD1;
 window.loadAuditLogs = loadAuditLogs;
