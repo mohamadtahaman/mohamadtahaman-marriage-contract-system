@@ -8,13 +8,15 @@ let allArchiveData = [];
 let allAuditData = [];
 
 // ==========================================
-// التهيئة والتحقق من تسجيل الدخول (الحل الجذري والآمن)
+// التهيئة والتحقق من تسجيل الدخول (نسخة الفحص لاكتشاف الخطأ)
 // ==========================================
 window.onload = async () => {
     const token = localStorage.getItem('adminToken');
     if (token) {
+        // إظهار اللوحة أولاً لمنع الاختفاء السريع
+        showPanel();
+        
         try {
-            // التحقق من صلاحية التوكن بصمت قبل عرض أي شيء
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: {
@@ -25,20 +27,14 @@ window.onload = async () => {
             });
             
             if (response.status === 401) {
-                // التوكن غير صالح أو انتهت صلاحيته
-                logout();
+                alert("تحذير: السيرفر لا يقبل جلسة الدخول (401 Unauthorized).\nالسبب إما أن الـ Token تالف، أو أن كود التحقق في ملف Worker يرفضه.");
+                // تركنا اللوحة مفتوحة عمداً لترى الخطأ
             } else {
-                const data = await response.json();
-                if (data.success) {
-                    showPanel();
-                    switchTab('codes');
-                } else {
-                    logout();
-                }
+                switchTab('codes');
             }
         } catch(e) {
-            console.error("خطأ في الاتصال بالسيرفر أثناء التحقق من الجلسة", e);
-            showLogin(); 
+            console.error("لا يمكن الوصول للسيرفر", e);
+            alert("خطأ: لا يمكن الوصول إلى السيرفر. تأكد من أن مسار الـ API يعمل بشكل صحيح.");
         }
     } else {
         showLogin();
@@ -78,7 +74,7 @@ async function login() {
         if (data.success) {
             localStorage.setItem('adminToken', data.token || 'temp-token');
             showPanel();
-            switchTab('codes'); // تحميل البيانات بعد تسجيل الدخول
+            switchTab('codes');
         } else {
             msg.textContent = data.message || 'بيانات الدخول غير صحيحة';
             msg.classList.remove('hidden');
@@ -105,15 +101,12 @@ function logout() {
 // إدارة التبويبات والرسائل النظامية
 // ==========================================
 function switchTab(tabName) {
-    // إزالة النشاط من كل الأزرار
     document.querySelectorAll('.admin-tab').forEach(btn => btn.classList.remove('active'));
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     
-    // إخفاء كل المحتوى
     document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
     document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
-    // تشغيل الدالة المناسبة حسب التبويب المفتوح
     if (tabName === 'codes') loadCodes();
     else if (tabName === 'archive') loadArchive();
     else if (tabName === 'trash') loadTrashLogs();
@@ -135,18 +128,32 @@ function showSystemMessage(text, type = 'success') {
     setTimeout(() => msg.classList.add('hidden'), 3000);
 }
 
-// دالة مساعدة لإرسال الطلبات للسيرفر
+// ==========================================
+// دالة الاتصال المحدثة (تطبع الخطأ بدلاً من الإخفاء الفوري)
+// ==========================================
 async function fetchAPI(payload) {
-    const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + (localStorage.getItem('adminToken') || '')
-        },
-        body: JSON.stringify(payload)
-    });
-    if(response.status === 401) { logout(); throw new Error('Unauthorized'); }
-    return response.json();
+    try {
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + (localStorage.getItem('adminToken') || '')
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if(response.status === 401) { 
+            console.error("السيرفر يرفض الاتصال بسبب خطأ في التوكن - الحالة 401");
+            alert("جلسة الدخول غير صالحة. السيرفر يرفض الاتصال.");
+            logout(); 
+            throw new Error('Unauthorized'); 
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error("فشل الاتصال بـ API_URL: ", API_URL, error);
+        throw error;
+    }
 }
 
 // ==========================================
@@ -229,7 +236,7 @@ async function loadArchive() {
         if (data.success && data.archives) {
             allArchiveData = data.archives;
             
-            // ترتيب الأرشيف تنازلياً ليكون الأحدث في الأعلى
+            // ترتيب الأرشيف تنازلياً
             allArchiveData.sort((a, b) => b.id - a.id);
             
             document.getElementById('infoSentCount').textContent = allArchiveData.length;
@@ -308,7 +315,6 @@ async function loadTrashLogs() {
             }
 
             trashBody.innerHTML = '';
-            // عرض المحذوفات تنازلياً
             trashData.sort((a, b) => b.id - a.id);
 
             trashData.forEach((item, index) => {
