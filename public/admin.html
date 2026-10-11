@@ -21,38 +21,34 @@
         <label for="passwordInput">كلمة المرور</label>
         <input type="password" id="passwordInput" placeholder="أدخل كلمة المرور">
       </div>
-      <button id="loginBtn" class="btn-primary" onclick="login()">تسجيل الدخول</button>
+      <button id="loginBtn" class="btn-primary" onclick="login()" style="width:100%;">تسجيل الدخول</button>
     </div>
   </div>
 
   <!-- لوحة الإدارة الرئيسية -->
   <div id="adminPanel" class="admin-panel hidden">
     
-    <!-- رسائل النظام العلوية -->
     <div id="systemMessage" class="system-message hidden"></div>
 
-    <!-- ترويسة اللوحة -->
     <header class="admin-header">
       <h1>📋 إدارة العقود والمستخدمين</h1>
       <div class="header-actions">
-        <button onclick="refreshData()" class="btn-secondary">🔄 تحديث البيانات</button>
+        <button onclick="refreshData()" class="btn-secondary">🔄 تحديث</button>
         <button onclick="logout()" class="btn-danger">خروج</button>
       </div>
     </header>
 
-    <!-- شريط التبويبات -->
     <nav class="admin-tabs">
       <button class="admin-tab active" data-tab="codes" onclick="switchTab('codes')">🔑 الأكواد الحالية</button>
-      <button class="admin-tab" data-tab="archive" onclick="switchTab('archive')">📁 أرشيف العقود</button>
-      <button class="admin-tab" data-tab="trash" onclick="switchTab('trash')">🗑️ سلة المحذوفات</button>
-      <button class="admin-tab" data-tab="audit" onclick="switchTab('audit')">🛡️ سجلات التدقيق والأمان</button>
-      <button class="admin-tab" data-tab="settings" onclick="switchTab('settings')">⚙️ الإعدادات والمستخدمين</button>
+      <button class="admin-tab" data-tab="archive" onclick="switchTab('archive')">📁 الأرشيف</button>
+      <button class="admin-tab" data-tab="trash" onclick="switchTab('trash')">🗑️ المحذوفات</button>
+      <button class="admin-tab" data-tab="audit" onclick="switchTab('audit')">🛡️ التدقيق والأمان</button>
+      <button class="admin-tab" data-tab="settings" onclick="switchTab('settings')">⚙️ الإعدادات</button>
     </nav>
 
-    <!-- محتوى التبويبات -->
     <main class="admin-content">
 
-      <!-- 1. تبويب الأكواد الحالية -->
+      <!-- 1. الأكواد الحالية -->
       <div id="tab-codes" class="tab-content">
         <div class="card">
           <div class="card-header">
@@ -77,14 +73,14 @@
         </div>
       </div>
 
-      <!-- 2. تبويب الأرشيف -->
+      <!-- 2. الأرشيف -->
       <div id="tab-archive" class="tab-content hidden">
         <div class="card">
           <div class="card-header">
             <h2>📁 أرشيف العقود المُرسلة (<span id="archiveCount">0</span>)</h2>
-            <div class="archive-search-box">
-              <input type="text" id="archiveSearch" placeholder="بحث بالاسم أو الكود..." oninput="filterArchive()">
-              <select id="archiveFilterStatus" onchange="filterArchive()">
+            <div style="display:flex; gap:10px;">
+              <input type="text" id="archiveSearch" placeholder="بحث بالاسم أو الكود..." oninput="filterArchive()" style="padding:6px 10px; border:1px solid #ddd; border-radius:4px; font-size:13px;">
+              <select id="archiveFilterStatus" onchange="filterArchive()" style="padding:6px; border:1px solid #ddd; border-radius:4px; font-size:13px;">
                 <option value="all">كل العقود</option>
                 <option value="sent">المُرسلة فقط</option>
               </select>
@@ -96,7 +92,7 @@
         </div>
       </div>
 
-      <!-- 3. تبويب سلة المحذوفات -->
+      <!-- 3. المحذوفات -->
       <div id="tab-trash" class="tab-content hidden">
         <div class="card">
           <div class="card-header">
@@ -108,7 +104,7 @@
         </div>
       </div>
 
-      <!-- 4. تبويب سجلات التدقيق والأمان -->
+      <!-- 4. التدقيق والأمان -->
       <div id="tab-audit" class="tab-content hidden">
         <div class="card">
           <div class="card-header">
@@ -116,13 +112,12 @@
             <button onclick="loadAuditLogs()" class="btn-secondary" style="font-size:12px; padding:6px 12px;">تحديث السجلات</button>
           </div>
           
-          <!-- ✅ شريط فلترة الحركات عبر Checkboxes -->
           <div class="card-body" style="background:#f8f9fa; border-bottom:1px solid #eee; padding: 12px 20px;">
             <div style="font-weight:600; font-size:13px; margin-bottom:8px; color:#333;">تصفية حسب نوع الحركة:</div>
             <div style="display:flex; gap:15px; flex-wrap:wrap; font-size:13px;">
               <label><input type="checkbox" class="audit-filter" value="login" checked onchange="filterAuditLogs()"> تسجيل الدخول (login)</label>
               <label><input type="checkbox" class="audit-filter" value="action" checked onchange="filterAuditLogs()"> الإجراءات العامة (action)</label>
-              <label><input type="checkbox" class="audit-filter" value="security" checked onchange="filterAuditLogs()"> محاولات أمنية/رفض (security)</label>
+              <label><input type="checkbox" class="audit-filter" value="security" checked onchange="filterAuditLogs()"> محاولات أمنية (security)</label>
               <label><input type="checkbox" class="audit-filter" value="auth_fail" checked onchange="filterAuditLogs()"> فشل الدخول (auth_fail)</label>
             </div>
           </div>
@@ -133,9 +128,9 @@
                 <tr>
                   <th style="width:140px;">التاريخ والوقت</th>
                   <th style="width:130px;">الإجراء (Action)</th>
-                  <th style="width:130px;">المستخدم / النظام</th>
+                  <th style="width:130px;">المستخدم</th>
                   <th style="width:130px;">عنوان IP</th>
-                  <th>التفاصيل والبيانات</th>
+                  <th>التفاصيل</th>
                 </tr>
               </thead>
               <tbody id="auditLogsBody">
@@ -146,24 +141,15 @@
         </div>
       </div>
 
-      <!-- 5. تبويب الإعدادات والمستخدمين -->
+      <!-- 5. الإعدادات -->
       <div id="tab-settings" class="tab-content hidden">
         <div class="card">
           <div class="card-header"><h2>⚙️ إدارة المستخدمين والصلاحيات</h2></div>
           <div class="card-body">
             <div class="form-row">
-              <div class="form-group">
-                <label>اسم المستخدم الجديد</label>
-                <input type="text" id="newUsername" placeholder="مثال: manager1">
-              </div>
-              <div class="form-group">
-                <label>كلمة المرور</label>
-                <input type="password" id="newUserPassword" placeholder="6 أحرف على الأقل">
-              </div>
-              <div class="form-group">
-                <label>الاسم الكامل</label>
-                <input type="text" id="newFullName" placeholder="الاسم الكامل">
-              </div>
+              <div class="form-group"><label>اسم المستخدم</label><input type="text" id="newUsername" placeholder="manager1"></div>
+              <div class="form-group"><label>كلمة المرور</label><input type="password" id="newUserPassword" placeholder="6 أحرف على الأقل"></div>
+              <div class="form-group"><label>الاسم الكامل</label><input type="text" id="newFullName" placeholder="الاسم الكامل"></div>
               <div class="form-group">
                 <label>الصلاحية</label>
                 <select id="newRole">
@@ -175,14 +161,14 @@
             </div>
             <button onclick="createUser()" class="btn-primary">إضافة المستخدم</button>
             <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-            <table class="codes-table" style="margin-top:15px;">
+            <table class="codes-table">
               <thead>
                 <tr>
                   <th>اسم المستخدم</th>
                   <th>الاسم الكامل</th>
                   <th>الصلاحية</th>
                   <th>الحالة</th>
-                  <th style="width:100px;">إجراء</th>
+                  <th style="width:80px;">إجراء</th>
                 </tr>
               </thead>
               <tbody id="usersBody">
@@ -192,9 +178,8 @@
           </div>
         </div>
 
-        <!-- تغيير كلمة المرور والتصدير -->
         <div class="card" style="margin-top:20px;">
-          <div class="card-header"><h2>🔒 تغيير كلمة المرور ونسخ الاحتياط</h2></div>
+          <div class="card-header"><h2>🔒 تغيير كلمة المرور والنسخ الاحتياطي</h2></div>
           <div class="card-body">
             <div class="form-row">
               <div class="form-group"><label>كلمة المرور القديمة</label><input type="password" id="oldPassword"></div>
@@ -211,7 +196,7 @@
     </main>
   </div>
 
-  <!-- نافذة المعاينة المنبثقة -->
+  <!-- نافذة المعاينة -->
   <div id="viewModal" class="modal hidden">
     <div class="modal-content">
       <div class="modal-header">
@@ -220,7 +205,7 @@
       </div>
       <div class="modal-body" id="modalContent"></div>
       <div class="modal-footer">
-        <button onclick="printContract()" class="btn-primary">🖨️ طباعة العقد</button>
+        <button onclick="printContract()" class="btn-primary">🖨️ طباعة</button>
         <button onclick="closeModal()" class="btn-secondary">إغلاق</button>
       </div>
     </div>
