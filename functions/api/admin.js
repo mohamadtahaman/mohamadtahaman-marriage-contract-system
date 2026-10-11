@@ -274,7 +274,7 @@ async function handleArchive(env) {
       `SELECT id, code, contract_date, status, sent_at, created_at
        FROM contracts
        WHERE status != 'deleted' AND status != 'trash'
-       ORDER BY id ASC`
+       ORDER BY id DESC`
     ).all();
 
     const result = [];
