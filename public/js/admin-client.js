@@ -1,7 +1,8 @@
 /* ============================================================
-   Admin Client V12.6 - Fixed UI & Fixed Sequence Numbers
-   - Standardized button style for restore
-   - Fixed archive numbering so contract numbers never shift
+   Admin Client V12.7 - Full Complete Version with Audit Filters & Restore
+   - Archive visible to ALL roles
+   - Delete restricted to admin & manager
+   - Trash bin & Audit logs restricted to admin only with Restore feature & Checkbox filters
 ============================================================ */
 
 (function showCorrectScreen() {
@@ -40,6 +41,8 @@ const adminState = {
   currentTab: 'codes',
   currentContract: null,
 };
+
+let rawAuditLogs = []; // لتخزين سجلات التدقيق الخام للفلترة
 
 const ICONS = {
   eye: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
@@ -381,7 +384,6 @@ async function loadArchiveFromD1() {
   try {
     const data = await apiCall('archive');
     adminState.archiveContracts = data.contracts || [];
-    // تثبيت الفرز تصاعدياً حسب الـ ID الأصلي لضمان ثبات أرقام العقود وعدم تغيرها أبداً
     adminState.archiveContracts.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
     adminState.filteredContracts = [...adminState.archiveContracts];
     updateArchiveCount();
@@ -408,7 +410,6 @@ function renderArchive() {
     return;
   }
 
-  // الحفاظ على الترتيب الثابت بناءً على الـ ID الأصلي لكي لا تتغير أرقام العقود أبداً
   sentContracts.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
   const userCanDelete = can('delete');
 
@@ -432,7 +433,7 @@ function renderArchive() {
     const groomName = groom?.nameDe || groom?.nameAr || '—';
     const brideName = bride?.nameDe || bride?.nameAr || '—';
     const contractDate = contract.contractDate || '—';
-    const displayNumber = idx + 1; // رقم ثابت لا يتغير للحفاظ على تسلسل العقود
+    const displayNumber = idx + 1;
 
     html += `
       <tr>
@@ -513,7 +514,7 @@ async function loadTrashFromD1() {
           <td>${escapeHtml(item.details || 'عقد محذوف')}</td>
           <td class="action-icons">
             <button class="icon-btn view" title="معاينة" onclick="viewContract('${item.code}')">${ICONS.eye}</button>
-            <button class="icon-btn edit" title="استعادة العقد" onclick="restoreContract('${item.code}')" style="background:#2d6a4f; color:#fff; border:none; width:32px; height:32px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" aria-label="استعادة">${ICONS.restore}</button>
+            <button class="icon-btn" title="استعادة العقد" onclick="restoreContract('${item.code}')" style="background:#2d6a4f; color:#fff; border:none; width:32px; height:32px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer;" aria-label="استعادة">${ICONS.restore}</button>
           </td>
         </tr>
       `;
@@ -565,29 +566,49 @@ async function loadAuditLogs() {
       data = { success: false, logs: [] };
     }
 
-    const logs = data.logs || [];
-    if (logs.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات تدقيق مسجلة حتى الآن.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = '';
-    logs.forEach(log => {
-      const tr = document.createElement('tr');
-      const timeStr = log.created_at ? new Date(log.created_at * 1000).toLocaleString('de-DE') : '—';
-      tr.innerHTML = `
-        <td style="font-family:'Courier New',monospace; font-size:12px;">${escapeHtml(timeStr)}</td>
-        <td><strong style="color:#2d6a4f;">${escapeHtml(log.action)}</strong></td>
-        <td>${escapeHtml(log.admin_user || 'System')}</td>
-        <td><code style="background:#f1f4f2; padding:2px 6px; border-radius:4px; font-family:'Courier New',monospace;">${escapeHtml(log.ip_address || 'unknown')}</code></td>
-        <td style="font-size:13px; color:#555;">${escapeHtml(log.details)}</td>
-      `;
-      tbody.appendChild(tr);
-    });
+    rawAuditLogs = data.logs || [];
+    filterAuditLogs();
 
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ في تحميل سجلات التدقيق: ${escapeHtml(err.message)}</td></tr>`;
   }
+}
+
+function filterAuditLogs() {
+  const checkedActions = Array.from(document.querySelectorAll('.audit-filter:checked'))
+    .map(cb => cb.value);
+
+  const filtered = rawAuditLogs.filter(log => {
+    const act = (log.action || '').toLowerCase();
+    const type = (log.entity_type || '').toLowerCase();
+    return checkedActions.some(ca => act.includes(ca) || type.includes(ca));
+  });
+
+  renderAuditLogs(filtered);
+}
+
+function renderAuditLogs(logs) {
+  const tbody = $('auditLogsBody');
+  if (!tbody) return;
+
+  if (logs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات مطابقة للعرض.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+  logs.forEach(log => {
+    const tr = document.createElement('tr');
+    const timeStr = log.created_at ? new Date(log.created_at * 1000).toLocaleString('de-DE') : '—';
+    tr.innerHTML = `
+      <td style="font-family:'Courier New',monospace; font-size:12px;">${escapeHtml(timeStr)}</td>
+      <td><strong style="color:#2d6a4f;">${escapeHtml(log.action)}</strong></td>
+      <td>${escapeHtml(log.admin_user || 'System')}</td>
+      <td><code style="background:#f1f4f2; padding:2px 6px; border-radius:4px; font-family:'Courier New',monospace;">${escapeHtml(log.ip_address || 'unknown')}</code></td>
+      <td style="font-size:13px; color:#555;">${escapeHtml(log.details)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 function filterArchive() {
@@ -1078,6 +1099,7 @@ window.generateNewCodes = generateNewCodes;
 window.clearDraftForCode = clearDraftForCode;
 window.clearAllDrafts = clearAllDrafts;
 window.filterArchive = filterArchive;
+window.filterAuditLogs = filterAuditLogs;
 window.changePassword = changePassword;
 window.loadUsers = loadUsers;
 window.createUser = createUser;
