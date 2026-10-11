@@ -62,10 +62,11 @@
 
   <div id="systemMessage" class="system-message hidden"></div>
 
-  <!-- شريط التبويبات المحدث ليضم تبويب الأمان -->
+  <!-- شريط التبويبات المحدث -->
   <div class="admin-tabs">
     <button class="admin-tab active" data-tab="codes" onclick="switchTab('codes')">الأكواد الحالية</button>
     <button class="admin-tab" id="archiveTabBtn" data-tab="archive" onclick="switchTab('archive')">الأرشيف</button>
+    <button class="admin-tab" data-tab="trash" onclick="switchTab('trash')">🗑️ المحذوفات</button>
     <button class="admin-tab" data-tab="audit" onclick="switchTab('audit')">🛡️ سجلات التدقيق والأمان</button>
     <button class="admin-tab" data-tab="settings" onclick="switchTab('settings')">الإعدادات</button>
   </div>
@@ -155,7 +156,33 @@
       </div>
     </div>
 
-    <!-- 🛡️ Tab: Audit & Security Logs (تم إضافته هنا بتناسق كامل مع التصميم) -->
+    <!-- 🗑️ Trash Tab (قسم المحذوفات وزر الاسترجاع) -->
+    <div id="tab-trash" class="tab-content hidden">
+      <div class="card">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>🗑️ سلة المحذوفات العقود المحذوفة (<span id="trashCount">0</span>)</h2>
+          <button onclick="loadTrashLogs()" class="btn-secondary" style="font-size:12px; padding:6px 14px;">تحديث المحذوفات</button>
+        </div>
+        <div class="card-body no-padding">
+          <table class="codes-table">
+            <thead>
+              <tr>
+                <th style="width:60px;">#</th>
+                <th style="width:130px;">الكود</th>
+                <th>اسم الطرف الأول / الثاني</th>
+                <th style="width:150px;">تاريخ الحذف</th>
+                <th style="width:140px;">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="trashBody">
+              <tr><td colspan="5" class="loading-cell">جارٍ تحميل العقود المحذوفة...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🛡️ Tab: Audit & Security Logs -->
     <div id="tab-audit" class="tab-content hidden">
       <div class="card">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
@@ -163,7 +190,6 @@
           <button onclick="loadAuditLogs()" class="btn-secondary" style="font-size:12px; padding:6px 14px;">تحديث السجلات</button>
         </div>
         
-        <!-- شريط فلاتر مربعات الاختيار المدمج مع التصميم -->
         <div class="audit-filters-bar">
           <div class="filters-title">تصفية حسب نوع الحركة:</div>
           <div class="audit-filters-group">
