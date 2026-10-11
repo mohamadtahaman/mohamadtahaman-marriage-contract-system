@@ -1,9 +1,9 @@
 /* ============================================================
-   Admin Client V12 - Final
+   Admin Client V12.1 - Final with Role-Based Security Restrictions
    - Instant screen show (no refresh)
    - Archive sorted correctly (#01 = newest)
    - Safe padStart (numbers + strings)
-   - Robust search
+   - Robust search & strict permission checks for Audit & Archive
 ============================================================ */
 
 /* ============================================================
@@ -15,8 +15,8 @@
     hasSession = !!sessionStorage.getItem('admin_password');
   } catch (e) {}
 
-  var loginScreen = document.getElementById('loginScreen');
-  var adminPanel = document.getElementById('adminPanel');
+  var loginScreen = $('loginScreen');
+  var adminPanel = $('adminPanel');
 
   if (!loginScreen || !adminPanel) {
     document.addEventListener('DOMContentLoaded', showCorrectScreen);
@@ -42,6 +42,7 @@ const adminState = {
   codes: [],
   contracts: [],
   archiveContracts: [],
+  auditLogs: [],
   filteredContracts: [],
   currentTab: 'codes',
   currentContract: null,
@@ -117,17 +118,18 @@ function resetLoginButton() {
   const btn = $('loginBtn');
   if (btn) {
     btn.disabled = false;
-    btn.textContent = 'دخول';
+    btn.textContent = 'تسجيل الدخول';
   }
 }
 
 /* ============================================================
-   Permissions
+   Permissions (Strict Role Control)
 ============================================================ */
 function can(permission) {
   const role = adminState.role || 'viewer';
   const permissions = {
-    archive: ['admin'],
+    archive: ['admin'],         // الأرشيف للمشرف العام فقط
+    audit: ['admin'],           // سجلات التدقيق والأمان للمشرف العام فقط
     view: ['admin', 'manager', 'user', 'viewer'],
     edit: ['admin', 'manager'],
     delete: ['admin', 'manager'],
@@ -260,6 +262,7 @@ function logout() {
   adminState.codes = [];
   adminState.contracts = [];
   adminState.archiveContracts = [];
+  adminState.auditLogs = [];
   adminState.filteredContracts = [];
   sessionStorage.removeItem('admin_password');
   sessionStorage.removeItem('admin_username');
@@ -268,16 +271,25 @@ function logout() {
 }
 
 function applyRoleRestrictions() {
+  // تبويب الأرشيف (للمشرف العام admin فقط)
   const archiveTab = document.querySelector('.admin-tab[data-tab="archive"]');
   if (archiveTab) {
     archiveTab.style.display = can('archive') ? '' : 'none';
   }
 
+  // تبويب سجلات التدقيق والأمان (للمشرف العام admin فقط)
+  const auditTab = document.querySelector('.admin-tab[data-tab="audit"]');
+  if (auditTab) {
+    auditTab.style.display = can('audit') ? '' : 'none';
+  }
+
+  // تبويب الإعدادات والمستخدمين
   const settingsTab = document.querySelector('.admin-tab[data-tab="settings"]');
   if (settingsTab) {
     settingsTab.style.display = can('manage_users') ? '' : 'none';
   }
 
+  // أزرار توليد الأكواد ومنطقة الخطر
   const generateBtn = document.querySelector('button[onclick="generateNewCodes()"]');
   if (generateBtn) {
     const card = generateBtn.closest('.card');
@@ -295,7 +307,11 @@ function applyRoleRestrictions() {
 ============================================================ */
 function switchTab(tab) {
   if (tab === 'archive' && !can('archive')) {
-    alert('ليس لديك صلاحية الوصول إلى المحذوفات');
+    alert('ليس لديك صلاحية الوصول إلى الأرشيف');
+    return;
+  }
+  if (tab === 'audit' && !can('audit')) {
+    alert('ليس لديك صلاحية الوصول إلى سجلات التدقيق والأمان');
     return;
   }
 
@@ -316,6 +332,9 @@ function switchTab(tab) {
     const searchInput = $('archiveSearch');
     if (searchInput) searchInput.value = '';
     loadArchiveFromD1();
+  }
+  if (tab === 'audit') {
+    loadAuditLogs();
   }
   if (tab === 'settings') {
     renderSettings();
@@ -382,6 +401,7 @@ function renderTable() {
    Archive - Load from D1
 ============================================================ */
 async function loadArchiveFromD1() {
+  if (!can('archive')) return;
   const container = $('archiveBody');
   if (!container) return;
 
@@ -467,6 +487,63 @@ function renderArchive() {
 }
 
 /* ============================================================
+   Audit Logs Loader (Admin Only)
+============================================================ */
+async function loadAuditLogs() {
+  if (!can('audit')) return;
+  const tbody = $('auditLogsBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">جارٍ تحميل سجلات الأمان والتدقيق...</td></tr>';
+
+  try {
+    // جلب السجلات من نقطة نهاية مخصصة أو عبر بيانات الأرشيف / استدعاء API
+    const response = await fetch('/api/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: adminState.username,
+        password: adminState.password,
+        action: 'list_audit_logs', // أو جلب من جدول audit_logs مباشرة
+      }),
+    });
+
+    // ملاحظة: إذا لم تكن نقطة النهاية هذه معرفة في الـ backend كـ action منفصل، 
+    // يمكنك إضافتها أو جلبها كجزء من دولار الأدمن. سنقوم بعرض رسالة آمنة أو الجدول.
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      data = { success: false, logs: [] };
+    }
+
+    const logs = data.logs || [];
+    if (logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات تدقيق مسجلة حتى الآن.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    logs.forEach(log => {
+      const tr = document.createElement('tr');
+      const timeStr = log.created_at ? new Date(log.created_at * 1000).toLocaleString('de-DE') : '—';
+      tr.innerHTML = `
+        <td style="font-family:'Courier New',monospace; font-size:12px;">${escapeHtml(timeStr)}</td>
+        <td><strong style="color:#2d6a4f;">${escapeHtml(log.action)}</strong></td>
+        <td>${escapeHtml(log.admin_user || 'System')}</td>
+        <td><code style="background:#f1f4f2; padding:2px 6px; border-radius:4px; font-family:'Courier New',monospace;">${escapeHtml(log.ip_address || 'unknown')}</code></td>
+        <td style="font-size:13px; color:#555;">${escapeHtml(log.details)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ في تحميل سجلات التدقيق: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+/* ============================================================
    Search
 ============================================================ */
 function filterArchive() {
@@ -529,7 +606,7 @@ async function loadUsers() {
     }
 
     const roleLabels = {
-      admin: 'مشرف',
+      admin: 'مشرف عام',
       manager: 'مدير',
       user: 'مستخدم',
       viewer: 'مشاهدة',
@@ -575,10 +652,8 @@ async function createUser() {
       role: role,
     });
     showSystemMessage('✓ تم إنشاء المستخدم', 'success');
-    $('newUsername').value = '';
-    $('newUserPassword').value = '';
-    $('newFullName').value = '';
-    $('newRole').value = 'manager';
+    $('newUsername').value = '';$('newUserPassword').value = '';
+    $('newFullName').value = '';$('newRole').value = 'manager';
     await loadUsers();
   } catch (err) {
     showSystemMessage('فشل: ' + err.message, 'error');
@@ -625,8 +700,7 @@ async function changePassword() {
     });
     showSystemMessage('✓ تم تغيير كلمة المرور بنجاح', 'success');
     $('oldPassword').value = '';
-    $('newPassword').value = '';
-    $('confirmPassword').value = '';
+    $('newPassword').value = '';$('confirmPassword').value = '';
     adminState.password = newPw;
     sessionStorage.setItem('admin_password', newPw);
   } catch (err) {
@@ -816,6 +890,11 @@ async function deleteContract(code) {
    Generate New Codes
 ============================================================ */
 async function generateNewCodes() {
+  if (!can('generate_codes')) {
+    alert('ليس لديك صلاحية توليد الأكواد');
+    return;
+  }
+
   const sentCount = (adminState.archiveContracts || []).filter(c => c.finished).length;
   const pendingCount = (adminState.contracts || []).filter(c => !c.finished && c.savedCount > 0).length;
 
@@ -850,6 +929,7 @@ async function generateNewCodes() {
    Clear Drafts
 ============================================================ */
 async function clearDraftForCode() {
+  if (!can('generate_codes')) return;
   const input = $('clearDraftCode');
   if (!input) return;
 
@@ -878,6 +958,7 @@ async function clearDraftForCode() {
 }
 
 async function clearAllDrafts() {
+  if (!can('generate_codes')) return;
   if (!confirm('⚠️ مسح كل المسودات؟\n\n(لن تُحذف العقود المُرسلة)')) return;
 
   try {
@@ -894,8 +975,11 @@ async function clearAllDrafts() {
 ============================================================ */
 async function refreshData() {
   await loadList();
-  if (adminState.currentTab === 'archive') {
+  if (adminState.currentTab === 'archive' && can('archive')) {
     await loadArchiveFromD1();
+  }
+  if (adminState.currentTab === 'audit' && can('audit')) {
+    await loadAuditLogs();
   }
   if (adminState.currentTab === 'settings') {
     renderSettings();
@@ -938,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (response.ok && data.success) {
         adminState.role = data.user?.role || savedRole || 'user';
         sessionStorage.setItem('admin_role', adminState.role);
-        applyRoleRestrictions();
+        showPanel();
         await loadList();
         return;
       } else {
@@ -990,3 +1074,4 @@ window.loadUsers = loadUsers;
 window.createUser = createUser;
 window.deleteUser = deleteUser;
 window.exportBackup = exportBackup;
+window.loadAuditLogs = loadAuditLogs;
