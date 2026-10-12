@@ -124,13 +124,13 @@ function resetLoginButton() {
 function can(permission) {
   const role = adminState.role || 'viewer';
   const permissions = {
-    archive: ['admin'],
+    archive: ['admin', 'manager', 'user'],
     view: ['admin', 'manager', 'user', 'viewer'],
     edit: ['admin', 'manager'],
     delete: ['admin', 'manager'],
     export: ['admin', 'manager'],
     manage_users: ['admin'],
-    generate_codes: ['admin'],
+    generate_codes: ['admin', 'manager'],
   };
   return (permissions[permission] || []).includes(role);
 }
