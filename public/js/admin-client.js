@@ -1,32 +1,6 @@
 /* ============================================================
-   Admin Client V12 - Final (Fixed Table, Audits, Serial ID)
+   Admin Client V12 - Final (Fixed Table, Audits, Serial ID, i18n & Dark Mode)
 ============================================================ */
-
-/* ============================================================
-   ✅ إظهار الصفحة فوراً حسب الجلسة
-============================================================ */
-(function showCorrectScreen() {
-  var hasSession = false;
-  try {
-    hasSession = !!sessionStorage.getItem('admin_password');
-  } catch (e) {}
-
-  var loginScreen = document.getElementById('loginScreen');
-  var adminPanel = document.getElementById('adminPanel');
-
-  if (!loginScreen || !adminPanel) {
-    document.addEventListener('DOMContentLoaded', showCorrectScreen);
-    return;
-  }
-
-  if (hasSession) {
-    loginScreen.style.display = 'none';
-    adminPanel.style.display = 'block';
-  } else {
-    loginScreen.style.display = 'flex';
-    adminPanel.style.display = 'none';
-  }
-})();
 
 /* ============================================================
    State
@@ -434,7 +408,6 @@ function renderArchive() {
     const brideName = bride?.nameDe || bride?.nameAr || '—';
     const contractDate = contract.contractDate || '—';
     
-    // الميزة الجديدة: الحفاظ على رقم العقد تسلسلياً بربطه بقيمة الـ ID الثابتة
     const displayNumber = contract.id; 
 
     html += `
@@ -704,47 +677,10 @@ async function refreshData() {
 }
 
 /* ============================================================
-   Init
-============================================================ */
-document.addEventListener('DOMContentLoaded', async () => {
-  const savedPassword = sessionStorage.getItem('admin_password');
-  const savedUsername = sessionStorage.getItem('admin_username') || 'admin';
-  const savedRole = sessionStorage.getItem('admin_role');
-
-  if (savedUsername) {
-    adminState.username = savedUsername;
-    const userInput = $('usernameInput'); if (userInput) userInput.value = savedUsername;
-  }
-  if (savedPassword) {
-    adminState.password = savedPassword; adminState.role = savedRole;
-    try {
-      const response = await fetch('/api/admin', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: savedUsername, password: savedPassword, action: 'login' }),
-      });
-      const data = await response.json();
-      if (response.ok && data.success) {
-        adminState.role = data.user?.role || savedRole || 'user';
-        sessionStorage.setItem('admin_role', adminState.role);
-        applyRoleRestrictions(); await loadList(); return;
-      } else {
-        sessionStorage.removeItem('admin_password'); sessionStorage.removeItem('admin_username'); sessionStorage.removeItem('admin_role'); showLogin();
-      }
-    } catch (err) { console.warn('Session check failed:', err); }
-    return;
-  }
-  showLogin();
-  const input = $('passwordInput'); const btn =$('loginBtn');
-  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-  if (btn) btn.addEventListener('click', login);
-});
-
-/* ============================================================
-   المحذوفات وسجلات التدقيق (مصححة بالكامل)
+   المحذوفات وسجلات التدقيق 
 ============================================================ */
 async function deleteContract(code) {
   if (!can('delete')) { alert('ليس لديك صلاحية الحذف'); return; }
-  // تم تغيير الرسالة لتناسب النقل للمحذوفات
   if (!confirm('هل تريد نقل العقد ' + code + ' إلى سلة المحذوفات؟\n\n(يمكنك استرجاعه لاحقاً)')) return;
   try {
     await apiCall('delete', { code });
@@ -776,7 +712,6 @@ async function loadTrashLogs() {
       const groomName = item.party_one_name || '—';
       const brideName = item.party_two_name || '—';
       const deletedDate = item.deleted_at || '—';
-      // الميزة الجديدة: الحفاظ على رقم العقد تسلسلياً بربطه بقيمة الـ ID الثابتة
       const displayNumber = item.id; 
 
       html += `
@@ -829,7 +764,6 @@ async function loadAuditLogs() {
     const data = await apiCall('audit_logs');
     allAuditData = data.logs || []; 
     
-    // ربط مربعات الفلترة
     document.querySelectorAll('.audit-filter').forEach(cb => {
         cb.addEventListener('change', window.filterAuditLogs);
     });
@@ -892,10 +826,10 @@ window.filterAuditLogs = function() {
   }
   renderAuditLogs(filtered);
 };
+
 /* ============================================================
-   🌍 نظام اللغات (عربي، ألماني، إنجليزي)
+   🌍 نظام اللغات والوضع الليلي (i18n & Dark Mode)
 ============================================================ */
-// هنا تضع الكلمات التي تريد ترجمتها في الموقع
 const translations = {
   ar: {
     "tab_codes": "الأكواد الحالية",
@@ -905,7 +839,6 @@ const translations = {
     "tab_settings": "الإعدادات",
     "btn_logout": "خروج",
     "dark_mode": "الوضع الليلي",
-    // أضف أي كلمات أخرى هنا
   },
   de: {
     "tab_codes": "Aktuelle Codes",
@@ -927,18 +860,15 @@ const translations = {
   }
 };
 
-// تحميل اللغة المحفوظة أو جعل العربية هي الافتراضية
 let currentLang = localStorage.getItem('app_lang') || 'ar';
 
 window.changeLanguage = function(lang) {
   currentLang = lang;
   localStorage.setItem('app_lang', lang);
   
-  // تغيير اتجاه الصفحة (RTL للعربي و LTR للأجنبي)
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   document.documentElement.lang = lang;
 
-  // تحديث كل النصوص التي تحتوي على الخاصية data-i18n
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (translations[lang] && translations[lang][key]) {
@@ -947,27 +877,82 @@ window.changeLanguage = function(lang) {
   });
 };
 
-/* ============================================================
-   🌙 الوضع الليلي (Dark Mode)
-============================================================ */
 window.toggleDarkMode = function() {
   document.body.classList.toggle('dark-mode');
   const isDark = document.body.classList.contains('dark-mode');
   localStorage.setItem('dark_mode', isDark);
 };
 
-// تفعيل الإعدادات المحفوظة عند فتح الصفحة
-document.addEventListener('DOMContentLoaded', () => {
-  // تشغيل اللغة
+/* ============================================================
+   ✅ الشاشة الافتتاحية وDOMContentLoaded الموحد
+============================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  // 1. تفعيل اللغات والوضع الليلي فوراً
   window.changeLanguage(currentLang);
-  
-  // تشغيل الوضع الليلي إذا كان محفوظاً
-  const isDark = localStorage.getItem('dark_mode') === 'true';
-  if (isDark) {
+  if (localStorage.getItem('dark_mode') === 'true') {
     document.body.classList.add('dark-mode');
   }
-});
 
+  // 2. التحقق من الجلسة وإظهار الشاشة المناسبة
+  var hasSession = false;
+  try {
+    hasSession = !!sessionStorage.getItem('admin_password');
+  } catch (e) {}
+
+  var loginScreen = document.getElementById('loginScreen');
+  var adminPanel = document.getElementById('adminPanel');
+
+  if (loginScreen && adminPanel) {
+    if (hasSession) {
+      loginScreen.style.display = 'none';
+      adminPanel.style.display = 'block';
+    } else {
+      loginScreen.style.display = 'flex';
+      adminPanel.style.display = 'none';
+    }
+  }
+
+  const savedPassword = sessionStorage.getItem('admin_password');
+  const savedUsername = sessionStorage.getItem('admin_username') || 'admin';
+  const savedRole = sessionStorage.getItem('admin_role');
+
+  if (savedUsername) {
+    adminState.username = savedUsername;
+    const userInput = $('usernameInput'); if (userInput) userInput.value = savedUsername;
+  }
+  
+  if (savedPassword) {
+    adminState.password = savedPassword; 
+    adminState.role = savedRole;
+    try {
+      const response = await fetch('/api/admin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: savedUsername, password: savedPassword, action: 'login' }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        adminState.role = data.user?.role || savedRole || 'user';
+        sessionStorage.setItem('admin_role', adminState.role);
+        applyRoleRestrictions(); 
+        await loadList(); 
+        return;
+      } else {
+        sessionStorage.removeItem('admin_password'); 
+        sessionStorage.removeItem('admin_username'); 
+        sessionStorage.removeItem('admin_role'); 
+        showLogin();
+      }
+    } catch (err) { console.warn('Session check failed:', err); }
+    return;
+  }
+  
+  showLogin();
+  
+  const input = $('passwordInput'); 
+  const btn = $('loginBtn');
+  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  if (btn) btn.addEventListener('click', login);
+});
 
 /* ============================================================
    Exports
@@ -981,7 +966,7 @@ window.closeModal = closeModal;
 window.printContract = printContract;
 window.printContractByCode = printContractByCode;
 window.editContract = editContract;
-window.deleteContract = deleteContract; // الدالة المحدثة
+window.deleteContract = deleteContract; 
 window.generateNewCodes = generateNewCodes;
 window.clearDraftForCode = clearDraftForCode;
 window.clearAllDrafts = clearAllDrafts;
@@ -991,8 +976,9 @@ window.loadUsers = loadUsers;
 window.createUser = createUser;
 window.deleteUser = deleteUser;
 window.exportBackup = exportBackup;
-// الميزات الجديدة
 window.loadTrashLogs = loadTrashLogs;
 window.restoreContract = restoreContract;
 window.permanentDelete = permanentDelete;
 window.loadAuditLogs = loadAuditLogs;
+window.toggleDarkMode = toggleDarkMode;
+window.changeLanguage = changeLanguage;
