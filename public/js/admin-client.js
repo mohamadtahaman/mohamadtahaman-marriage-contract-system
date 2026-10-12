@@ -795,18 +795,18 @@ function renderAuditLogs(logs) {
     let user = log.auth_user || log.username;
     if (!user) user = (log.user_id == 1) ? 'admin' : (log.user_id || 'نظام');
     
-    // تحويل الـ Timestamp إلى تنسيق تاريخ بشري ومقروء
+    // تحويل دقيق ومضمون للطابع الزمني إلى تاريخ ووقت مقروء
     let dateStr = '-';
-    if (log.timestamp) {
-        const ts = String(log.timestamp).length <= 10 ? Number(log.timestamp) * 1000 : Number(log.timestamp);
+    let rawTime = log.timestamp || log.created_at;
+    if (rawTime) {
+        const ts = String(rawTime).length <= 10 ? Number(rawTime) * 1000 : Number(rawTime);
         const d = new Date(ts);
         if (!isNaN(d.getTime())) {
-            dateStr = d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            dateStr = d.toLocaleDateString('de-DE', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + 
+                      d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         } else {
-            dateStr = log.timestamp;
+            dateStr = rawTime;
         }
-    } else if (log.created_at) { 
-        dateStr = log.created_at; 
     }
 
     const ipAddr = log.ip || log.ip_address || '-';
@@ -818,7 +818,7 @@ function renderAuditLogs(logs) {
         <td>${typeBadge}</td>
         <td style="font-weight:bold; color:#2d6a4f;">${escapeHtml(user)}</td>
         <td style="font-family:monospace; direction:ltr; text-align:right;">${escapeHtml(ipAddr)}</td>
-        <td style="font-size:12px; color:#636e72; direction:ltr; text-align:right;">${escapeHtml(details)}</td>
+        <td style="font-size:12px; color:#636e72; text-align:right;">${escapeHtml(details)}</td>
       </tr>
     `;
   });
