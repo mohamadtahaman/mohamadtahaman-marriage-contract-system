@@ -1,332 +1,187 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>لوحة الإدارة - Arresalah Zentrum Berlin</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/admin.css?v=11">
-<style>
-  /* ✅ إخفاء مبدئي — سيُتحكم به فوراً من JS */
-  #loginScreen { display: none; }
-  #adminPanel { display: none; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الإدارة - Arresalah Zentrum</title>
+    <!-- تأكد من أن مسار ملف الـ CSS الخاص بك صحيح -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- رسائل النظام -->
+    <div id="systemMessage" class="hidden"></div>
 
-<!-- Login Screen -->
-<div id="loginScreen" class="login-wrap">
-  <div class="login-box">
-    <div class="login-header">
-      <h1>Arresalah Zentrum Berlin</h1>
-      <p>لوحة الإدارة</p>
-    </div>
-
-    <div class="login-body">
-      <label>اسم المستخدم</label>
-      <input type="text" id="usernameInput" placeholder="admin" value="admin"
-             autocomplete="username"
-             style="text-align:right; letter-spacing:0; margin-bottom:14px;">
-
-      <label>كلمة المرور</label>
-      <input type="password" id="passwordInput" placeholder="••••••"
-             autocomplete="current-password">
-
-      <button id="loginBtn" class="btn-login">دخول</button>
-
-      <div id="loginMessage" class="message hidden"></div>
-    </div>
-
-    <div class="login-footer">
-      <a href="./index.html">← رجوع للصفحة الرئيسية</a>
-    </div>
-  </div>
-</div>
-
-<!-- Admin Panel -->
-<div id="adminPanel" class="panel-wrap">
-
-  <div class="panel-header">
-    <div class="panel-title">
-      <h1>لوحة الإدارة</h1>
-      <span class="badge">Arresalah Zentrum</span>
-    </div>
-    <div class="panel-actions">
-      <button onclick="refreshData()" class="btn-secondary">تحديث</button>
-      <button onclick="logout()" class="btn-danger">خروج</button>
-    </div>
-  </div>
-
-  <div id="systemMessage" class="system-message hidden"></div>
-
-  <!-- شريط التبويبات المحدث -->
-  <div class="admin-tabs">
-    <button class="admin-tab active" data-tab="codes" onclick="switchTab('codes')">الأكواد الحالية</button>
-    <button class="admin-tab" id="archiveTabBtn" data-tab="archive" onclick="switchTab('archive')">الأرشيف</button>
-    <button class="admin-tab" data-tab="trash" onclick="switchTab('trash')">🗑️ المحذوفات</button>
-    <button class="admin-tab" data-tab="audit" onclick="switchTab('audit')">🛡️ سجلات التدقيق والأمان</button>
-    <button class="admin-tab" data-tab="settings" onclick="switchTab('settings')">الإعدادات</button>
-  </div>
-
-  <div class="panel-content">
-
-    <!-- Codes Tab -->
-    <div id="tab-codes" class="tab-content">
-      <div class="card">
-        <div class="card-header"><h2>أكواد العقود (5 عقود)</h2></div>
-        <div class="card-body no-padding">
-          <table class="codes-table">
-            <thead>
-              <tr>
-                <th style="width:60px;">#</th>
-                <th style="width:150px;">الكود</th>
-                <th>الحالة</th>
-                <th style="width:160px;">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody id="codesBody">
-              <tr><td colspan="4" class="loading-cell">جارٍ التحميل...</td></tr>
-            </tbody>
-          </table>
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <h2>تسجيل الدخول</h2>
+            <input type="text" id="usernameInput" placeholder="اسم المستخدم" value="admin">
+            <input type="password" id="passwordInput" placeholder="كلمة المرور">
+            <button id="loginBtn" class="btn-primary">دخول</button>
+            <div id="loginMessage" class="hidden"></div>
         </div>
-      </div>
+    </div>
 
-      <div class="card">
-        <div class="card-header"><h2>إدارة أكواد العقود</h2></div>
-        <div class="card-body">
-          <p class="hint">
-            توليد 5 أكواد جديدة يُلغي الأكواد الحالية فقط — العقود المُرسلة تبقى في الأرشيف.
-          </p>
-          <button onclick="generateNewCodes()" class="btn-primary">توليد 5 أكواد جديدة</button>
-        </div>
-      </div>
-
-      <div class="card card-danger">
-        <div class="card-header"><h2>منطقة الخطر — مسح المسودات</h2></div>
-        <div class="card-body">
-          <p class="hint">مسح المسودات المحفوظة على السيرفر (لا يحذف العقود المُرسلة).</p>
-
-          <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:15px;">
-            <div style="flex:1; min-width:200px;">
-              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">
-                مسح مسودة عقد محدد
-              </label>
-              <input type="text" id="clearDraftCode" placeholder="XXXXXX" maxlength="6"
-                     style="width:100%; padding:10px 14px; border:1.5px solid #ebebeb; border-radius:8px; font-family:'Courier New',monospace; letter-spacing:3px; text-align:center; font-weight:700; text-transform:uppercase; outline:none; background:#fbfbfb;">
+    <!-- لوحة الإدارة الرئيسية -->
+    <div id="adminPanel" style="display: none;">
+        <!-- الشريط العلوي (الهيدر) -->
+        <header class="admin-header">
+            <div class="header-right" style="display: flex; align-items: center;">
+                <!-- أزرار اللغات والوضع الليلي المضافة حديثاً -->
+                <div style="display: inline-flex; gap: 8px; margin-right: 15px; align-items: center;">
+                    <button onclick="toggleDarkMode()" class="btn-secondary" style="padding: 4px 8px; font-size: 14px;" data-i18n="dark_mode">الوضع الليلي 🌙</button>
+                    <button onclick="changeLanguage('ar')" class="btn-secondary" style="padding: 4px 8px; font-size: 14px;">عربي</button>
+                    <button onclick="changeLanguage('de')" class="btn-secondary" style="padding: 4px 8px; font-size: 14px;">DE</button>
+                    <button onclick="changeLanguage('en')" class="btn-secondary" style="padding: 4px 8px; font-size: 14px;">EN</button>
+                </div>
+                <!-- أزرار التحكم الأساسية -->
+                <button onclick="logout()" class="btn-danger" data-i18n="btn_logout">خروج</button>
+                <button onclick="refreshData()" class="btn-secondary" style="margin-right: 10px;">تحديث</button>
             </div>
-            <button onclick="clearDraftForCode()" class="btn-danger">مسح مسودة العقد</button>
-          </div>
+            <div class="header-left">
+                <h3 style="margin: 0; color: #2d6a4f;">Arresalah Zentrum</h3>
+            </div>
+        </header>
 
-          <hr style="border:none; border-top:1px dashed #f0f0f0; margin:20px 0;">
-
-          <p class="hint" style="color:#c0392b;">
-            ⚠️ مسح <strong>كل</strong> المسودات (لا يمكن التراجع).
-          </p>
-          <button onclick="clearAllDrafts()" class="btn-danger">مسح كل المسودات</button>
+        <!-- التبويبات -->
+        <div class="tabs-container">
+            <button class="admin-tab active" data-tab="codes" onclick="switchTab('codes')" data-i18n="tab_codes">الأكواد الحالية</button>
+            <button class="admin-tab" data-tab="archive" onclick="switchTab('archive')" data-i18n="tab_archive">الأرشيف</button>
+            <button class="admin-tab" data-tab="trash" onclick="switchTab('trash')" data-i18n="tab_trash">المحذوفات</button>
+            <button class="admin-tab" data-tab="audit" onclick="switchTab('audit')" data-i18n="tab_audit">سجلات التدقيق والأمان</button>
+            <button class="admin-tab" data-tab="settings" onclick="switchTab('settings')" data-i18n="tab_settings">الإعدادات</button>
         </div>
-      </div>
+
+        <div class="main-content">
+            <!-- 1. الأكواد الحالية -->
+            <div id="tab-codes" class="tab-content">
+                <div class="card" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 data-i18n="tab_codes">الأكواد الحالية</h3>
+                        <button onclick="generateNewCodes()" class="btn-primary">توليد 5 أكواد جديدة ✨</button>
+                    </div>
+                    <table class="codes-table" style="width: 100%;">
+                        <thead>
+                            <tr><th>#</th><th>الكود</th><th>الحالة</th><th>إجراءات</th></tr>
+                        </thead>
+                        <tbody id="codesBody"></tbody>
+                    </table>
+                </div>
+                <!-- إدارة المسودات للمشرفين -->
+                <div class="card card-danger" style="margin-bottom: 20px;">
+                    <h3>إدارة المسودات (للمشرفين)</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" id="clearDraftCode" placeholder="رقم العقد (مثال: AB12CD)" maxlength="6">
+                        <button onclick="clearDraftForCode()" class="btn-secondary">مسح مسودة العقد</button>
+                    </div>
+                    <button onclick="clearAllDrafts()" class="btn-danger">مسح كافة المسودات 🧹</button>
+                </div>
+            </div>
+
+            <!-- 2. الأرشيف -->
+            <div id="tab-archive" class="tab-content hidden">
+                <div class="card" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3><span data-i18n="tab_archive">الأرشيف</span> (<span id="archiveCount">0</span>)</h3>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input type="text" id="archiveSearch" placeholder="ابحث بالاسم أو الكود..." oninput="filterArchive()" style="flex: 1;">
+                        <select id="archiveFilterStatus" onchange="filterArchive()">
+                            <option value="all">الكل</option>
+                            <option value="sent">مُرسل</option>
+                            <option value="pending">قيد الانتظار</option>
+                        </select>
+                    </div>
+                    <div id="archiveBody"></div>
+                </div>
+            </div>
+
+            <!-- 3. المحذوفات -->
+            <div id="tab-trash" class="tab-content hidden">
+                <div class="card">
+                    <h3><span data-i18n="tab_trash">سلة المحذوفات</span> (<span id="trashCount">0</span>)</h3>
+                    <table class="archive-table" style="width: 100%;">
+                        <thead>
+                            <tr><th>#</th><th>الكود</th><th>الزوج</th><th>الزوجة</th><th>تاريخ الحذف</th><th>إجراءات</th></tr>
+                        </thead>
+                        <tbody id="trashBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 4. سجلات التدقيق -->
+            <div id="tab-audit" class="tab-content hidden">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 data-i18n="tab_audit">سجلات التدقيق والأمان</h3>
+                    </div>
+                    <!-- مربعات الفلترة -->
+                    <div style="margin-bottom: 15px; display: flex; gap: 15px; background: #eee; padding: 10px; border-radius: 5px; color: #333;">
+                        <label><input type="checkbox" class="audit-filter" value="login"> تسجيل الدخول (login)</label>
+                        <label><input type="checkbox" class="audit-filter" value="security"> محاولات أمنية (security)</label>
+                        <label><input type="checkbox" class="audit-filter" value="action"> الإجراءات العامة (action)</label>
+                    </div>
+                    <table class="archive-table" style="width: 100%;">
+                        <thead>
+                            <tr><th>التاريخ والوقت</th><th>الإجراء</th><th>المستخدم/النظام</th><th>-</th><th>التفاصيل</th></tr>
+                        </thead>
+                        <tbody id="auditLogsBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 5. الإعدادات -->
+            <div id="tab-settings" class="tab-content hidden">
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3>تغيير كلمة المرور</h3>
+                    <div style="display: flex; flex-direction: column; gap: 10px; max-width: 300px;">
+                        <input type="password" id="oldPassword" placeholder="كلمة المرور الحالية">
+                        <input type="password" id="newPassword" placeholder="كلمة المرور الجديدة">
+                        <input type="password" id="confirmPassword" placeholder="تأكيد كلمة المرور">
+                        <button onclick="changePassword()" class="btn-primary">حفظ التغييرات</button>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom: 20px;">
+                    <h3>إدارة المستخدمين (للمشرفين)</h3>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <input type="text" id="newUsername" placeholder="اسم المستخدم">
+                        <input type="password" id="newUserPassword" placeholder="كلمة المرور">
+                        <input type="text" id="newFullName" placeholder="الاسم الكامل">
+                        <select id="newRole">
+                            <option value="manager">مدير</option>
+                            <option value="user">مستخدم</option>
+                            <option value="viewer">مشاهد</option>
+                        </select>
+                        <button onclick="createUser()" class="btn-primary">إضافة مستخدم</button>
+                    </div>
+                    <table class="archive-table" style="width: 100%;">
+                        <thead>
+                            <tr><th>اسم المستخدم</th><th>الاسم</th><th>الدور</th><th>الحالة</th><th>إجراءات</th></tr>
+                        </thead>
+                        <tbody id="usersBody"></tbody>
+                    </table>
+                </div>
+                <div class="card">
+                    <h3>نسخة احتياطية</h3>
+                    <button onclick="exportBackup()" class="btn-secondary">تصدير قاعدة البيانات (JSON)</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Archive Tab -->
-    <div id="tab-archive" class="tab-content hidden">
-      <div class="card">
-        <div class="card-header"><h2>البحث في الأرشيف</h2></div>
-        <div class="card-body">
-          <div class="search-bar">
-            <input type="text" id="archiveSearch" placeholder="ابحث بالاسم، الكود، أو رقم الهوية..." oninput="filterArchive()">
-            <select id="archiveFilterStatus" onchange="filterArchive()">
-              <option value="all">الكل</option>
-              <option value="sent">مُرسل</option>
-              <option value="pending">قيد الانتظار</option>
-            </select>
-          </div>
+    <!-- نافذة المعاينة (Modal) -->
+    <div id="viewModal" class="hidden modal-overlay">
+        <div class="modal-content">
+            <button onclick="closeModal()" class="modal-close">X</button>
+            <h2 id="modalTitle" style="margin-top: 0;">تفاصيل العقد</h2>
+            <div id="modalContent"></div>
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="printContract()" class="btn-primary">طباعة العقد 🖨️</button>
+            </div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header"><h2>العقود المُرسلة (<span id="archiveCount">0</span>)</h2></div>
-        <div class="card-body no-padding">
-          <div id="archiveBody">
-            <div class="loading-cell">جارٍ التحميل...</div>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <!-- 🗑️ Trash Tab (قسم المحذوفات وزر الاسترجاع) -->
-    <div id="tab-trash" class="tab-content hidden">
-      <div class="card">
-        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-          <h2>🗑️ سلة المحذوفات العقود المحذوفة (<span id="trashCount">0</span>)</h2>
-          <button onclick="loadTrashLogs()" class="btn-secondary" style="font-size:12px; padding:6px 14px;">تحديث المحذوفات</button>
-        </div>
-        <div class="card-body no-padding">
-          <table class="codes-table">
-            <thead>
-              <tr>
-                <th style="width:60px;">#</th>
-                <th style="width:130px;">الكود</th>
-                <th>اسم الطرف الأول / الثاني</th>
-                <th style="width:150px;">تاريخ الحذف</th>
-                <th style="width:140px;">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody id="trashBody">
-              <tr><td colspan="5" class="loading-cell">جارٍ تحميل العقود المحذوفة...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- 🛡️ Tab: Audit & Security Logs -->
-    <div id="tab-audit" class="tab-content hidden">
-      <div class="card">
-        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-          <h2>🛡️ سجلات التدقيق الأمني وتتبع عناوين الـ IP</h2>
-          <button onclick="loadAuditLogs()" class="btn-secondary" style="font-size:12px; padding:6px 14px;">تحديث السجلات</button>
-        </div>
-        
-        <div class="audit-filters-bar">
-          <div class="filters-title">تصفية حسب نوع الحركة:</div>
-          <div class="audit-filters-group">
-            <label><input type="checkbox" class="audit-filter" value="login" checked onchange="filterAuditLogs()"> تسجيل الدخول (login)</label>
-            <label><input type="checkbox" class="audit-filter" value="action" checked onchange="filterAuditLogs()"> الإجراءات العامة (action)</label>
-            <label><input type="checkbox" class="audit-filter" value="security" checked onchange="filterAuditLogs()"> محاولات أمنية (security)</label>
-            <label><input type="checkbox" class="audit-filter" value="auth_fail" checked onchange="filterAuditLogs()"> فشل الدخول (auth_fail)</label>
-          </div>
-        </div>
-
-        <div class="card-body no-padding">
-          <table class="codes-table">
-            <thead>
-              <tr>
-                <th style="width:150px;">التاريخ والوقت</th>
-                <th style="width:130px;">الإجراء (Action)</th>
-                <th style="width:130px;">المستخدم / النظام</th>
-                <th style="width:130px;">عنوان IP</th>
-                <th>التفاصيل والبيانات</th>
-              </tr>
-            </thead>
-            <tbody id="auditLogsBody">
-              <tr><td colspan="5" class="loading-cell">جارٍ تحميل سجلات الأمان...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Settings Tab -->
-    <div id="tab-settings" class="tab-content hidden">
-      <div class="card">
-        <div class="card-header"><h2>🔐 تغيير كلمة المرور</h2></div>
-        <div class="card-body">
-          <div class="form-grid">
-            <div class="field">
-              <label>كلمة المرور الحالية</label>
-              <input type="password" id="oldPassword" autocomplete="off">
-            </div>
-            <div class="field">
-              <label>كلمة المرور الجديدة</label>
-              <input type="password" id="newPassword" autocomplete="off">
-            </div>
-            <div class="field">
-              <label>تأكيد كلمة المرور</label>
-              <input type="password" id="confirmPassword" autocomplete="off">
-            </div>
-          </div>
-          <button class="btn-primary" onclick="changePassword()" style="margin-top:15px;">تغيير كلمة المرور</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header"><h2>👥 المستخدمون</h2></div>
-        <div class="card-body no-padding">
-          <table class="codes-table">
-            <thead>
-              <tr>
-                <th>اسم المستخدم</th>
-                <th>الاسم الكامل</th>
-                <th>الصلاحية</th>
-                <th>الحالة</th>
-                <th style="width:100px;">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody id="usersBody">
-              <tr><td colspan="5" class="loading-cell">جارٍ التحميل...</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="card-body" style="border-top:1px solid #f0f0f0;">
-          <h3 class="sub-title">إضافة مستخدم جديد</h3>
-          <div class="form-grid">
-            <div class="field">
-              <label>اسم المستخدم</label>
-              <input type="text" id="newUsername" placeholder="username" autocomplete="off">
-            </div>
-            <div class="field">
-              <label>كلمة المرور</label>
-              <input type="password" id="newUserPassword" autocomplete="off">
-            </div>
-            <div class="field">
-              <label>الاسم الكامل</label>
-              <input type="text" id="newFullName" autocomplete="off">
-            </div>
-            <div class="field">
-              <label>الصلاحية</label>
-              <select id="newRole">
-                <option value="manager">مدير (Manager)</option>
-                <option value="user">مستخدم (User)</option>
-                <option value="viewer">مشاهدة فقط (Viewer)</option>
-                <option value="admin">مشرف (Admin)</option>
-              </select>
-            </div>
-          </div>
-          <button class="btn-primary" onclick="createUser()" style="margin-top:15px;">إضافة المستخدم</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header"><h2>💾 نسخ احتياطي</h2></div>
-        <div class="card-body">
-          <p class="hint">تصدير كل العقود والأطراف والمهور بصيغة JSON.</p>
-          <button class="btn-primary" onclick="exportBackup()">تحميل نسخة احتياطية (JSON)</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header"><h2>ℹ️ معلومات النظام</h2></div>
-        <div class="card-body">
-          <div class="info-row"><strong>عدد الأكواد:</strong><span id="infoCodesCount">—</span></div>
-          <div class="info-row"><strong>عدد العقود المُرسلة:</strong><span id="infoSentCount">—</span></div>
-          <div class="info-row"><strong>حالة الاتصال:</strong><span style="color:#2d6a4f;">✓ متصل</span></div>
-          <div class="info-row"><strong>إصدار الواجهة:</strong><span style="color:#2d6a4f;">v11</span></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- Modal -->
-<div id="viewModal" class="modal-overlay hidden">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3 id="modalTitle">تفاصيل العقد</h3>
-      <button onclick="closeModal()" class="modal-close">×</button>
-    </div>
-    <div id="modalContent" class="modal-body"></div>
-    <div class="modal-footer">
-      <button onclick="printContract()" class="btn-primary">🖨 طباعة</button>
-      <button onclick="closeModal()" class="btn-secondary">إغلاق</button>
-    </div>
-  </div>
-</div>
-
-<script src="./js/admin-client.js?v=11"></script>
-
+    <!-- استدعاء ملف الجافاسكريبت -->
+    <script src="js/admin-client.js"></script>
 </body>
 </html>
