@@ -1231,6 +1231,8 @@ footer {
   .party-tabs { grid-template-columns: repeat(2, 1fr); }
   .party-tab { font-size: 11.5px; padding: 12px 6px; }
   .party-tab .tab-icon { font-size: 18px; }
+}
+
 /* ============================================================
    Photo Upload Section
 ============================================================ */
@@ -1349,54 +1351,61 @@ footer {
     height: 155px;
   }
 }
-}
+
 /* ============================================================
-   🌙 الوضع الليلي (Dark Mode Styles)
+   🌙 الوضع الليلي (Dark Mode Styles) - محدث وشامل
 ============================================================ */
 body.dark-mode {
   background-color: #121212 !important;
   color: #e0e0e0 !important;
 }
 
-/* تلوين الكروت والخلفيات البيضاء */
 body.dark-mode .card, 
-body.dark-mode .admin-panel,
+body.dark-mode .panel-wrap,
 body.dark-mode .tab-content,
-body.dark-mode .modal-content {
+body.dark-mode .modal-content,
+body.dark-mode .modal,
+body.dark-mode .login-box,
+body.dark-mode .container,
+body.dark-mode .site-header,
+body.dark-mode footer {
   background-color: #1e1e1e !important;
   border-color: #333 !important;
   color: #e0e0e0 !important;
 }
 
-/* تلوين الجداول */
 body.dark-mode table th {
   background-color: #2c2c2c !important;
   color: #ffffff !important;
   border-bottom: 1px solid #444 !important;
 }
+
 body.dark-mode table td {
   border-bottom: 1px solid #333 !important;
   color: #cccccc !important;
 }
 
-/* تلوين حقول الإدخال */
 body.dark-mode input, 
-body.dark-mode select {
+body.dark-mode select,
+body.dark-mode textarea {
   background-color: #2c2c2c !important;
   color: #ffffff !important;
   border: 1px solid #555 !important;
 }
 
-/* تلوين التبويبات العلوية */
+body.dark-mode .admin-tabs {
+  background-color: #181818 !important;
+  border-bottom: 1px solid #333 !important;
+}
+
 body.dark-mode .admin-tab {
   background-color: #1e1e1e !important;
   color: #aaa !important;
   border-bottom: 2px solid transparent;
 }
+
 body.dark-mode .admin-tab.active {
-  color: #00b894 !important; /* لون نشط مناسب لليلي */
-  border-bottom: 2px solid #00b894 !important;
+  color: #2ecc71 !important;
+  border-bottom: 2px solid #2ecc71 !important;
+  background-color: #252525 !important;
 }
-
-
-
