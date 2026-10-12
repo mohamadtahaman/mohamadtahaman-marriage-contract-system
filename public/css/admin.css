@@ -1,5 +1,5 @@
 /* ============================================================
-   Admin Panel V6 - Full Styles + Checkbox Filters Fix
+   Admin Panel V6 - Full Styles + Checkbox Filters Fix + Dark Mode
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -192,7 +192,7 @@ body {
   font-weight: 700;
 }
 
-.panel-actions { display: flex; gap: 8px; }
+.panel-actions { display: flex; gap: 8px; align-items: center; }
 
 /* ============ Tabs ============ */
 .admin-tabs {
@@ -819,7 +819,6 @@ body {
   box-shadow: 0 4px 10px rgba(192,57,43,0.25);
 }
 
-/* تعديل الأعمدة في الجداول */
 .codes-table td.action-icons,
 .archive-table td.action-icons {
   padding-top: 10px;
@@ -829,4 +828,78 @@ body {
 @media (max-width: 640px) {
   .icon-btn { width: 30px; height: 30px; }
   .action-icons { gap: 4px; }
+}
+
+/* ============================================================
+   🌙 الوضع الليلي (Dark Mode Styles) - لوحة الإدارة
+============================================================ */
+body.dark-mode {
+  background-color: #121212 !important;
+  color: #e0e0e0 !important;
+}
+
+body.dark-mode .panel-wrap,
+body.dark-mode .panel-header,
+body.dark-mode .card,
+body.dark-mode .login-box,
+body.dark-mode .modal-box,
+body.dark-mode .modal-header,
+body.dark-mode .modal-body,
+body.dark-mode .modal-footer,
+body.dark-mode .contract-block,
+body.dark-mode .contract-block-title,
+body.dark-mode .card-header,
+body.dark-mode .audit-filters-bar {
+  background-color: #1e1e1e !important;
+  border-color: #333 !important;
+  color: #e0e0e0 !important;
+}
+
+body.dark-mode .codes-table,
+body.dark-mode .archive-table,
+body.dark-mode .codes-table th,
+body.dark-mode .archive-table thead th,
+body.dark-mode .codes-table td,
+body.dark-mode .archive-table tbody td {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+  border-color: #333 !important;
+}
+
+body.dark-mode .codes-table tr:hover td,
+body.dark-mode .archive-table tbody tr:hover {
+  background-color: #252525 !important;
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  background-color: #2c2c2c !important;
+  color: #ffffff !important;
+  border: 1px solid #555 !important;
+}
+
+body.dark-mode .admin-tabs {
+  background-color: #181818 !important;
+  border-bottom: 1px solid #333 !important;
+}
+
+body.dark-mode .admin-tab {
+  color: #aaa !important;
+}
+
+body.dark-mode .admin-tab.active {
+  color: #2ecc71 !important;
+  border-bottom-color: #2ecc71 !important;
+}
+
+body.dark-mode .icon-btn {
+  background-color: #2c2c2c !important;
+  border-color: #444 !important;
+  color: #ccc !important;
+}
+
+body.dark-mode .badge {
+  background-color: #2c2c2c !important;
+  color: #2ecc71 !important;
 }
