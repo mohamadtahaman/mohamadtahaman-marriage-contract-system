@@ -892,6 +892,82 @@ window.filterAuditLogs = function() {
   }
   renderAuditLogs(filtered);
 };
+/* ============================================================
+   🌍 نظام اللغات (عربي، ألماني، إنجليزي)
+============================================================ */
+// هنا تضع الكلمات التي تريد ترجمتها في الموقع
+const translations = {
+  ar: {
+    "tab_codes": "الأكواد الحالية",
+    "tab_archive": "الأرشيف",
+    "tab_trash": "المحذوفات",
+    "tab_audit": "سجلات التدقيق",
+    "tab_settings": "الإعدادات",
+    "btn_logout": "خروج",
+    "dark_mode": "الوضع الليلي",
+    // أضف أي كلمات أخرى هنا
+  },
+  de: {
+    "tab_codes": "Aktuelle Codes",
+    "tab_archive": "Archiv",
+    "tab_trash": "Papierkorb",
+    "tab_audit": "Prüfprotokolle",
+    "tab_settings": "Einstellungen",
+    "btn_logout": "Abmelden",
+    "dark_mode": "Nachtmodus",
+  },
+  en: {
+    "tab_codes": "Current Codes",
+    "tab_archive": "Archive",
+    "tab_trash": "Trash",
+    "tab_audit": "Audit Logs",
+    "tab_settings": "Settings",
+    "btn_logout": "Logout",
+    "dark_mode": "Dark Mode",
+  }
+};
+
+// تحميل اللغة المحفوظة أو جعل العربية هي الافتراضية
+let currentLang = localStorage.getItem('app_lang') || 'ar';
+
+window.changeLanguage = function(lang) {
+  currentLang = lang;
+  localStorage.setItem('app_lang', lang);
+  
+  // تغيير اتجاه الصفحة (RTL للعربي و LTR للأجنبي)
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang;
+
+  // تحديث كل النصوص التي تحتوي على الخاصية data-i18n
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (translations[lang] && translations[lang][key]) {
+      el.innerText = translations[lang][key];
+    }
+  });
+};
+
+/* ============================================================
+   🌙 الوضع الليلي (Dark Mode)
+============================================================ */
+window.toggleDarkMode = function() {
+  document.body.classList.toggle('dark-mode');
+  const isDark = document.body.classList.contains('dark-mode');
+  localStorage.setItem('dark_mode', isDark);
+};
+
+// تفعيل الإعدادات المحفوظة عند فتح الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+  // تشغيل اللغة
+  window.changeLanguage(currentLang);
+  
+  // تشغيل الوضع الليلي إذا كان محفوظاً
+  const isDark = localStorage.getItem('dark_mode') === 'true';
+  if (isDark) {
+    document.body.classList.add('dark-mode');
+  }
+});
+
 
 /* ============================================================
    Exports
