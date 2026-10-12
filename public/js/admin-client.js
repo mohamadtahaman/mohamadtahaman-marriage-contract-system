@@ -127,7 +127,7 @@ function can(permission) {
     archive: ['admin', 'manager', 'user'],
     view: ['admin', 'manager', 'user', 'viewer'],
     edit: ['admin', 'manager'],
-    delete: ['admin', 'manager'],
+    delete: ['admin'],
     export: ['admin', 'manager'],
     manage_users: ['admin'],
     generate_codes: ['admin', 'manager'],
