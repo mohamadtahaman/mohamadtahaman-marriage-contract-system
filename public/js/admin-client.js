@@ -677,7 +677,7 @@ async function refreshData() {
 }
 
 /* ============================================================
-   المحذوفات وسجلات التدقيق 
+   المحذوفات وسجلات التدقيق (مصححة بالكامل)
 ============================================================ */
 async function deleteContract(code) {
   if (!can('delete')) { alert('ليس لديك صلاحية الحذف'); return; }
@@ -765,16 +765,23 @@ async function loadAuditLogs() {
     allAuditData = data.logs || []; 
     
     document.querySelectorAll('.audit-filter').forEach(cb => {
+        cb.removeEventListener('change', window.filterAuditLogs);
         cb.addEventListener('change', window.filterAuditLogs);
     });
-    renderAuditLogs(allAuditData);
+    
+    // تطبيق الفلترة افتراضياً بناءً على الحالات المحددة
+    window.filterAuditLogs();
   } catch (err) { tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`; }
 }
 
 function renderAuditLogs(logs) {
   const tbody = $('auditLogsBody');
   if (!tbody) return;
-  if (logs.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات مطابقة.</td></tr>'; return; }
+  
+  if (!logs || logs.length === 0) { 
+    tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد سجلات مطابقة أو لم يتم اختيار أي خيار.</td></tr>'; 
+    return; 
+  }
 
   let html = '';
   logs.forEach(log => {
@@ -788,22 +795,30 @@ function renderAuditLogs(logs) {
     let user = log.auth_user || log.username;
     if (!user) user = (log.user_id == 1) ? 'admin' : (log.user_id || 'نظام');
     
+    // تحويل الـ Timestamp إلى تنسيق تاريخ بشري ومقروء
     let dateStr = '-';
     if (log.timestamp) {
-        const ts = String(log.timestamp).length <= 10 ? log.timestamp * 1000 : log.timestamp;
+        const ts = String(log.timestamp).length <= 10 ? Number(log.timestamp) * 1000 : Number(log.timestamp);
         const d = new Date(ts);
-        dateStr = d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    } else if (log.created_at) { dateStr = log.created_at; }
+        if (!isNaN(d.getTime())) {
+            dateStr = d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        } else {
+            dateStr = log.timestamp;
+        }
+    } else if (log.created_at) { 
+        dateStr = log.created_at; 
+    }
 
+    const ipAddr = log.ip || log.ip_address || '-';
     const details = log.details || '-';
 
     html += `
       <tr>
-        <td class="date-cell" style="direction:ltr; font-weight:bold; font-size:13px;">${escapeHtml(dateStr)}</td>
+        <td class="date-cell" style="direction:ltr; font-weight:bold; font-size:12.5px; text-align:right;">${escapeHtml(dateStr)}</td>
         <td>${typeBadge}</td>
         <td style="font-weight:bold; color:#2d6a4f;">${escapeHtml(user)}</td>
-        <td style="font-family:monospace; direction:ltr;">-</td>
-        <td style="font-size:12px; color:#636e72;">${escapeHtml(details)}</td>
+        <td style="font-family:monospace; direction:ltr; text-align:right;">${escapeHtml(ipAddr)}</td>
+        <td style="font-size:12px; color:#636e72; direction:ltr; text-align:right;">${escapeHtml(details)}</td>
       </tr>
     `;
   });
@@ -813,17 +828,21 @@ function renderAuditLogs(logs) {
 window.filterAuditLogs = function() {
   const checkboxes = document.querySelectorAll('.audit-filter:checked');
   const allowed = Array.from(checkboxes).map(cb => cb.value);
-  let filtered = allAuditData;
   
-  if (allowed.length > 0) {
-      filtered = allAuditData.filter(log => {
-        const act = log.action || '';
-        if (allowed.includes('login') && act === 'login') return true;
-        if (allowed.includes('security') && ['delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
-        if (allowed.includes('action') && !['login', 'delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
-        return false;
-      });
+  // إذا لم يتم تحديد أي Checkbox، يتم إفراغ الجدول تماماً
+  if (allowed.length === 0) {
+      renderAuditLogs([]);
+      return;
   }
+
+  let filtered = allAuditData.filter(log => {
+    const act = log.action || '';
+    if (allowed.includes('login') && act === 'login') return true;
+    if (allowed.includes('security') && ['delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
+    if (allowed.includes('action') && !['login', 'delete', 'permanent_delete', 'restore', 'clear_all_drafts'].includes(act)) return true;
+    return false;
+  });
+
   renderAuditLogs(filtered);
 };
 
