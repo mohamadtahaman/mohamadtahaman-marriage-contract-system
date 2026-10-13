@@ -1,6 +1,6 @@
 /* ============================================================
    Cloudflare Function: POST /api/admin
-   النسخة الكاملة النهائية + نظام المصادقة الأصلي + المحذوفات
+   النسخة الكاملة المعدلة - تسجيل الأحداث الهامة فقط بدون تكرار
 ============================================================ */
 
 const PERMISSIONS = {
@@ -51,7 +51,9 @@ export async function onRequestPost(context) {
 
   const userRole = auth.role;
 
+  // تسجيل الدخول الفعلي في سجلات التدقيق
   if (action === 'login') {
+    await logAudit(env, auth.userId, username, 'login', 'تسجيل دخول ناجح للمستخدم');
     return jsonResponse({
       success: true,
       user: { id: auth.userId, username: auth.username, role: auth.role },
@@ -64,34 +66,77 @@ export async function onRequestPost(context) {
     return jsonResponse({ success: false, error: 'forbidden', message: 'ليس لديك صلاحية لهذا الإجراء' }, 403);
   }
 
+  let result;
   switch (action) {
-    case 'list':             return await handleList(env);
-    case 'archive':          return await handleArchive(env);
-    case 'generate':         return await handleGenerate(env);
-    case 'delete':           return await handleDelete(env, body.code);
-    case 'view':             return await handleView(env, body.code);
-    case 'search':           return await handleSearch(env, body.query);
-    case 'clear_drafts':     return await handleClearDrafts(env, body.code, body.all);
-    case 'change_password':  return await handleChangePassword(env, auth, body);
-    case 'list_users':       return await handleListUsers(env);
-    case 'create_user':      return await handleCreateUser(env, body);
-    case 'delete_user':      return await handleDeleteUser(env, body);
-    case 'export':           return await handleExport(env);
-    case 'update_party':     return await handleUpdateParty(env, body, auth);
-    case 'update_contract':  return await handleUpdateContract(env, body, auth);
+    case 'list':             result = await handleList(env); break;
+    case 'archive':          result = await handleArchive(env); break;
+    case 'generate':         
+      result = await handleGenerate(env); 
+      await logAudit(env, auth.userId, username, 'generate', 'توليد 5 أكواد جديدة');
+      break;
+    case 'delete':           
+      result = await handleDelete(env, body.code); 
+      await logAudit(env, auth.userId, username, 'delete', `نقل العقد ${body.code} إلى المحذوفات`);
+      break;
+    case 'view':             result = await handleView(env, body.code); break;
+    case 'search':           result = await handleSearch(env, body.query); break;
+    case 'clear_drafts':     
+      result = await handleClearDrafts(env, body.code, body.all); 
+      await logAudit(env, auth.userId, username, 'clear_all_drafts', body.all ? 'مسح جميع المسودات' : `مسح مسودات العقد ${body.code}`);
+      break;
+    case 'change_password':  
+      result = await handleChangePassword(env, auth, body); 
+      await logAudit(env, auth.userId, username, 'change_password', 'تغيير كلمة المرور');
+      break;
+    case 'list_users':       result = await handleListUsers(env); break;
+    case 'create_user':      
+      result = await handleCreateUser(env, body); 
+      await logAudit(env, auth.userId, username, 'create_user', `إنشاء مستخدم جديد: ${body.user_username}`);
+      break;
+    case 'delete_user':      
+      result = await handleDeleteUser(env, body); 
+      await logAudit(env, auth.userId, username, 'delete_user', `حذف المستخدم رقم: ${body.user_id}`);
+      break;
+    case 'export':           
+      result = await handleExport(env); 
+      await logAudit(env, auth.userId, username, 'export', 'تصدير نسخة احتياطية');
+      break;
+    case 'update_party':     result = await handleUpdateParty(env, body, auth); break;
+    case 'update_contract':  result = await handleUpdateContract(env, body, auth); break;
     
     // المحذوفات والسجلات
-    case 'get_trash':        return await handleGetTrash(env);
-    case 'restore':          return await handleRestore(env, body.code);
-    case 'permanent_delete': return await handlePermanentDelete(env, body.code);
-    case 'audit_logs':       return await handleAuditLogs(env);
+    case 'get_trash':        result = await handleGetTrash(env); break;
+    case 'restore':          
+      result = await handleRestore(env, body.code); 
+      await logAudit(env, auth.userId, username, 'restore', `استرجاع العقد ${body.code}`);
+      break;
+    case 'permanent_delete': 
+      result = await handlePermanentDelete(env, body.code); 
+      await logAudit(env, auth.userId, username, 'permanent_delete', `حذف نهائي للعقد ${body.code}`);
+      break;
+    case 'audit_logs':       result = await handleAuditLogs(env); break;
     default:
       return jsonResponse({ success: false, error: 'unknown_action', message: 'إجراء غير معروف' }, 400);
+  }
+  return result;
+}
+
+/* ============================================================
+   دالة تسجيل التدقيق المخصصة (بدون تكرار)
+============================================================ */
+async function logAudit(env, userId, username, action, details) {
+  try {
+    const timestamp = Math.floor(Date.now() / 1000);
+    await env.DB.prepare(
+      'INSERT INTO audit_log (user_id, username, action, details, timestamp) VALUES (?, ?, ?, ?, ?)'
+    ).bind(userId || null, username || 'admin', action, details, timestamp).run();
+  } catch (e) {
+    // تجاهل خطأ السجل بصمت لكي لا يتعطل الطلب الأساسي
   }
 }
 
 /* ============================================================
-   Authentication Core (الأصلي)
+   Authentication Core
 ============================================================ */
 async function authenticate(env, username, password) {
   username = username.toLowerCase();
@@ -204,9 +249,6 @@ async function handleView(env, code) {
   } catch (err) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
 }
 
-/* ============================================================
-   الحذف وسلة المحذوفات (مصححة الأسماء)
-============================================================ */
 async function handleDelete(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) return jsonResponse({ success: false, error: 'invalid_code' }, 400);
   try {
@@ -237,7 +279,6 @@ async function handleGetTrash(env) {
       const parties = await env.DB.prepare('SELECT role, name_de, name_ar FROM parties WHERE contract_id = ?').bind(c.id).all();
       let p1 = '—', p2 = '—';
       for (const p of parties.results || []) {
-        // تم التصحيح: الاعتماد على الاسم الأجنبي أولا لتفادي الخربشة في الاسم العربي
         if (p.role === 'groom') p1 = p.name_de || p.name_ar || '—';
         if (p.role === 'bride') p2 = p.name_de || p.name_ar || '—';
       }
@@ -283,9 +324,6 @@ async function handleAuditLogs(env) {
   } catch (e) { return jsonResponse({ success: true, logs: [] }, 200); }
 }
 
-/* ============================================================
-   باقي الدوال الأساسية المساعدة
-============================================================ */
 async function handleSearch(env, query) {
   if (!query || !query.trim()) return jsonResponse({ success: true, results: [] }, 200);
   const q = '%' + query.trim() + '%';
