@@ -1,183 +1,133 @@
-/* ============================================================
-   Cloudflare Function: POST /api/divorce
-   نظام عقود الطلاق - Backend منفصل ومستقل
-============================================================ */
-
-export async function onRequestPost(context) {
+export async function onRequest(context) {
   const { request, env } = context;
+  
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ success: false, message: 'Method not allowed' }), {
+      status: 405, headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
-  let body;
   try {
-    body = await request.json();
-  } catch (err) {
-    return jsonResponse({ success: false, error: 'invalid_json', message: 'طلب غير صالح' }, 400);
-  }
+    const body = await request.json();
+    const { action, username, password } = body;
 
-  const action = (body.action || '').trim();
-  const password = (body.password || '').trim();
-  const username = (body.username || 'admin').trim();
-
-  if (!password) {
-    return jsonResponse({ success: false, error: 'missing_password', message: 'كلمة المرور مطلوبة' }, 401);
-  }
-
-  // التحقق من المصادقة باستخدام نفس بيانات المشرف/المستخدمين
-  const auth = await authenticate(env, username, password);
-  if (!auth.success) {
-    return jsonResponse({ success: false, error: auth.error, message: 'بيانات الدخول غير صحيحة' }, 401);
-  }
-
-  let result;
-  switch (action) {
-    case 'login':
-      result = jsonResponse({ success: true, user: { username: auth.username, role: auth.role } }, 200);
-      break;
-    case 'list':
-      result = await handleListDivorce(env);
-      break;
-    case 'save':
-      result = await handleSaveDivorce(env, body);
-      break;
-    case 'view':
-      result = await handleViewDivorce(env, body.code);
-      break;
-    case 'delete':
-      result = await handleDeleteDivorce(env, body.code);
-      break;
-    default:
-      result = jsonResponse({ success: false, error: 'unknown_action', message: 'إجراء غير معروف' }, 400);
-  }
-
-  return result;
-}
-
-/* ============================================================
-   Authentications & Helpers
-============================================================ */
-async function authenticate(env, username, password) {
-  username = username.toLowerCase();
-  try {
-    const user = await env.DB.prepare('SELECT id, username, password_hash, role, is_active FROM users WHERE username = ?').bind(username).first();
-    if (user) {
-      if (!user.is_active) return { success: false, error: 'inactive' };
-      if (user.password_hash !== password) return { success: false, error: 'wrong_password' };
-      return { success: true, username: user.username, role: user.role };
+    // التحقق من صلاحيات المدير
+    if (username !== 'admin' || password !== (env.ADMIN_PASSWORD || 'admin123')) {
+      return new Response(JSON.stringify({ success: false, message: 'بيانات الدخول غير صحيحة' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' }
+      });
     }
-  } catch (e) {}
 
-  if (username === 'admin' && password === env.ADMIN_PASSWORD) {
-    return { success: true, username: 'admin', role: 'admin' };
-  }
-  return { success: false, error: 'not_found' };
-}
+    const db = env.DB;
 
-/* ============================================================
-   دوال معالجة عقود الطلاق المستقلة
-============================================================ */
-async function handleListDivorce(env) {
-  try {
-    // التأكد من وجود الجدول أو إنشاؤه تلقائياً لضمان عدم حدوث أي خطأ
-    await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS divorce_contracts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT UNIQUE,
-        marriage_code TEXT,
-        divorce_type TEXT,
-        children_status TEXT,
-        created_at INTEGER,
-        status TEXT
-      )
-    `).run();
+    // 1. تسجيل الدخول للإدارة
+    if (action === 'login') {
+      return new Response(JSON.stringify({ success: true, message: 'تم الدخول بنجاح' }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-    const list = await env.DB.prepare("SELECT * FROM divorce_contracts ORDER BY id DESC").all();
-    return jsonResponse({ success: true, contracts: list.results || [] }, 200);
-  } catch (e) {
-    return jsonResponse({ success: true, contracts: [] }, 200);
-  }
-}
+    // 2. جلب قائمة وثائق الطلاق
+    if (action === 'list') {
+      const { results } = await db.prepare("SELECT * FROM divorce_contracts ORDER BY created_at DESC").all();
+      return new Response(JSON.stringify({ success: true, contracts: results || [] }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-async function handleSaveDivorce(env, body) {
-  try {
-    const code = 'D' + Math.random().toString(36).substring(2, 7).toUpperCase();
-    const marriageCode = (body.marriageCode || '').trim().toUpperCase();
-    const divorceType = body.divorceType || 'اتفاقي';
-    const childrenStatus = body.childrenStatus || 'لا توجد';
-    const timestamp = Math.floor(Date.now() / 1000);
+    // 3. البحث عن الشاهد مسبقاً (لتسهيل اختيار الشهود المترددين على المركز)
+    if (action === 'search_witness') {
+      const { query } = body;
+      const { results } = await db.prepare(
+        "SELECT DISTINCT witness_name, witness_id, witness_address FROM divorce_witnesses WHERE witness_name LIKE ? LIMIT 5"
+      ).bind(`%${query}%`).all();
+      return new Response(JSON.stringify({ success: true, witnesses: results || [] }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
-    // التحقق من جدول عقود الطلاق أولاً
-    await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS divorce_contracts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT UNIQUE,
-        marriage_code TEXT,
-        divorce_type TEXT,
-        children_status TEXT,
-        created_at INTEGER,
-        status TEXT
-      )
-    `).run();
+    // 4. حفظ أو إصدار عقد طلاق جديد مباشرة من الإدارة
+    if (action === 'save') {
+      const { 
+        code, divorce_date, divorce_type, 
+        groom_name, groom_birth, groom_mother, groom_id, groom_address,
+        bride_name, bride_birth, bride_mother, bride_id, bride_address,
+        wali_name, wali_status, dowry_prompt, dowry_deferred,
+        witness1_name, witness1_birth, witness1_id, witness1_address,
+        witness2_name, witness2_birth, witness2_id, witness2_address
+      } = body;
 
-    await env.DB.prepare(`
-      INSERT INTO divorce_contracts (code, marriage_code, divorce_type, children_status, created_at, status)
-      VALUES (?, ?, ?, ?, ?, 'sent')
-    `).bind(code, marriageCode, divorceType, childrenStatus, timestamp).run();
+      const contractCode = code || 'D' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    return jsonResponse({ success: true, message: 'تم توثيق وحفظ عقد الطلاق بنجاح', code }, 200);
-  } catch (e) {
-    return jsonResponse({ success: false, error: 'db_error', message: 'فشل حفظ عقد الطلاق: ' + e.message }, 500);
-  }
-}
+      await db.prepare(`
+        INSERT INTO divorce_contracts (
+          code, divorce_date, divorce_type,
+          groom_name, groom_birth, groom_mother, groom_id, groom_address,
+          bride_name, bride_birth, bride_mother, bride_id, bride_address,
+          wali_name, wali_status, dowry_prompt, dowry_deferred,
+          witness1_name, witness1_birth, witness1_id, witness1_address,
+          witness2_name, witness2_birth, witness2_id, witness2_address,
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(code) DO UPDATE SET
+          divorce_date=excluded.divorce_date, divorce_type=excluded.divorce_type,
+          groom_name=excluded.groom_name, groom_birth=excluded.groom_birth, groom_mother=excluded.groom_mother, groom_id=excluded.groom_id, groom_address=excluded.groom_address,
+          bride_name=excluded.bride_name, bride_birth=excluded.bride_birth, bride_mother=excluded.bride_mother, bride_id=excluded.bride_id, bride_address=excluded.bride_address,
+          wali_name=excluded.wali_name, wali_status=excluded.wali_status, dowry_prompt=excluded.dowry_prompt, dowry_deferred=excluded.dowry_deferred,
+          witness1_name=excluded.witness1_name, witness1_birth=excluded.witness1_birth, witness1_id=excluded.witness1_id, witness1_address=excluded.witness1_address,
+          witness2_name=excluded.witness2_name, witness2_birth=excluded.witness2_birth, witness2_id=excluded.witness2_id, witness2_address=excluded.witness2_address
+      `).bind(
+        contractCode, divorce_date, divorce_type,
+        groom_name, groom_birth, groom_mother, groom_id, groom_address,
+        bride_name, bride_birth, bride_mother, bride_id, bride_address,
+        wali_name, wali_status, dowry_prompt, dowry_deferred,
+        witness1_name, witness1_birth, witness1_id, witness1_address,
+        witness2_name, witness2_birth, witness2_id, witness2_address
+      ).run();
 
-async function handleViewDivorce(env, code) {
-  try {
-    const contract = await env.DB.prepare("SELECT * FROM divorce_contracts WHERE code = ?").bind(code).first();
-    if (!contract) return jsonResponse({ success: false, error: 'not_found', message: 'وثيقة الطلاق غير موجودة' }, 404);
-    
-    let parties = {};
-    let marriageDate = '—';
-    
-    // جلب بيانات الزوجين والبيانات المرتبطة من جدول عقود الزواج الأصلي باستخدام كود عقد الزواج
-    const marriageRow = await env.DB.prepare("SELECT id, contract_date FROM contracts WHERE code = ?").bind(contract.marriage_code).first();
-    if (marriageRow) {
-      marriageDate = marriageRow.contract_date || '—';
-      const pRows = await env.DB.prepare("SELECT * FROM parties WHERE contract_id = ?").bind(marriageRow.id).all();
-      for (const p of pRows.results || []) {
-        parties[p.role] = p;
+      // حفظ الشهود في جدول الذاكرة للبحث المستقبلي
+      if (witness1_name) {
+        await db.prepare("INSERT OR IGNORE INTO divorce_witnesses (witness_name, witness_id, witness_address) VALUES (?, ?, ?)").bind(witness1_name, witness1_id, witness1_address).run();
       }
+      if (witness2_name) {
+        await db.prepare("INSERT OR IGNORE INTO divorce_witnesses (witness_name, witness_id, witness_address) VALUES (?, ?, ?)").bind(witness2_name, witness2_id, witness2_address).run();
+      }
+
+      return new Response(JSON.stringify({ success: true, message: 'تم حفظ وثيقة الطلاق بنجاح', code: contractCode }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    return jsonResponse({ 
-      success: true, 
-      contract: {
-        code: contract.code,
-        marriageCode: contract.marriage_code,
-        marriageDate: marriageDate,
-        divorceType: contract.divorce_type,
-        childrenStatus: contract.children_status,
-        parties: parties
-      } 
-    }, 200);
-  } catch (e) {
-    return jsonResponse({ success: false, error: 'db_error', message: 'خطأ في جلب تفاصيل الطلاق' }, 500);
+    // 5. عرض تفاصيل عقد طلاق محدد
+    if (action === 'view') {
+      const { code } = body;
+      const contract = await db.prepare("SELECT * FROM divorce_contracts WHERE code = ?").bind(code).first();
+      if (!contract) {
+        return new Response(JSON.stringify({ success: false, message: 'وثيقة الطلاق غير موجودة' }), {
+          status: 404, headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      return new Response(JSON.stringify({ success: true, contract }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 6. حذف وثيقة طلاق
+    if (action === 'delete') {
+      const { code } = body;
+      await db.prepare("DELETE FROM divorce_contracts WHERE code = ?").bind(code).run();
+      return new Response(JSON.stringify({ success: true, message: 'تم الحذف بنجاح' }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    return new Response(JSON.stringify({ success: false, message: 'إجراء غير معروف' }), {
+      status: 400, headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (err) {
+    return new Response(JSON.stringify({ success: false, message: err.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json' }
+    });
   }
-}
-
-async function handleDeleteDivorce(env, code) {
-  try {
-    await env.DB.prepare("DELETE FROM divorce_contracts WHERE code = ?").bind(code).run();
-    return jsonResponse({ success: true, message: 'تم حذف وثيقة الطلاق بنجاح' }, 200);
-  } catch (e) {
-    return jsonResponse({ success: false, error: 'db_error', message: 'فشل الحذف' }, 500);
-  }
-}
-
-export async function onRequestGet() { 
-  return jsonResponse({ message: 'استخدم طلب POST فقط' }, 405); 
-}
-
-function jsonResponse(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status, 
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' }
-  });
 }
