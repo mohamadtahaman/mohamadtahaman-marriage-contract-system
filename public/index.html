@@ -4,22 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>Arresalah Zentrum Berlin - نظام تسجيل العقد</title>
+<title>Arresalah Zentrum Berlin - بوابة الخدمات</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/style.css?v=4">
+<link rel="stylesheet" href="./css/style.css">
 </head>
 <body>
 
 <div class="topbar">
   <div>Arresalah e.V. — Berlin</div>
   <div class="lang-switcher">
-    <button class="lang-btn active" data-lang="ar" onclick="setLanguage('ar')">عربي</button>
-    <button class="lang-btn" data-lang="de" onclick="setLanguage('de')">DE</button>
-    <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">EN</button>
+    <button class="lang-btn active" data-lang="ar">عربي</button>
+    <button class="lang-btn" data-lang="de">DE</button>
   </div>
 </div>
 
@@ -33,8 +30,8 @@
       </svg>
     </div>
     <div class="brand-text">
-      <h1 data-i18n="brandName">Arresalah Zentrum</h1>
-      <p data-i18n="brandSub">Islamisches Zentrum Berlin</p>
+      <h1>Arresalah Zentrum</h1>
+      <p>Islamisches Zentrum Berlin</p>
     </div>
   </div>
   <div class="header-contact">
@@ -45,83 +42,34 @@
 
 <section class="hero">
   <div class="hero-content">
-    <div class="bismillah" data-i18n="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
-    <h2 data-i18n="heroTitle">نظام تسجيل بيانات عقد الزواج</h2>
-    <p data-i18n="heroSub">منصة إلكترونية لتسجيل بيانات أطراف العقد بسهولة ودقة</p>
+    <div class="bismillah">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+    <h2>بوابة الخدمات الإلكترونية</h2>
+    <p>اختر القسم المطلوب للمتابعة بكل سهولة ويسر</p>
     <div class="hero-ornament"></div>
   </div>
 </section>
 
-<main class="container">
+<main class="container" style="text-align: center; padding: 50px 20px;">
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; max-width: 700px; margin: 0 auto;">
+    
+    <!-- خيار عقود الزواج -->
+    <a href="./marriage.html" class="btn" style="display: block; padding: 30px; background: var(--green-ultra); border: 2px solid var(--green-pale); border-radius: 14px; text-decoration: none; color: var(--green-dark);">
+      <span style="font-size: 32px; display: block; margin-bottom: 10px;">💍</span>
+      <strong style="font-size: 18px; display: block; margin-bottom: 6px;">توثيق وتسجيل الزواج</strong>
+      <span style="font-size: 13px; color: var(--text-mid); font-weight: normal;">إدارة وتسجيل عقود الزواج الرسمية</span>
+    </a>
 
-  <section id="verifyScreen">
-    <div class="verify-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-      </svg>
-    </div>
-    <h2 data-i18n="verifyTitle">التحقق من رقم العقد</h2>
-    <p class="subtitle" data-i18n="verifySub">أدخل رقم العقد للبدء في تعبئة بيانات الأطراف</p>
+    <!-- خيار عقود الطلاق والأحوال الشخصية -->
+    <a href="./divorce-admin.html" class="btn" style="display: block; padding: 30px; background: var(--gold-pale); border: 2px solid var(--gold-light); border-radius: 14px; text-decoration: none; color: var(--gold-dark);">
+      <span style="font-size: 32px; display: block; margin-bottom: 10px;">📋</span>
+      <strong style="font-size: 18px; display: block; margin-bottom: 6px;">شؤون الأحوال الشخصية والطلاق</strong>
+      <span style="font-size: 13px; color: var(--text-mid); font-weight: normal;">توثيق ومتابعة وثائق الطلاق</span>
+    </a>
 
-    <input type="text" id="contractCodeInput" placeholder="XXXXXX" maxlength="6"
-           inputmode="text" autocomplete="off" autocapitalize="characters"
-           spellcheck="false">
-
-    <p class="helper-text">
-      <span data-i18n="helperText">رقم العقد يُمنح لكم من المركز عند تسجيل العقد</span>
-    </p>
-
-    <br>
-    <button class="btn btn-primary" id="verifyBtn" data-i18n="verifyBtn">متابعة</button>
-    <br>
-    <button class="btn btn-help" id="helpBtn">
-      <span data-i18n="helpBtn">كيف أحصل على رقم العقد؟</span>
-    </button>
-  </section>
-
-  <section id="roleScreen" class="hidden">
-    <div class="progress-section">
-      <div class="progress-circle" id="progressCircleRole">
-        <span id="progressTextRole">0%</span>
-      </div>
-      <div class="progress-text">
-        <h4 data-i18n="progressTitle">اكتمال بيانات العقد</h4>
-        <p id="progressSubtextRole">0 / 5</p>
-      </div>
-    </div>
-
-    <h2 class="screen-title" data-i18n="chooseRole">اختر الطرف لتعبئة بياناته</h2>
-    <p class="screen-subtitle" data-i18n="chooseRoleSub">اضغط على أي طرف لبدء التعبئة</p>
-
-    <div class="party-tabs" id="rolePicker"></div>
-
-    <div id="sendArea" class="hidden send-area">
-      <div class="contract-date-block">
-        <h4 data-i18n="contractDateTitle">تاريخ العقد</h4>
-        <div class="date-selects">
-          <select id="contractDay"></select>
-          <select id="contractMonth"></select>
-          <select id="contractYear"></select>
-        </div>
-      </div>
-
-      <p class="send-msg" data-i18n="allComplete">✓ اكتملت بيانات جميع الأطراف</p>
-      <button class="btn btn-gold send-btn" id="submitAllBtn">
-        <span data-i18n="sendContract">إرسال العقد إلى المركز</span>
-      </button>
-    </div>
-  </section>
-
-  <section id="inputScreen" class="hidden">
-    <div id="partyFormWrap"></div>
-  </section>
+  </div>
 
 </main>
-
-<div class="admin-access">
-  <a href="./admin.html" class="admin-access-link" data-i18n="adminAccess">دخول الإدارة</a>
-</div>
 
 <footer>
   <div class="footer-title">Arresalah e.V. — Berlin</div>
@@ -129,24 +77,5 @@
   <div class="footer-copy">© 2026 Arresalah Zentrum Berlin</div>
 </footer>
 
-<div id="helpModal" class="modal-overlay hidden">
-  <div class="modal">
-    <h3 data-i18n="helpTitle">كيف أحصل على رقم العقد؟</h3>
-    <div class="help-list">
-      <div class="contact-line">📞 <span data-i18n="helpPhone">اتصل بالمركز: +49 30 XXXXXXX</span></div>
-      <div class="contact-line">💬 <span data-i18n="helpWhats">أو راسلنا عبر واتساب</span></div>
-      <div class="contact-line">✉️ <span data-i18n="helpEmail">أو راسلنا على البريد الإلكتروني</span></div>
-      <div class="help-note">
-        <span data-i18n="helpNote">رقم العقد مكوّن من 6 أحرف/أرقام إنجليزية، مثال: A7K9P2</span>
-      </div>
-    </div>
-    <button class="btn btn-gray" onclick="closeHelpModal()" data-i18n="close">إغلاق</button>
-  </div>
-</div>
-
-<div id="toastContainer"></div>
-
-<script src="./js/i18n.js?v=4"></script>
-<script src="./js/app.js?v=4"></script>
 </body>
 </html>
