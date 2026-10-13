@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>إدارة عقود الطلاق - Arresalah Zentrum Berlin</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/admin.css">
+<style>
+  #loginScreen { display: none; }
+  #divorcePanel { display: none; }
+</style>
+</head>
+<body>
+
+<!-- شاشة تسجيل الدخول الخاصة بفرع الطلاق -->
+<div id="loginScreen" class="login-wrap">
+  <div class="login-box">
+    <div class="login-header">
+      <h1>Arresalah Zentrum Berlin</h1>
+      <p>تسجيل الدخول - إدارة عقود الطلاق</p>
+    </div>
+    <div class="login-body">
+      <label>اسم المستخدم</label>
+      <input type="text" id="usernameInput" value="admin" style="text-align:right; margin-bottom:14px;">
+      <label>كلمة المرور</label>
+      <input type="password" id="passwordInput" placeholder="••••••">
+      <button id="loginBtn" class="btn-login" onclick="divorceLogin()">دخول</button>
+      <div id="loginMessage" class="message hidden"></div>
+    </div>
+    <div class="login-footer">
+      <a href="./admin.html">← العودة لوحة الإدارة العامة</a>
+    </div>
+  </div>
+</div>
+
+<!-- لوحة إدارة الطلاق الرئيسية -->
+<div id="divorcePanel" class="panel-wrap">
+  <div class="panel-header">
+    <div class="panel-title">
+      <h1>إدارة وثائق وعقود الطلاق</h1>
+      <span class="badge">Arresalah Zentrum</span>
+    </div>
+    <div class="panel-actions">
+      <a href="./admin.html" class="btn-secondary" style="text-decoration:none; padding:8px 15px; font-size:14px;">اللوحة العامة</a>
+      <button onclick="loadDivorceList()" class="btn-secondary">تحديث</button>
+      <button onclick="divorceLogout()" class="btn-danger">خروج</button>
+    </div>
+  </div>
+
+  <div id="systemMessage" class="system-message hidden"></div>
+
+  <div class="panel-content">
+    
+    <!-- نموذج إصدار عقد طلاق جديد -->
+    <div class="card">
+      <div class="card-header"><h2>⚖️ إثدار وتوثيق عقد طلاق جديد</h2></div>
+      <div class="card-body">
+        <div class="form-grid">
+          <div class="field">
+            <label>كود عقد الزواج الأصلي</label>
+            <input type="text" id="divorceMarriageCode" placeholder="مثال: A7B9K2" maxlength="6" style="text-transform:uppercase; font-family:'Courier New',monospace; font-weight:bold;">
+          </div>
+          <div class="field">
+            <label>نوع الطلاق</label>
+            <select id="divorceTypeSelect">
+              <option value="اتفاقي (Einvernehmliche Scheidung)">اتفاقي (Einvernehmliche Scheidung)</option>
+              <option value="خلع (Chul'a)">خلع (Chul'a)</option>
+              <option value="رجعي (Radschi)">رجعي (Radschi)</option>
+              <option value="بائن (Bain)">بائن بينونة صغرى/كبرى</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label>حالة الأطفال / تفاصيل الحضانة والنفقة</label>
+            <input type="text" id="divorceChildrenStatus" placeholder="مثال: يوجد طفلان، الحضانة للأم والنفقة متفق عليها أصولاً">
+          </div>
+        </div>
+        <button class="btn-primary" onclick="createDivorceContract()" style="margin-top:15px;">إنشاء وتوثيق عقد الطلاق</button>
+      </div>
+    </div>
+
+    <!-- جدول عرض وثائق الطلاق المُصدرة -->
+    <div class="card">
+      <div class="card-header"><h2>قائمة وثائق الطلاق المُصدرة والموثقة</h2></div>
+      <div class="card-body no-padding">
+        <table class="codes-table">
+          <thead>
+            <tr>
+              <th style="width:80px;">#</th>
+              <th style="width:140px;">كود الطلاق</th>
+              <th style="width:140px;">عقد الزواج الأصلي</th>
+              <th>نوع الطلاق</th>
+              <th>الحالة</th>
+              <th style="width:160px;">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="divorceBody">
+            <tr><td colspan="6" class="loading-cell">جارٍ التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // دوال الإدارة والتحكم الخاصة بفرع الطلاق
+  const state = { username: 'admin', password: '' };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const pw = sessionStorage.getItem('divorce_admin_pw');
+    if (pw) {
+      state.password = pw;
+      showDivorcePanel();
+      loadDivorceList();
+    } else {
+      showLoginScreen();
+    }
+  });
+
+  function showLoginScreen() {
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('divorcePanel').style.display = 'none';
+  }
+
+  function showDivorcePanel() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('divorcePanel').style.display = 'block';
+  }
+
+  async function divorceLogin() {
+    const pw = document.getElementById('passwordInput').value.trim();
+    if (!pw) { alert('أدخل كلمة المرور'); return; }
+    
+    try {
+      const res = await fetch('/api/divorce', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', username: 'admin', password: pw })
+      });
+      const data = await res.json();
+      if (data.success) {
+        state.password = pw;
+        sessionStorage.setItem('divorce_admin_pw', pw);
+        showDivorcePanel();
+        loadDivorceList();
+      } else {
+        alert('كلمة المرور غير صحيحة');
+      }
+    } catch (err) {
+      alert('خطأ في الاتصال بالسيرفر');
+    }
+  }
+
+  function divorceLogout() {
+    sessionStorage.removeItem('divorce_admin_pw');
+    state.password = '';
+    showLoginScreen();
+  }
+
+  function showSystemMessage(text, type) {
+    const msg = document.getElementById('systemMessage');
+    msg.textContent = text;
+    msg.className = 'system-message ' + type;
+    msg.classList.remove('hidden');
+    if (type === 'success') setTimeout(() => msg.classList.add('hidden'), 3500);
+  }
+
+  async function apiCall(action, extra = {}) {
+    const res = await fetch('/api/divorce', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: state.username, password: state.password, action, ...extra })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.message || 'خطأ في العملية');
+    return data;
+  }
+
+  async function loadDivorceList() {
+    const tbody = document.getElementById('divorceBody');
+    tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">جارٍ التحميل...</td></tr>';
+    try {
+      const data = await apiCall('list');
+      const items = data.contracts || [];
+      if (items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="loading-cell">لا توجد وثائق طلاق مُصدرة بعد</td></tr>';
+        return;
+      }
+      let html = '';
+      items.forEach((item, idx) => {
+        html += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td><strong style="color:#2d6a4f; font-family:monospace;">${item.code}</strong></td>
+            <td><code style="font-weight:bold;">${item.marriage_code || '—'}</code></td>
+            <td>${item.divorce_type || '—'}</td>
+            <td><span class="status-sent" style="color:#2d6a4f; font-weight:bold;">● مُوثق</span></td>
+            <td class="action-icons">
+              <button class="icon-btn print" title="طباعة وثيقة الطلاق" onclick="window.open('./print-divorce.html?code=${item.code}', '_blank')">🖨️</button>
+              <button class="icon-btn delete" title="حذف" onclick="deleteDivorce('${item.code}')">🗑️</button>
+            </td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = html;
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" class="loading-cell" style="color:#c0392b;">خطأ في جلب البيانات: ${err.message}</td></tr>`;
+    }
+  }
+
+  async function createDivorceContract() {
+    const marriageCode = document.getElementById('divorceMarriageCode').value.trim().toUpperCase();
+    const divorceType = document.getElementById('divorceTypeSelect').value;
+    const childrenStatus = document.getElementById('divorceChildrenStatus').value.trim();
+
+    if (!marriageCode) {
+      showSystemMessage('أدخل كود عقد الزواج الأصلي', 'error');
+      return;
+    }
+
+    try {
+      const res = await apiCall('save', { marriageCode, divorceType, childrenStatus });
+      showSystemMessage('✓ ' + res.message, 'success');
+      document.getElementById('divorceMarriageCode').value = '';
+      document.getElementById('divorceChildrenStatus').value = '';
+      loadDivorceList();
+    } catch (err) {
+      showSystemMessage('فشل الحفظ: ' + err.message, 'error');
+    }
+  }
+
+  async function deleteDivorce(code) {
+    if (!confirm(`هل أنت متأكد من حذف وثيقة الطلاق ${code}؟`)) return;
+    try {
+      await apiCall('delete', { code });
+      showSystemMessage('✓ تم الحذف بنجاح', 'success');
+      loadDivorceList();
+    } catch (err) {
+      showSystemMessage('فشل الحذف: ' + err.message, 'error');
+    }
+  }
+</script>
+
+</body>
+</html>
