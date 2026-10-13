@@ -769,7 +769,6 @@ async function loadAuditLogs() {
         cb.addEventListener('change', window.filterAuditLogs);
     });
     
-    // تطبيق الفلترة افتراضياً بناءً على الحالات المحددة
     window.filterAuditLogs();
   } catch (err) { tbody.innerHTML = `<tr><td colspan="5" class="loading-cell" style="color:#c0392b;">خطأ: ${escapeHtml(err.message)}</td></tr>`; }
 }
@@ -795,7 +794,6 @@ function renderAuditLogs(logs) {
     let user = log.auth_user || log.username;
     if (!user) user = (log.user_id == 1) ? 'admin' : (log.user_id || 'نظام');
     
-    // تحويل دقيق ومضمون للطابع الزمني إلى تاريخ ووقت مقروء
     let dateStr = '-';
     let rawTime = log.timestamp || log.created_at;
     if (rawTime) {
@@ -829,7 +827,6 @@ window.filterAuditLogs = function() {
   const checkboxes = document.querySelectorAll('.audit-filter:checked');
   const allowed = Array.from(checkboxes).map(cb => cb.value);
   
-  // إذا لم يتم تحديد أي Checkbox، يتم إفراغ الجدول تماماً
   if (allowed.length === 0) {
       renderAuditLogs([]);
       return;
@@ -847,7 +844,7 @@ window.filterAuditLogs = function() {
 };
 
 /* ============================================================
-   🌍 نظام اللغات والوضع الليلي (i18n & Dark Mode)
+   🌍 نظام اللغات الشامل والوضع الليلي (i18n & Dark Mode)
 ============================================================ */
 const translations = {
   ar: {
@@ -857,7 +854,46 @@ const translations = {
     "tab_audit": "سجلات التدقيق",
     "tab_settings": "الإعدادات",
     "btn_logout": "خروج",
+    "btn_refresh": "تحديث",
     "dark_mode": "الوضع الليلي",
+    "admin_title": "لوحة الإدارة",
+    
+    // صفحة الإعدادات
+    "settings_title_password": "🔐 تغيير كلمة المرور",
+    "label_old_password": "كلمة المرور الحالية",
+    "label_new_password": "كلمة المرور الجديدة",
+    "label_confirm_password": "تأكيد كلمة المرور",
+    "btn_change_password": "تغيير كلمة المرور",
+    
+    "settings_title_users": "👥 المستخدمون",
+    "table_actions": "إجراءات",
+    "table_status": "الحالة",
+    "table_role": "الصلاحية",
+    "table_fullname": "الاسم الكامل",
+    "table_username": "اسم المستخدم",
+    
+    "settings_title_add_user": "إضافة مستخدم جديد",
+    "label_new_username": "اسم المستخدم",
+    "label_new_fullname": "الاسم الكامل",
+    "label_btn_add_user": "إضافة المستخدم",
+    
+    "settings_title_backup": "💾 نسخ احتياطي",
+    "backup_desc": "JSON تصدير كل العقود والأحراف بالنسخة الاحتياطية",
+    "btn_download_backup": "تحميل نسخة احتياطية (JSON)",
+    
+    "settings_title_system": "ℹ️ معلومات النظام",
+    "sys_codes_count": "عدد الأكواد:",
+    "sys_sent_count": "عدد العقود المُرسلة:",
+    "sys_connection": "حالة الاتصال:",
+    "sys_version": "إصدار الواجهة:",
+    "status_connected": "متصل ✓",
+
+    // صفحة الأرشيف
+    "archive_search_placeholder": "ابحث بالاسم، الكود أو رقم الهوية...",
+    "archive_filter_all": "الكل",
+    "archive_filter_sent": "المُرسلة فقط",
+    "archive_filter_pending": "قيد الانتظار",
+    "archive_title_sent": "العقود المُرسلة"
   },
   de: {
     "tab_codes": "Aktuelle Codes",
@@ -866,7 +902,46 @@ const translations = {
     "tab_audit": "Prüfprotokolle",
     "tab_settings": "Einstellungen",
     "btn_logout": "Abmelden",
+    "btn_refresh": "Aktualisieren",
     "dark_mode": "Nachtmodus",
+    "admin_title": "Admin-Panel",
+    
+    // صفحة الإعدادات
+    "settings_title_password": "🔐 Passwort ändern",
+    "label_old_password": "Aktuelles Passwort",
+    "label_new_password": "Neues Passwort",
+    "label_confirm_password": "Passwort bestätigen",
+    "btn_change_password": "Passwort ändern",
+    
+    "settings_title_users": "👥 Benutzer",
+    "table_actions": "Aktionen",
+    "table_status": "Status",
+    "table_role": "Rolle",
+    "table_fullname": "Vollständiger Name",
+    "table_username": "Benutzername",
+    
+    "settings_title_add_user": "Neuen Benutzer hinzufügen",
+    "label_new_username": "Benutzername",
+    "label_new_fullname": "Vollständiger Name",
+    "label_btn_add_user": "Benutzer hinzufügen",
+    
+    "settings_title_backup": "💾 Datensicherung",
+    "backup_desc": "JSON-Export aller Verträge und Daten als Backup",
+    "btn_download_backup": "Backup herunterladen (JSON)",
+    
+    "settings_title_system": "ℹ️ Systeminformationen",
+    "sys_codes_count": "Anzahl der Codes:",
+    "sys_sent_count": "Gesendete Verträge:",
+    "sys_connection": "Verbindungsstatus:",
+    "sys_version": "Oberflächenversion:",
+    "status_connected": "Verbunden ✓",
+
+    // صفحة الأرشيف
+    "archive_search_placeholder": "Suche nach Name, Code oder ID...",
+    "archive_filter_all": "Alle",
+    "archive_filter_sent": "Nur gesendete",
+    "archive_filter_pending": "Ausstehend",
+    "archive_title_sent": "Gesendete Verträge"
   },
   en: {
     "tab_codes": "Current Codes",
@@ -875,7 +950,46 @@ const translations = {
     "tab_audit": "Audit Logs",
     "tab_settings": "Settings",
     "btn_logout": "Logout",
+    "btn_refresh": "Refresh",
     "dark_mode": "Dark Mode",
+    "admin_title": "Admin Panel",
+    
+    // صفحة الإعدادات
+    "settings_title_password": "🔐 Change Password",
+    "label_old_password": "Current Password",
+    "label_new_password": "New Password",
+    "label_confirm_password": "Confirm Password",
+    "btn_change_password": "Change Password",
+    
+    "settings_title_users": "👥 Users",
+    "table_actions": "Actions",
+    "table_status": "Status",
+    "table_role": "Role",
+    "table_fullname": "Full Name",
+    "table_username": "Username",
+    
+    "settings_title_add_user": "Add New User",
+    "label_new_username": "Username",
+    "label_new_fullname": "Full Name",
+    "label_btn_add_user": "Add User",
+    
+    "settings_title_backup": "💾 Backup",
+    "backup_desc": "JSON export of all contracts and data for backup",
+    "btn_download_backup": "Download Backup (JSON)",
+    
+    "settings_title_system": "ℹ️ System Information",
+    "sys_codes_count": "Codes Count:",
+    "sys_sent_count": "Sent Contracts:",
+    "sys_connection": "Connection Status:",
+    "sys_version": "Interface Version:",
+    "status_connected": "Connected ✓",
+
+    // صفحة الأرشيف
+    "archive_search_placeholder": "Search by name, code or ID...",
+    "archive_filter_all": "All",
+    "archive_filter_sent": "Sent Only",
+    "archive_filter_pending": "Pending",
+    "archive_title_sent": "Sent Contracts"
   }
 };
 
@@ -891,7 +1005,11 @@ window.changeLanguage = function(lang) {
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
     if (translations[lang] && translations[lang][key]) {
-      el.innerText = translations[lang][key];
+      if (el.tagName === 'INPUT' && el.hasAttribute('placeholder')) {
+        el.placeholder = translations[lang][key];
+      } else {
+        el.innerText = translations[lang][key];
+      }
     }
   });
 };
@@ -906,13 +1024,11 @@ window.toggleDarkMode = function() {
    ✅ الشاشة الافتتاحية وDOMContentLoaded الموحد
 ============================================================ */
 document.addEventListener('DOMContentLoaded', async () => {
-  // 1. تفعيل اللغات والوضع الليلي فوراً
   window.changeLanguage(currentLang);
   if (localStorage.getItem('dark_mode') === 'true') {
     document.body.classList.add('dark-mode');
   }
 
-  // 2. التحقق من الجلسة وإظهار الشاشة المناسبة
   var hasSession = false;
   try {
     hasSession = !!sessionStorage.getItem('admin_password');
