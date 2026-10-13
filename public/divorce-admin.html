@@ -14,6 +14,9 @@
   .checkbox-label { font-weight: bold; color: #c0392b; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 15px; background: #fff3f3; padding: 10px; border-radius: 6px; border: 1px solid #fadbd8; }
   .checkbox-label input { width: 18px; height: 18px; }
   textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; }
+  .search-dropdown { position: absolute; background: #fff; border: 1px solid #ccc; width: 100%; max-height: 150px; overflow-y: auto; z-index: 100; display: none; }
+  .search-dropdown div { padding: 8px; cursor: pointer; border-bottom: 1px solid #eee; }
+  .search-dropdown div:hover { background: #f0f0f0; }
 </style>
 </head>
 <body>
@@ -86,7 +89,7 @@
 
       <div class="section-divider"></div>
 
-      <!-- الولي والمهر والأولاد -->
+      <!-- الولي والتسوية -->
       <div class="card"><div class="card-header"><h2>الولي، التسوية المالية، والأولاد</h2></div>
         <div class="card-body">
           <label class="checkbox-label" style="margin-bottom:15px;">
@@ -107,25 +110,29 @@
             <div class="field"><label>المهر المقدم / التسوية</label><input type="text" id="dPrompt"></div>
             <div class="field"><label>المؤخر / الحقوق</label><input type="text" id="dDeferred"></div>
             <div class="field" style="grid-column:span 2;"><label>ملاحظات إضافية في العقد (تظهر في الطباعة)</label><textarea id="dNotes" rows="2"></textarea></div>
-            <div class="field" style="grid-column:span 2;"><label>الأولاد والحضانة (تُطبع أسفل العقد في سطر منفرد)</label><textarea id="childrenDetails" rows="2" placeholder="مثال: اتفق الطرفان على انتقال حضانة الأولاد (أحمد وسارة) إلى الأم..."></textarea></div>
+            <div class="field" style="grid-column:span 2;"><label>الأولاد والحضانة (تُطبع أسفل العقد في سطر منفرد)</label><textarea id="childrenDetails" rows="2" placeholder="مثال: اتفق الطرفان على انتقال حضانة الأولاد..."></textarea></div>
           </div>
         </div>
       </div>
 
       <div class="section-divider"></div>
 
-      <!-- الشهود -->
+      <!-- الشهود (مع تاريخ ومكان الميلاد) -->
       <div class="card"><div class="card-header"><h2>الشهود</h2></div>
         <div class="card-body form-grid">
-          <div class="field"><label>الشاهد الأول (عربي)</label><input type="text" id="w1NameAr"></div>
+          <div class="field"><label>الشاهد الأول (عربي)</label><input type="text" id="w1NameAr" placeholder="ابحث أو اكتب..." oninput="searchWitnesses(this.value, 1)" autocomplete="off"><div id="w1Dropdown" class="search-dropdown"></div></div>
           <div class="field"><label>الشاهد الأول (ألماني)</label><input type="text" id="w1NameDe"></div>
+          <div class="field"><label>تاريخ ومكان الميلاد</label><input type="text" id="w1Birth"></div>
           <div class="field"><label>رقم الهوية</label><input type="text" id="w1Id"></div>
-          <div class="field"><label>العنوان</label><input type="text" id="w1Address"></div>
+          <div class="field" style="grid-column:span 2;"><label>العنوان</label><input type="text" id="w1Address"></div>
           
-          <div class="field"><label>الشاهد الثاني (عربي)</label><input type="text" id="w2NameAr"></div>
+          <hr style="grid-column:span 2; border:none; border-top:1px dashed #ddd; margin:10px 0;">
+
+          <div class="field"><label>الشاهد الثاني (عربي)</label><input type="text" id="w2NameAr" placeholder="ابحث أو اكتب..." oninput="searchWitnesses(this.value, 2)" autocomplete="off"><div id="w2Dropdown" class="search-dropdown"></div></div>
           <div class="field"><label>الشاهد الثاني (ألماني)</label><input type="text" id="w2NameDe"></div>
+          <div class="field"><label>تاريخ ومكان الميلاد</label><input type="text" id="w2Birth"></div>
           <div class="field"><label>رقم الهوية</label><input type="text" id="w2Id"></div>
-          <div class="field"><label>العنوان</label><input type="text" id="w2Address"></div>
+          <div class="field" style="grid-column:span 2;"><label>العنوان</label><input type="text" id="w2Address"></div>
         </div>
       </div>
 
@@ -172,6 +179,24 @@
   function showPanel() { document.getElementById('loginScreen').style.display='none'; document.getElementById('adminPanel').style.display='block'; }
   function logout() { sessionStorage.removeItem('divorce_pw'); location.reload(); }
 
+  async function searchWitnesses(query, num) {
+    const dropdown = document.getElementById(`w${num}Dropdown`);
+    if (query.length < 2) { dropdown.style.display = 'none'; return; }
+    const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'search_witness', query, username:'admin', password:pwd}) });
+    const data = await res.json();
+    if(data.success && data.witnesses && data.witnesses.length > 0) {
+      dropdown.innerHTML = data.witnesses.map(w => `<div onclick="selectWitness(${num}, '${w.witness_name}', '${w.witness_id}', '${w.witness_address}')">${w.witness_name} <small>(${w.witness_id || 'بدون هوية'})</small></div>`).join('');
+      dropdown.style.display = 'block';
+    } else dropdown.style.display = 'none';
+  }
+
+  function selectWitness(num, name, id, address) {
+    document.getElementById(`w${num}NameAr`).value = name;
+    document.getElementById(`w${num}Id`).value = id !== 'null' ? id : '';
+    document.getElementById(`w${num}Address`).value = address !== 'null' ? address : '';
+    document.getElementById(`w${num}Dropdown`).style.display = 'none';
+  }
+
   async function saveContract() {
     const payload = {
       action:'save', username:'admin', password:pwd, code: document.getElementById('divorceCode').value,
@@ -180,8 +205,8 @@
       groom_name_ar: document.getElementById('gNameAr').value, groom_name_de: document.getElementById('gNameDe').value, groom_birth: document.getElementById('gBirth').value, groom_mother_ar: document.getElementById('gMotherAr').value, groom_mother_de: document.getElementById('gMotherDe').value, groom_id: document.getElementById('gId').value, groom_address: document.getElementById('gAddress').value,
       wali_is_bride: document.getElementById('waliIsBride').checked, wali_name_ar: document.getElementById('wNameAr').value, wali_name_de: document.getElementById('wNameDe').value, wali_birth: document.getElementById('wBirth').value, wali_id: document.getElementById('wId').value, wali_address: document.getElementById('wAddress').value,
       dowry_prompt: document.getElementById('dPrompt').value, dowry_deferred: document.getElementById('dDeferred').value, dowry_notes: document.getElementById('dNotes').value, children_details: document.getElementById('childrenDetails').value,
-      w1_name_ar: document.getElementById('w1NameAr').value, w1_name_de: document.getElementById('w1NameDe').value, w1_id: document.getElementById('w1Id').value, w1_address: document.getElementById('w1Address').value,
-      w2_name_ar: document.getElementById('w2NameAr').value, w2_name_de: document.getElementById('w2NameDe').value, w2_id: document.getElementById('w2Id').value, w2_address: document.getElementById('w2Address').value
+      w1_name_ar: document.getElementById('w1NameAr').value, w1_name_de: document.getElementById('w1NameDe').value, w1_birth: document.getElementById('w1Birth').value, w1_id: document.getElementById('w1Id').value, w1_address: document.getElementById('w1Address').value,
+      w2_name_ar: document.getElementById('w2NameAr').value, w2_name_de: document.getElementById('w2NameDe').value, w2_birth: document.getElementById('w2Birth').value, w2_id: document.getElementById('w2Id').value, w2_address: document.getElementById('w2Address').value
     };
     const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
     const data = await res.json();
@@ -193,6 +218,7 @@
     const data = await res.json();
     document.getElementById('contractsBody').innerHTML = data.contracts.map(c=>`<tr><td><b>${c.code}</b></td><td>${c.divorce_date||'—'}</td><td>${c.groom_name_ar||'—'}</td><td>${c.bride_name_ar||'—'}</td><td><button class="btn-primary" onclick="window.open('./print-divorce.html?code=${c.code}')">طباعة</button> <button class="btn-danger" onclick="del('${c.code}')">حذف</button></td></tr>`).join('');
   }
+  
   async function del(code) {
     if(confirm('متأكد من الحذف؟')) {
       await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'delete',code,username:'admin',password:pwd}) });
