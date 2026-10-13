@@ -3,160 +3,202 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>إدارة وثائق الطلاق - Arresalah Zentrum Berlin</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>إدارة الأحوال الشخصية والطلاق - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<!-- استخدام نفس ملف ستايل الإدارة الأصلي الخاص بك -->
 <link rel="stylesheet" href="./css/admin.css">
 <style>
-  .hidden { display: none !important; }
-  .form-grid-section { background: #fff; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e0e0e0; }
-  .form-grid-section h3 { color: #2d6a4f; margin-bottom: 15px; font-size: 16px; border-bottom: 2px solid #e8f5e9; padding-bottom: 5px; }
-  .search-dropdown { position: absolute; background: #fff; border: 1px solid #ccc; width: 100%; max-height: 150px; overflow-y: auto; z-index: 100; display: none; }
-  .search-dropdown div { padding: 8px; cursor: pointer; border-bottom: 1px solid #eee; }
+  #loginScreen { display: none; }
+  #adminPanel { display: none; }
+  .search-dropdown { position: absolute; background: #fff; border: 1px solid #ccc; width: 100%; max-height: 150px; overflow-y: auto; z-index: 100; display: none; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+  .search-dropdown div { padding: 8px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; }
   .search-dropdown div:hover { background: #f0f0f0; }
+  .field { position: relative; }
 </style>
 </head>
 <body>
 
 <!-- شاشة تسجيل الدخول -->
-<div id="loginScreen" class="login-wrap" style="display:flex; justify-content:center; align-items:center; min-height:100vh;">
-  <div class="login-box" style="background:#fff; padding:30px; border-radius:12px; width:400px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
-    <h2 style="color:#2d6a4f; text-align:center; margin-bottom:20px;">تسجيل دخول إدارة الطلاق</h2>
-    <label>اسم المستخدم</label>
-    <input type="text" id="userInput" value="admin" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:6px;">
-    <label>كلمة المرور</label>
-    <input type="password" id="passInput" style="width:100%; padding:10px; margin-bottom:15px; border:1px solid #ccc; border-radius:6px;">
-    <button onclick="login()" style="width:100%; background:#2d6a4f; color:#fff; padding:12px; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">دخول</button>
-    <div style="text-align:center; margin-top:15px;"><a href="./admin.html" style="color:#2d6a4f; text-decoration:none;">← العودة للوحة الإدارة العامة</a></div>
+<div id="loginScreen" class="login-wrap">
+  <div class="login-box">
+    <div class="login-header">
+      <h1>Arresalah Zentrum Berlin</h1>
+      <p>إدارة الأحوال الشخصية والطلاق</p>
+    </div>
+    <div class="login-body">
+      <label>اسم المستخدم</label>
+      <input type="text" id="usernameInput" value="admin" style="text-align:right; margin-bottom:14px;">
+      <label>كلمة المرور</label>
+      <input type="password" id="passwordInput">
+      <button id="loginBtn" onclick="login()" class="btn-login">دخول</button>
+    </div>
+    <div class="login-footer">
+      <a href="./admin.html">← العودة للوحة إدارة الزواج</a>
+    </div>
   </div>
 </div>
 
-<!-- لوحة الإدارة والتحكم الكامل -->
-<div id="adminPanel" class="panel-wrap" style="display:none; max-width:1100px; margin:20px auto; padding:20px;">
-  <div class="panel-header" style="background:#fff; padding:20px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-    <h1>إدارة وتوثيق عقود الطلاق</h1>
-    <div>
-      <a href="./admin.html" class="btn-secondary" style="text-decoration:none; padding:8px 15px; background:#ddd; border-radius:6px; margin-left:10px;">اللوحة العامة للزواج</a>
-      <button onclick="logout()" style="padding:8px 15px; background:#c0392b; color:#fff; border:none; border-radius:6px; cursor:pointer;">خروج</button>
+<!-- لوحة الإدارة -->
+<div id="adminPanel" class="panel-wrap">
+  <div class="panel-header">
+    <div class="panel-title">
+      <h1>إدارة الأحوال الشخصية والطلاق</h1>
+      <span class="badge">Arresalah Zentrum</span>
+    </div>
+    <div class="panel-actions">
+      <a href="./admin.html" class="btn-secondary" style="text-decoration:none; padding:8px 12px; margin-left:10px;">نظام الزواج</a>
+      <button onclick="logout()" class="btn-danger">خروج</button>
     </div>
   </div>
 
-  <div id="msgBox" class="hidden" style="padding:10px; margin-bottom:15px; border-radius:6px; font-weight:bold;"></div>
-
-  <!-- فورم إدخال بيانات الطلاق المتكامل (مثل الزواج تماماً) -->
-  <div class="form-grid-section">
-    <h3>📝 إصدار وإدخال وثيقة طلاق جديدة</h3>
-    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
-      <div>
-        <label>كود الوثيقة (اختياري، يولد تلقائياً)</label>
-        <input type="text" id="divorceCode" placeholder="مثال: D992A1" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
-      </div>
-      <div>
-        <label>تاريخ الطلاق</label>
-        <input type="text" id="divorceDate" placeholder="06.01.2026" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
-      </div>
-      <div style="grid-column: span 2;">
-        <label>نوع الطلاق / تفاصيل الأحوال الشخصية</label>
-        <input type="text" id="divorceType" value="اتفاقي (Einvernehmliche Scheidung)" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
-      </div>
-    </div>
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="switchTab('new')">📝 إصدار وثيقة طلاق جديدة</button>
+    <button class="admin-tab" onclick="switchTab('list')">📋 سجل الوثائق المُصدرة</button>
   </div>
 
-  <!-- بيانات الزوج -->
-  <div class="form-grid-section">
-    <h3>🤵 بيانات الزوج (المطلق)</h3>
-    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
-      <div><label>اسم الزوج</label><input type="text" id="groomName" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div><label>تاريخ ومكان الميلاد</label><input type="text" id="groomBirth" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div><label>اسم الأم</label><input type="text" id="groomMother" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div><label>رقم الهوية / الجواز</label><input type="text" id="groomId" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div style="grid-column: span 2;"><label>العنوان</label><input type="text" id="groomAddress" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-    </div>
-  </div>
-
-  <!-- بيانات الزوجة -->
-  <div class="form-grid-section">
-    <h3>👰 بيانات الزوجة (المطلقة)</h3>
-    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
-      <div><label>اسم الزوجة</label><input type="text" id="brideName" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div><label>تاريخ ومكان الميلاد</label><input type="text" id="brideBirth" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div><label>اسم الأم</label><input type="text" id="brideMother" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div><label>رقم الهوية / الجواز</label><input type="text" id="brideId" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div style="grid-column: span 2;"><label>العنوان</label><input type="text" id="brideAddress" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-    </div>
-  </div>
-
-  <!-- بيانات الولي والمهر -->
-  <div class="form-grid-section">
-    <h3>⚖️ الولي والمهر والتسوية</h3>
-    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:15px;">
-      <div><label>اسم الولي (إن وجد)</label><input type="text" id="waliName" value="Bride herself" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div><label>صفة الولي</label><input type="text" id="waliStatus" value="Bride herself" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div><label>المهر المقدم / التسوية المالية</label><input type="text" id="dowryPrompt" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-      <div><label>المهر المؤخر / الحقوق المتفق عليها</label><input type="text" id="dowryDeferred" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;"></div>
-    </div>
-  </div>
-
-  <!-- بيانات الشهود (مع خاصية البحث السريع للشهود المترددين على المركز) -->
-  <div class="form-grid-section">
-    <h3>👥 شهود الإثبات (مع إمكانية البحث عن الشهود المسجلين مسبقاً)</h3>
-    <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:20px;">
+  <div class="panel-content">
+    
+    <!-- قسم إصدار وثيقة جديدة -->
+    <div id="tab-new" class="tab-content">
       
-      <!-- الشاهد الأول -->
-      <div style="position:relative;">
-        <label><b>الشاهد الأول</b></label>
-        <input type="text" id="w1Name" placeholder="ابحث باسم الشاهد أو اكتبه..." oninput="searchWitnesses(this.value, 1)" style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ccc; border-radius:6px;">
-        <div id="w1Dropdown" class="search-dropdown"></div>
-        <input type="text" id="w1Id" placeholder="رقم الهوية" style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ccc; border-radius:6px;">
-        <input type="text" id="w1Address" placeholder="العنوان" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
+      <!-- بيانات الوثيقة -->
+      <div class="card">
+        <div class="card-header"><h2>تفاصيل الوثيقة</h2></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>رقم الوثيقة (اختياري)</label>
+              <input type="text" id="divorceCode" placeholder="يولد تلقائياً إذا تُرك فارغاً">
+            </div>
+            <div class="field">
+              <label>تاريخ الطلاق</label>
+              <input type="text" id="divorceDate" placeholder="مثال: 15.10.2026">
+            </div>
+            <div class="field" style="grid-column: span 2;">
+              <label>نوع الطلاق / تفاصيل التسوية</label>
+              <input type="text" id="divorceType" value="اتفاقي (Einvernehmliche Scheidung)">
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- الشاهد الثاني -->
-      <div style="position:relative;">
-        <label><b>الشاهد الثاني</b></label>
-        <input type="text" id="w2Name" placeholder="ابحث باسم الشاهد أو اكتبه..." oninput="searchWitnesses(this.value, 2)" style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ccc; border-radius:6px;">
-        <div id="w2Dropdown" class="search-dropdown"></div>
-        <input type="text" id="w2Id" placeholder="رقم الهوية" style="width:100%; padding:8px; margin-bottom:8px; border:1px solid #ccc; border-radius:6px;">
-        <input type="text" id="w2Address" placeholder="العنوان" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px;">
+      <!-- بيانات المطلقة -->
+      <div class="card">
+        <div class="card-header"><h2>بيانات المطلقة (Ehefrau)</h2></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field"><label>الاسم</label><input type="text" id="brideName"></div>
+            <div class="field"><label>تاريخ ومكان الميلاد</label><input type="text" id="brideBirth"></div>
+            <div class="field"><label>اسم الأم</label><input type="text" id="brideMother"></div>
+            <div class="field"><label>رقم الهوية</label><input type="text" id="brideId"></div>
+            <div class="field" style="grid-column: span 2;"><label>العنوان</label><input type="text" id="brideAddress"></div>
+          </div>
+        </div>
       </div>
 
+      <!-- بيانات المطلق -->
+      <div class="card">
+        <div class="card-header"><h2>بيانات المطلق (Ehemann)</h2></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field"><label>الاسم</label><input type="text" id="groomName"></div>
+            <div class="field"><label>تاريخ ومكان الميلاد</label><input type="text" id="groomBirth"></div>
+            <div class="field"><label>اسم الأم</label><input type="text" id="groomMother"></div>
+            <div class="field"><label>رقم الهوية</label><input type="text" id="groomId"></div>
+            <div class="field" style="grid-column: span 2;"><label>العنوان</label><input type="text" id="groomAddress"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- الولي والتسوية المالية -->
+      <div class="card">
+        <div class="card-header"><h2>الولي والتسوية المالية</h2></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="field"><label>اسم الولي</label><input type="text" id="waliName" value="Bride herself"></div>
+            <div class="field"><label>صفة الولي</label><input type="text" id="waliStatus" value="الزوجة نفسها"></div>
+            <div class="field"><label>المهر المقدم / التسوية المالية</label><input type="text" id="dowryPrompt"></div>
+            <div class="field"><label>المؤخر / الحقوق المتفق عليها</label><input type="text" id="dowryDeferred"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- الشهود -->
+      <div class="card">
+        <div class="card-header"><h2>الشهود (ابحث بالاسم للشهود المسجلين مسبقاً)</h2></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <!-- الشاهد الأول -->
+            <div class="field">
+              <label>اسم الشاهد الأول</label>
+              <input type="text" id="w1Name" placeholder="ابحث أو اكتب الاسم..." oninput="searchWitnesses(this.value, 1)" autocomplete="off">
+              <div id="w1Dropdown" class="search-dropdown"></div>
+              <input type="text" id="w1Id" placeholder="رقم الهوية" style="margin-top:8px;">
+              <input type="text" id="w1Address" placeholder="العنوان" style="margin-top:8px;">
+            </div>
+            <!-- الشاهد الثاني -->
+            <div class="field">
+              <label>اسم الشاهد الثاني</label>
+              <input type="text" id="w2Name" placeholder="ابحث أو اكتب الاسم..." oninput="searchWitnesses(this.value, 2)" autocomplete="off">
+              <div id="w2Dropdown" class="search-dropdown"></div>
+              <input type="text" id="w2Id" placeholder="رقم الهوية" style="margin-top:8px;">
+              <input type="text" id="w2Address" placeholder="العنوان" style="margin-top:8px;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="saveContract()" style="width:100%; padding:15px; font-size:16px;">حفظ وتوثيق عقد الطلاق</button>
     </div>
+
+    <!-- قسم الأرشيف والسجلات -->
+    <div id="tab-list" class="tab-content hidden">
+      <div class="card">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+          <h2>سجل وثائق الطلاق</h2>
+          <button onclick="loadContracts()" class="btn-secondary">تحديث القائمة</button>
+        </div>
+        <div class="card-body no-padding">
+          <table class="codes-table">
+            <thead>
+              <tr>
+                <th style="width:80px;">رقم الوثيقة</th>
+                <th style="width:100px;">التاريخ</th>
+                <th>المطلق</th>
+                <th>المطلقة</th>
+                <th style="width:150px;">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="contractsBody">
+              <tr><td colspan="5" class="loading-cell">جارٍ التحميل...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
-
-  <button onclick="saveDivorceContract()" style="background:#2d6a4f; color:#fff; padding:14px 30px; border:none; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; width:100%; margin-bottom:30px;">حفظ وتوثيق عقد الطلاق رسمياً</button>
-
-  <!-- جدول عرض وثائق الطلاق -->
-  <div style="background:#fff; padding:20px; border-radius:10px; border:1px solid #e0e0e0;">
-    <h3>📋 وثائق الطلاق المُصدرة</h3>
-    <table style="width:100%; border-collapse:collapse; margin-top:15px; text-align:right;">
-      <thead>
-        <tr style="background:#f8f9fa; border-bottom:2px solid #ddd;">
-          <th style="padding:10px;">الكود</th>
-          <th style="padding:10px;">تاريخ الطلاق</th>
-          <th style="padding:10px;">الزوج</th>
-          <th style="padding:10px;">الزوجة</th>
-          <th style="padding:10px;">النوع</th>
-          <th style="padding:10px;">إجراءات</th>
-        </tr>
-      </thead>
-      <tbody id="contractsTableBody">
-        <tr><td colspan="6" style="text-align:center; padding:20px;">جارٍ التحميل...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
 </div>
 
 <script>
   let currentPassword = sessionStorage.getItem('divorce_admin_pw') || '';
 
   document.addEventListener('DOMContentLoaded', () => {
-    if (currentPassword) {
-      showPanel();
-    }
+    if (currentPassword) { showPanel(); }
+    else { document.getElementById('loginScreen').style.display = 'flex'; }
   });
 
+  function switchTab(tabId) {
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + tabId).classList.remove('hidden');
+    if(tabId === 'list') loadContracts();
+  }
+
   async function login() {
-    const pass = document.getElementById('passInput').value;
+    const pass = document.getElementById('passwordInput').value;
     const res = await fetch('/api/divorce', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -180,40 +222,10 @@
   function showPanel() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('adminPanel').style.display = 'block';
-    loadContracts();
   }
 
-  async function loadContracts() {
-    const res = await fetch('/api/divorce', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'list', username: 'admin', password: currentPassword })
-    });
-    const data = await res.json();
-    if (data.success) {
-      let html = '';
-      (data.contracts || []).forEach(c => {
-        html += `
-          <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:10px; font-weight:bold; color:#2d6a4f;">${c.code}</td>
-            <td style="padding:10px;">${c.divorce_date || '—'}</td>
-            <td style="padding:10px;">${c.groom_name || '—'}</td>
-            <td style="padding:10px;">${c.bride_name || '—'}</td>
-            <td style="padding:10px;">${c.divorce_type || '—'}</td>
-            <td style="padding:10px;">
-              <button onclick="window.open('./print-divorce.html?code=${c.code}', '_blank')" style="padding:5px 10px; background:#2d6a4f; color:#fff; border:none; border-radius:4px; cursor:pointer;">🖨️ طباعة</button>
-              <button onclick="deleteContract('${c.code}')" style="padding:5px 10px; background:#c0392b; color:#fff; border:none; border-radius:4px; cursor:pointer;">🗑️</button>
-            </td>
-          </tr>
-        `;
-      });
-      document.getElementById('contractsTableBody').innerHTML = html || '<tr><td colspan="6" style="text-align:center; padding:20px;">لا توجد وثائق طلاق مسجلة</td></tr>';
-    }
-  }
-
-  // خاصية البحث التلقائي عن الشهود المترددين على المركز
-  async function searchWitnesses(query, witnessNum) {
-    const dropdown = document.getElementById(`w${witnessNum}Dropdown`);
+  async function searchWitnesses(query, num) {
+    const dropdown = document.getElementById(`w${num}Dropdown`);
     if (query.length < 2) { dropdown.style.display = 'none'; return; }
 
     const res = await fetch('/api/divorce', {
@@ -223,11 +235,11 @@
     });
     const data = await res.json();
     if (data.success && data.witnesses.length > 0) {
-      let html = '';
-      data.witnesses.forEach(w => {
-        html += `<div onclick="selectWitness(${witnessNum}, '${w.witness_name}', '${w.witness_id}', '${w.witness_address}')">${w.witness_name} (${w.witness_id || 'بدون هوية'})</div>`;
-      });
-      dropdown.innerHTML = html;
+      dropdown.innerHTML = data.witnesses.map(w => 
+        `<div onclick="selectWitness(${num}, '${w.witness_name}', '${w.witness_id}', '${w.witness_address}')">
+          ${w.witness_name} <small>(${w.witness_id || 'بدون هوية'})</small>
+        </div>`
+      ).join('');
       dropdown.style.display = 'block';
     } else {
       dropdown.style.display = 'none';
@@ -241,24 +253,22 @@
     document.getElementById(`w${num}Dropdown`).style.display = 'none';
   }
 
-  async function saveDivorceContract() {
+  async function saveContract() {
     const payload = {
-      action: 'save',
-      username: 'admin',
-      password: currentPassword,
+      action: 'save', username: 'admin', password: currentPassword,
       code: document.getElementById('divorceCode').value.trim(),
       divorce_date: document.getElementById('divorceDate').value,
       divorce_type: document.getElementById('divorceType').value,
-      groom_name: document.getElementById('groomName').value,
-      groom_birth: document.getElementById('groomBirth').value,
-      groom_mother: document.getElementById('groomMother').value,
-      groom_id: document.getElementById('groomId').value,
-      groom_address: document.getElementById('groomAddress').value,
       bride_name: document.getElementById('brideName').value,
       bride_birth: document.getElementById('brideBirth').value,
       bride_mother: document.getElementById('brideMother').value,
       bride_id: document.getElementById('brideId').value,
       bride_address: document.getElementById('brideAddress').value,
+      groom_name: document.getElementById('groomName').value,
+      groom_birth: document.getElementById('groomBirth').value,
+      groom_mother: document.getElementById('groomMother').value,
+      groom_id: document.getElementById('groomId').value,
+      groom_address: document.getElementById('groomAddress').value,
       wali_name: document.getElementById('waliName').value,
       wali_status: document.getElementById('waliStatus').value,
       dowry_prompt: document.getElementById('dowryPrompt').value,
@@ -278,15 +288,42 @@
     });
     const data = await res.json();
     if (data.success) {
-      alert('✓ تم حفظ وثيقة الطلاق بنجاح');
-      loadContracts();
+      alert('تم حفظ وثيقة الطلاق بنجاح برقم: ' + data.code);
+      document.querySelectorAll('input').forEach(i => i.value = ''); // تنظيف الفورم
+      switchTab('list');
     } else {
-      alert('خطأ: ' + data.message);
+      alert('حدث خطأ: ' + data.message);
+    }
+  }
+
+  async function loadContracts() {
+    const res = await fetch('/api/divorce', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'list', username: 'admin', password: currentPassword })
+    });
+    const data = await res.json();
+    const tbody = document.getElementById('contractsBody');
+    if (data.success && data.contracts.length > 0) {
+      tbody.innerHTML = data.contracts.map(c => `
+        <tr>
+          <td style="font-weight:bold; color:#2d6a4f;">${c.code}</td>
+          <td>${c.divorce_date || '—'}</td>
+          <td>${c.groom_name || '—'}</td>
+          <td>${c.bride_name || '—'}</td>
+          <td>
+            <button class="btn-primary" onclick="window.open('./print-divorce.html?code=${c.code}', '_blank')" style="padding:4px 8px; font-size:12px;">طباعة</button>
+            <button class="btn-danger" onclick="deleteContract('${c.code}')" style="padding:4px 8px; font-size:12px;">حذف</button>
+          </td>
+        </tr>
+      `).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" class="loading-cell">لا توجد وثائق مسجلة</td></tr>';
     }
   }
 
   async function deleteContract(code) {
-    if (!confirm(`هل أنت متأكد من حذف الوثيقة ${code}؟`)) return;
+    if (!confirm(`هل أنت متأكد من حذف الوثيقة رقم ${code}؟`)) return;
     await fetch('/api/divorce', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
