@@ -7,47 +7,92 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/print.css">
 <style>
+  /* إعدادات الشاشة */
   .cert-header { grid-template-columns: 1fr !important; }
   .cert-header-photo { display: none !important; }
   .cert-wrap-screen { margin-top: 70px; }
   
   /* =======================================================
-     أوامر إجبارية للطباعة على ورقة A4 واحدة فقط 
+     أوامر إجبارية قوية للطباعة على ورقة A4 واحدة فقط 
   ======================================================= */
   @media print {
-    @page { size: A4 portrait; margin: 8mm; } /* تقليل هوامش الورقة */
-    body { padding: 0 !important; margin: 0 !important; background: #fff; }
+    @page { size: A4 portrait; margin: 5mm; } /* تقليل هوامش الورقة للحد الأدنى */
+    
+    body { 
+      padding: 0 !important; 
+      margin: 0 !important; 
+      background: #fff; 
+      -webkit-print-color-adjust: exact !important; 
+      print-color-adjust: exact !important; 
+    }
     .toolbar { display: none !important; }
     
-    /* إلغاء المسافة العلوية الخاصة بالشاشة */
     .cert-wrap-screen { margin-top: 0 !important; }
-    .certificate-wrap { margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
+    .certificate-wrap { margin: 0 !important; padding: 0 !important; box-shadow: none !important; max-width: 100% !important; }
     
-    /* ضغط الفراغات بين جميع المربعات والأقسام */
+    /* تحديد أقصى ارتفاع للشهادة لضمان عدم إنشاء صفحة ثانية */
+    .certificate { 
+      border: 2px solid #1a4d8a !important; 
+      padding: 4px 6px !important; 
+      max-height: 287mm !important; 
+      overflow: hidden !important; 
+      box-sizing: border-box !important;
+    }
+    
+    /* ضغط الأقسام والمسافات الخارجية */
     .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures { 
-      margin-bottom: 3px !important; 
-    }
-    
-    /* ضغط مساحات الأسطر (الاسم، الميلاد، العنوان...) */
-    .cv-row { padding: 1.5px 0 !important; }
-    .wd-row { padding: 2px 0 !important; }
-    .cert-col, .wali-dowry-col, .cert-witness-col { padding: 3px 8px !important; }
-    
-    /* ضغط العناوين والترويسة */
-    .cert-col-title, .col-subsection-title-light, .cert-witness-title, .party-signatures-title, .footer-title { 
       margin-bottom: 2px !important; 
-      padding-bottom: 2px !important; 
     }
-    .cert-header { min-height: auto !important; padding-bottom: 2px !important; margin-bottom: 4px !important; }
-    .cert-logo { width: 55px !important; height: 45px !important; margin-bottom: 2px !important; }
-    .cert-header-title-de { font-size: 14px !important; }
-    .cert-header-title-ar { font-size: 16px !important; }
+    
+    /* ضغط المسافات الداخلية للأسطر */
+    .cv-row { padding: 1px 0 !important; gap: 4px !important; }
+    .wd-row { padding: 1.5px 0 !important; gap: 4px !important; }
+    .cert-col, .wali-dowry-col, .cert-witness-col { padding: 2px 6px !important; }
+    
+    /* ضغط الترويسة والشعار */
+    .cert-header { min-height: 45px !important; padding-bottom: 2px !important; margin-bottom: 3px !important; }
+    .cert-logo { width: 40px !important; height: 30px !important; margin-bottom: 1px !important; }
+    .cert-header-title-de { font-size: 12px !important; }
+    .cert-header-title-ar { font-size: 15px !important; }
 
-    /* ضغط مربعات التوقيعات السفلية لكي لا تدفع النص لصفحة أخرى */
-    .party-sig-cell { min-height: 40px !important; padding: 2px !important; }
-    .cert-footer { min-height: 120px !important; }
-    .cert-footer-sign { min-height: 120px !important; padding: 4px !important; }
-    .sign-box-inner { height: 60px !important; }
+    /* تصغير العناوين الداخلية */
+    .cert-col-title, .col-subsection-title-light, .cert-witness-title, .party-signatures-title, .footer-title { 
+      font-size: 10.5px !important;
+      margin-bottom: 2px !important; 
+      padding-bottom: 1px !important; 
+    }
+    
+    /* تصغير الخطوط داخل الخانات لتستوعب النصوص الطويلة */
+    .cv-label-de, .wd-label-de { font-size: 8.5px !important; }
+    .cv-label-ar, .wd-label-ar { font-size: 9px !important; }
+    .v-value, .wd-value-de, .wd-value-ar { 
+      font-size: 10px !important; 
+      padding: 0 4px !important; 
+      min-height: 12px !important; 
+      line-height: 1.2 !important;
+    }
+
+    /* ضغط مربعات التوقيع بشكل كبير جداً */
+    .cert-party-signatures { padding: 2px 4px !important; }
+    .party-sig-cell { min-height: 30px !important; padding: 1px !important; }
+    .party-sig-cell .sig-label { font-size: 8.5px !important; margin-bottom: 1px !important; }
+    .party-sig-cell .sig-label small { font-size: 7.5px !important; }
+    .party-sig-cell .sig-line { height: 16px !important; }
+
+    /* ضغط تذييل الصفحة (صيغة العقد والأولاد) */
+    .cert-footer { min-height: 75px !important; }
+    .cert-footer-sign { min-height: 75px !important; padding: 2px !important; }
+    .sign-box-inner { height: 30px !important; }
+    .sign-label-bottom { font-size: 9px !important; margin-top: 1px !important; padding-top: 1px !important; }
+    .cert-footer-text { padding: 2px 6px !important; gap: 2px !important; }
+    
+    .footer-text-ar { font-size: 9.5px !important; line-height: 1.3 !important; margin-bottom: 2px !important; }
+    
+    /* سطر الأولاد - تعديل الحجم والمسافات لاستيعاب النصوص الطويلة جداً */
+    #childrenRow { font-size: 10px !important; margin: 2px 0 !important; line-height: 1.3 !important; }
+    
+    .footer-text-de { font-size: 8.5px !important; margin-bottom: 1px !important; }
+    .footer-note-center { font-size: 8px !important; padding-top: 2px !important; margin-top: 0 !important; }
   }
 </style>
 </head>
@@ -155,7 +200,7 @@
       </div>
     </div>
 
-    <!-- تذييل الصفحة -->
+    <!-- التذييل -->
     <div class="cert-footer">
       <div class="cert-footer-sign"><div class="sign-box"><div class="sign-box-inner"></div></div><div class="sign-label-bottom">إدارة المركز - Imam</div><div class="sign-line"></div><div class="sign-caption">التوقيع / Unterschrift</div></div>
       <div class="cert-footer-text">
@@ -164,7 +209,7 @@
           نشهد نحن الموقعان أدناه أن الطلاق قد وقع رسمياً بين الزوجين المذكورين أعلاه بناءً على الرغبة والتوافق، وتم استنفاد مساعي الإصلاح وفقاً للأحكام الشرعية، وأقر الطرفان بتمام الإبراء وتسوية الحقوق المالية والاتفاق على الحضانة إن وجدت، وشهد على ذلك الشهود المذكورون أعلاه.
         </div>
         
-        <div id="childrenRow" style="display:none; text-align:center; font-weight:bold; font-size:12.5px; margin: 6px 0; color:#1a4d8a;"></div>
+        <div id="childrenRow" style="display:none; text-align:center; font-weight:bold; color:#1a4d8a;"></div>
 
         <div class="footer-text-de">Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen und von allen Beteiligten angenommen.</div>
         <div class="footer-note-center"><strong>ملاحظة:</strong> هذا العقد ليس بديلاً عن التسجيل في الدوائر الألمانية.</div>
