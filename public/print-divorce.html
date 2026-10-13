@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>وثيقة طلاق - Arresalah Zentrum Berlin</title>
+<title>وثيقة إثبات طلاق - Arresalah Zentrum Berlin</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -93,6 +93,7 @@
     font-size: 14px;
     text-align: justify;
     border-radius: 4px;
+    line-height: 1.8;
   }
   .signatures {
     display: flex;
@@ -102,6 +103,7 @@
     border-top: 1px dashed #ccc;
     text-align: center;
     font-weight: 700;
+    font-size: 14px;
   }
   .print-btn-bar {
     text-align: center;
@@ -119,9 +121,7 @@
     font-weight: 700;
     box-shadow: 0 4px 10px rgba(45, 106, 79, 0.3);
   }
-  .btn-print:hover {
-    background: #1b4332;
-  }
+  .btn-print:hover { background: #1b4332; }
   @media print {
     body { background: #fff; padding: 0; }
     .print-container { box-shadow: none; padding: 10px; max-width: 100%; }
@@ -134,17 +134,21 @@
 <div class="print-container">
   <div class="header">
     <h1>Arresalah Zentrum Berlin</h1>
-    <p>مركز الرسالة برلين - توثيق وعقود الاحوال الشخصية</p>
+    <p>مركز الرسالة برلين - توثيق وعقود الأحوال الشخصية</p>
   </div>
 
   <div class="doc-title">وثيقة إثبات طلاق (Scheidungsurkunde)</div>
 
   <!-- معلومات الربط وعقد الزواج -->
   <div class="section-box">
-    <div class="section-title">بيانات عقد الزواج الأصلي</div>
+    <div class="section-title">بيانات الربط وعقد الزواج الأصلي</div>
     <div class="section-body">
       <div class="field-row">
-        <strong>كود عقد الزواج:</strong>
+        <strong>كود وثيقة الطلاق:</strong>
+        <span id="divorceCode">—</span>
+      </div>
+      <div class="field-row">
+        <strong>كود عقد الزواج الأصلي:</strong>
         <span id="marriageCode">—</span>
       </div>
       <div class="field-row">
@@ -155,8 +159,8 @@
         <strong>نوع الطلاق:</strong>
         <span id="divorceType">—</span>
       </div>
-      <div class="field-row">
-        <strong>وجود أطفال / حضانة:</strong>
+      <div class="field-row full">
+        <strong>حالة الأطفال والحضانة والنفقة:</strong>
         <span id="childrenStatus">—</span>
       </div>
     </div>
@@ -166,7 +170,8 @@
   <div class="section-box">
     <div class="section-title">بيانات الزوج (المطلق)</div>
     <div class="section-body" id="groomDetails">
-      <!-- يتم تعبئتها ديناميكياً من الجافاسكريفت -->
+      <div class="field-row"><strong>الاسم:</strong> <span>—</span></div>
+      <div class="field-row"><strong>رقم الهوية:</strong> <span>—</span></div>
     </div>
   </div>
 
@@ -174,14 +179,15 @@
   <div class="section-box">
     <div class="section-title">بيانات الزوجة (المطلقة)</div>
     <div class="section-body" id="brideDetails">
-      <!-- يتم تعبئتها ديناميكياً من الجافاسكريفت -->
+      <div class="field-row"><strong>الاسم:</strong> <span>—</span></div>
+      <div class="field-row"><strong>رقم الهوية:</strong> <span>—</span></div>
     </div>
   </div>
 
   <!-- صيغة الطلاق الشرعية والقانونية -->
   <div class="legal-formula">
     <strong>صيغة الإثبات:</strong> 
-    أنه في يومنا هذا تم إثبات الطلاق بين الطرفين بناءً على الرغبة المتبادلة / الاتفاق / أو الإجراءات الشرعية والقانونية المعتمدة، وبعد استنفاد مساعي الاصلاح، جرى الطلاق رسمياً بينهما، وأقر الطرفان ببرء الذمة وفق الشروط المدونة أعلاه.
+    أنه في يومنا هذا، وبناءً على الطلب المقدم وبعد استنفاد كافة مساعي الإصلاح والتوافق، تم إثبات وحصول الطلاق رسمياً بين الطرفين المذكورين أعلاه وفقاً للنوع والشروط المدونة في هذه الوثيقة، وأقر الطرفان بتمام الإبراء وفك ارتباط الزوجية بحسب الأصول المرعية.
   </div>
 
   <!-- التوقيعات -->
@@ -197,51 +203,60 @@
 </div>
 
 <script>
-  // كود جلب بيانات عقد الطلاق وعرضها بناءً على الـ Code في الرابط (مثل print-divorce.html?code=XYZ)
   window.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     if (!code) {
-      alert('رقم العقد غير متوفر');
+      alert('رقم وثيقة الطلاق غير متوفر في الرابط');
       return;
     }
+
+    // طلب كلمة المرور المخزنة لجلسة الإدارة للتحقق والتخويل بالعامِل
+    const password = sessionStorage.getItem('divorce_admin_pw') || '';
 
     try {
       const response = await fetch('/api/divorce', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'view', code: code })
+        body: JSON.stringify({ action: 'view', code: code, username: 'admin', password: password })
       });
       const data = await response.json();
+      
       if (data.success && data.contract) {
         const c = data.contract;
+        document.getElementById('divorceCode').textContent = c.code || '—';
         document.getElementById('marriageCode').textContent = c.marriageCode || '—';
         document.getElementById('marriageDate').textContent = c.marriageDate || '—';
         document.getElementById('divorceType').textContent = c.divorceType || '—';
-        document.getElementById('childrenStatus').textContent = c.childrenStatus || '—';
+        document.getElementById('childrenStatus').textContent = c.childrenStatus || 'لا توجد تفاصيل إضافية';
         
-        // تعبئة بيانات الأطراف (الزوج والزوجة) بنفس آلية عقد الزواج
+        // تعبئة بيانات الزوج إن وجدت من عقد الزواج الأصلي المرتبط
         if(c.parties?.groom) {
           const g = c.parties.groom;
           document.getElementById('groomDetails').innerHTML = `
-            <div class="field-row"><strong>الاسم (DE):</strong> <span>${g.nameDe || '—'}</span></div>
-            <div class="field-row"><strong>الاسم (AR):</strong> <span>${g.nameAr || '—'}</span></div>
-            <div class="field-row"><strong>تاريخ الميلاد:</strong> <span>${g.birthDay}.${g.birthMonth}.${g.birthYear}</span></div>
-            <div class="field-row"><strong>رقم الهوية / الجواز:</strong> <span>${g.idNumber || '—'}</span></div>
+            <div class="field-row"><strong>الاسم (ألماني):</strong> <span>${g.name_de || '—'}</span></div>
+            <div class="field-row"><strong>الاسم (عربي):</strong> <span>${g.name_ar || '—'}</span></div>
+            <div class="field-row"><strong>تاريخ الميلاد:</strong> <span>${g.birth_day || '—'}.${g.birth_month || '—'}.${g.birth_year || '—'}</span></div>
+            <div class="field-row"><strong>رقم الهوية / الجواز:</strong> <span>${g.id_number || '—'}</span></div>
           `;
         }
+        
+        // تعبئة بيانات الزوجة إن وجدت من عقد الزواج الأصلي المرتبط
         if(c.parties?.bride) {
           const b = c.parties.bride;
           document.getElementById('brideDetails').innerHTML = `
-            <div class="field-row"><strong>الاسم (DE):</strong> <span>${b.nameDe || '—'}</span></div>
-            <div class="field-row"><strong>الاسم (AR):</strong> <span>${b.nameAr || '—'}</span></div>
-            <div class="field-row"><strong>تاريخ الميلاد:</strong> <span>${b.birthDay}.${b.birthMonth}.${b.birthYear}</span></div>
-            <div class="field-row"><strong>رقم الهوية / الجواز:</strong> <span>${b.idNumber || '—'}</span></div>
+            <div class="field-row"><strong>الاسم (ألماني):</strong> <span>${b.name_de || '—'}</span></div>
+            <div class="field-row"><strong>الاسم (عربي):</strong> <span>${b.name_ar || '—'}</span></div>
+            <div class="field-row"><strong>تاريخ الميلاد:</strong> <span>${b.birth_day || '—'}.${b.birth_month || '—'}.${b.birth_year || '—'}</span></div>
+            <div class="field-row"><strong>رقم الهوية / الجواز:</strong> <span>${b.id_number || '—'}</span></div>
           `;
         }
+      } else {
+        alert('فشل في جلب بيانات وثيقة الطلاق');
       }
     } catch (err) {
-      console.error('فشل تحميل بيانات عقد الطلاق', err);
+      console.error('خطأ الاتصال:', err);
+      alert('حدث خطأ أثناء تحميل بيانات الوثيقة');
     }
   });
 </script>
