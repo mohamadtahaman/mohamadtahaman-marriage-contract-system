@@ -7,104 +7,42 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/print.css">
 <style>
-  /* إعدادات الشاشة */
+  /* جعل الترويسة في المنتصف بدون صور الزوجين */
   .cert-header { grid-template-columns: 1fr !important; }
   .cert-header-photo { display: none !important; }
-  .cert-wrap-screen { margin-top: 70px; }
   
-  /* =======================================================
-     أوامر إجبارية قوية للطباعة على ورقة A4 واحدة فقط 
-  ======================================================= */
+  /* مسافة علوية للشاشة فقط لتجنب شريط الأدوات */
+  @media screen {
+    .cert-wrap-screen { margin-top: 70px; }
+  }
+  
+  /* أوامر الطباعة النظيفة لضمان صفحة A4 واحدة وعدم تشويه التنسيق */
   @media print {
-    @page { size: A4 portrait; margin: 5mm; } /* تقليل هوامش الورقة للحد الأدنى */
-    
-    body { 
-      padding: 0 !important; 
-      margin: 0 !important; 
-      background: #fff; 
-      -webkit-print-color-adjust: exact !important; 
-      print-color-adjust: exact !important; 
-    }
+    @page { size: A4 portrait; margin: 6mm; }
+    body { background: #fff; margin: 0; padding: 0; }
     .toolbar { display: none !important; }
-    
+    /* إزالة المسافة العلوية في الطباعة لمنع تمدد العقد لصفحة ثانية */
     .cert-wrap-screen { margin-top: 0 !important; }
-    .certificate-wrap { margin: 0 !important; padding: 0 !important; box-shadow: none !important; max-width: 100% !important; }
+    .certificate-wrap { margin: 0; padding: 0; box-shadow: none; max-width: 100%; page-break-inside: avoid; }
+    .certificate { border: 3px solid #1a4d8a; padding: 8px; max-height: 285mm; overflow: hidden; }
     
-    /* تحديد أقصى ارتفاع للشهادة لضمان عدم إنشاء صفحة ثانية */
-    .certificate { 
-      border: 2px solid #1a4d8a !important; 
-      padding: 4px 6px !important; 
-      max-height: 287mm !important; 
-      overflow: hidden !important; 
-      box-sizing: border-box !important;
-    }
-    
-    /* ضغط الأقسام والمسافات الخارجية */
-    .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures { 
-      margin-bottom: 2px !important; 
-    }
-    
-    /* ضغط المسافات الداخلية للأسطر */
-    .cv-row { padding: 1px 0 !important; gap: 4px !important; }
-    .wd-row { padding: 1.5px 0 !important; gap: 4px !important; }
-    .cert-col, .wali-dowry-col, .cert-witness-col { padding: 2px 6px !important; }
-    
-    /* ضغط الترويسة والشعار */
-    .cert-header { min-height: 45px !important; padding-bottom: 2px !important; margin-bottom: 3px !important; }
-    .cert-logo { width: 40px !important; height: 30px !important; margin-bottom: 1px !important; }
-    .cert-header-title-de { font-size: 12px !important; }
-    .cert-header-title-ar { font-size: 15px !important; }
-
-    /* تصغير العناوين الداخلية */
-    .cert-col-title, .col-subsection-title-light, .cert-witness-title, .party-signatures-title, .footer-title { 
-      font-size: 10.5px !important;
-      margin-bottom: 2px !important; 
-      padding-bottom: 1px !important; 
-    }
-    
-    /* تصغير الخطوط داخل الخانات لتستوعب النصوص الطويلة */
-    .cv-label-de, .wd-label-de { font-size: 8.5px !important; }
-    .cv-label-ar, .wd-label-ar { font-size: 9px !important; }
-    .v-value, .wd-value-de, .wd-value-ar { 
-      font-size: 10px !important; 
-      padding: 0 4px !important; 
-      min-height: 12px !important; 
-      line-height: 1.2 !important;
-    }
-
-    /* ضغط مربعات التوقيع بشكل كبير جداً */
-    .cert-party-signatures { padding: 2px 4px !important; }
-    .party-sig-cell { min-height: 30px !important; padding: 1px !important; }
-    .party-sig-cell .sig-label { font-size: 8.5px !important; margin-bottom: 1px !important; }
-    .party-sig-cell .sig-label small { font-size: 7.5px !important; }
-    .party-sig-cell .sig-line { height: 16px !important; }
-
-    /* ضغط تذييل الصفحة (صيغة العقد والأولاد) */
-    .cert-footer { min-height: 75px !important; }
-    .cert-footer-sign { min-height: 75px !important; padding: 2px !important; }
-    .sign-box-inner { height: 30px !important; }
-    .sign-label-bottom { font-size: 9px !important; margin-top: 1px !important; padding-top: 1px !important; }
-    .cert-footer-text { padding: 2px 6px !important; gap: 2px !important; }
-    
-    .footer-text-ar { font-size: 9.5px !important; line-height: 1.3 !important; margin-bottom: 2px !important; }
-    
-    /* سطر الأولاد - تعديل الحجم والمسافات لاستيعاب النصوص الطويلة جداً */
-    #childrenRow { font-size: 10px !important; margin: 2px 0 !important; line-height: 1.3 !important; }
-    
-    .footer-text-de { font-size: 8.5px !important; margin-bottom: 1px !important; }
-    .footer-note-center { font-size: 8px !important; padding-top: 2px !important; margin-top: 0 !important; }
+    /* تقليل بعض الفراغات الأساسية بهدوء لاستيعاب خانة الأولاد */
+    .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures { margin-bottom: 4px; }
+    .cv-row { padding: 2px 0; }
+    .cert-footer { min-height: 120px; }
   }
 </style>
 </head>
 <body>
 
 <div id="toolbar" class="toolbar">
-  <button onclick="window.print()" class="btn-print">🖨 طباعة</button>
+  <button onclick="printDoc()" class="btn-print">🖨 طباعة (تصدير PDF)</button>
   <span class="toolbar-code" style="color:#fff;">رقم الوثيقة: <strong id="toolbarCode">—</strong></span>
 </div>
 
 <div class="certificate-wrap cert-wrap-screen">
   <div class="certificate">
+    <!-- الترويسة -->
     <div class="cert-header">
       <div class="cert-header-center">
         <div class="cert-logo"><img src="./imeges/logo.webp" onerror="this.src='./imeges/logo.png';"></div>
@@ -113,24 +51,16 @@
       </div>
     </div>
 
+    <!-- معلومات الوثيقة الأساسية -->
     <div class="cert-info-strip">
-      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Turmstraße 83, 10551 Berlin</span><span class="label-ar">عنوان المركز</span></div></div>
-      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Art der Scheidung</span><span class="label-ar">نوع الطلاق</span><span class="value" id="divorceType">—</span></div></div>
       <div class="cert-info-cell"><div class="info-line"><span class="label-de">Datum der Scheidung</span><span class="label-ar">التاريخ</span><span class="value" id="divorceDate">—</span></div></div>
+      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Art der Scheidung</span><span class="label-ar">نوع الطلاق</span><span class="value" id="divorceType">—</span></div></div>
+      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Turmstraße 83, 10551 Berlin</span><span class="label-ar">عنوان المركز</span></div></div>
     </div>
 
-    <!-- الزوجة والزوج -->
+    <!-- المطلق والمطلقة (تم ضبط المطلق على اليمين والمطلقة على اليسار) -->
     <div class="cert-two-cols">
-      <div class="cert-col">
-        <div class="cert-col-title"><span>Ehefrau</span><span class="ar">المطلقة</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="bNameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="bNameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="bBirth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Ihre Mutter</span><span class="cv-label-ar">اسم الأم</span></div><div class="v-value" id="bMotherDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">اسم الأم</span></div><div class="v-value v-ar" id="bMotherAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="bId">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="bAddress">—</div></div>
-      </div>
+      <!-- يمين: المطلق -->
       <div class="cert-col">
         <div class="cert-col-title"><span>Ehemann</span><span class="ar">المطلق</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="gNameDe">—</div></div>
@@ -141,11 +71,29 @@
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="gId">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="gAddress">—</div></div>
       </div>
+      <!-- يسار: المطلقة -->
+      <div class="cert-col">
+        <div class="cert-col-title"><span>Ehefrau</span><span class="ar">المطلقة</span></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="bNameDe">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="bNameAr">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="bBirth">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Ihre Mutter</span><span class="cv-label-ar">اسم الأم</span></div><div class="v-value" id="bMotherDe">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">اسم الأم</span></div><div class="v-value v-ar" id="bMotherAr">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="bId">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="bAddress">—</div></div>
+      </div>
     </div>
 
-    <!-- الولي والمهر -->
+    <!-- التسوية والولي (تم ضبط التسوية يمين والولي يسار) -->
     <div class="cert-wali-dowry">
       <div class="wali-dowry-grid">
+        <!-- يمين: التسوية -->
+        <div class="wali-dowry-col">
+          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Finanzielle Einigung:</span><span class="wd-label-ar">المهر المقدم / التسوية</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dPrompt">—</span></div></div>
+          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Aufgeschoben:</span><span class="wd-label-ar">المؤخر / الحقوق</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dDeferred">—</span></div></div>
+          <div class="wd-row" id="notesRow" style="display:none;"><div class="wd-label"><span class="wd-label-de">Bemerkungen:</span><span class="wd-label-ar">ملاحظات</span></div><div class="wd-value"><span class="wd-value-ar" id="dNotes"></span></div></div>
+        </div>
+        <!-- يسار: الولي -->
         <div class="wali-dowry-col">
           <div class="col-subsection-title-light">بيانات الولي</div>
           <div id="waliCompact" style="display:none;">
@@ -160,16 +108,12 @@
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="wAddress">—</div></div>
           </div>
         </div>
-        <div class="wali-dowry-col">
-          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Finanzielle Einigung:</span><span class="wd-label-ar">المهر المقدم / التسوية</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dPrompt">—</span></div></div>
-          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Aufgeschoben:</span><span class="wd-label-ar">المؤخر / الحقوق</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dDeferred">—</span></div></div>
-          <div class="wd-row" id="notesRow" style="display:none;"><div class="wd-label"><span class="wd-label-de">Bemerkungen:</span><span class="wd-label-ar">ملاحظات</span></div><div class="wd-value"><span class="wd-value-ar" id="dNotes"></span></div></div>
-        </div>
       </div>
     </div>
 
     <!-- الشهود -->
     <div class="cert-witness-box">
+      <!-- يمين: الشاهد الأول -->
       <div class="cert-witness-col">
         <div class="cert-witness-title"><span>Zeuge 1</span><span class="ar">الشاهد الأول</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w1NameDe">—</div></div>
@@ -178,6 +122,7 @@
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="w1Id">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="w1Address">—</div></div>
       </div>
+      <!-- يسار: الشاهد الثاني -->
       <div class="cert-witness-col">
         <div class="cert-witness-title"><span>Zeuge 2</span><span class="ar">الشاهد الثاني</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w2NameDe">—</div></div>
@@ -200,7 +145,7 @@
       </div>
     </div>
 
-    <!-- التذييل -->
+    <!-- التذييل وصيغة الإثبات -->
     <div class="cert-footer">
       <div class="cert-footer-sign"><div class="sign-box"><div class="sign-box-inner"></div></div><div class="sign-label-bottom">إدارة المركز - Imam</div><div class="sign-line"></div><div class="sign-caption">التوقيع / Unterschrift</div></div>
       <div class="cert-footer-text">
@@ -209,7 +154,8 @@
           نشهد نحن الموقعان أدناه أن الطلاق قد وقع رسمياً بين الزوجين المذكورين أعلاه بناءً على الرغبة والتوافق، وتم استنفاد مساعي الإصلاح وفقاً للأحكام الشرعية، وأقر الطرفان بتمام الإبراء وتسوية الحقوق المالية والاتفاق على الحضانة إن وجدت، وشهد على ذلك الشهود المذكورون أعلاه.
         </div>
         
-        <div id="childrenRow" style="display:none; text-align:center; font-weight:bold; color:#1a4d8a;"></div>
+        <!-- سطر الأولاد -->
+        <div id="childrenRow" style="display:none; text-align:center; font-weight:bold; font-size:12px; margin: 5px 0; color:#1a4d8a;"></div>
 
         <div class="footer-text-de">Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen und von allen Beteiligten angenommen.</div>
         <div class="footer-note-center"><strong>ملاحظة:</strong> هذا العقد ليس بديلاً عن التسجيل في الدوائر الألمانية.</div>
@@ -220,6 +166,17 @@
 </div>
 
 <script>
+  // دالة الطباعة وتسمية ملف الـ PDF بالكود
+  function printDoc() {
+    const code = document.getElementById('toolbarCode').textContent;
+    const oldTitle = document.title;
+    // تغيير عنوان الصفحة ليكون اسم الملف عند الحفظ
+    document.title = "شهادة_عقد_طلاق_" + code;
+    window.print();
+    // إعادة العنوان كما كان
+    setTimeout(() => { document.title = oldTitle; }, 1000);
+  }
+
   window.onload = async () => {
     const code = new URLSearchParams(window.location.search).get('code');
     const pwd = sessionStorage.getItem('divorce_pw') || '';
