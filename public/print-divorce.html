@@ -9,6 +9,46 @@
 <style>
   .cert-header { grid-template-columns: 1fr !important; }
   .cert-header-photo { display: none !important; }
+  .cert-wrap-screen { margin-top: 70px; }
+  
+  /* =======================================================
+     أوامر إجبارية للطباعة على ورقة A4 واحدة فقط 
+  ======================================================= */
+  @media print {
+    @page { size: A4 portrait; margin: 8mm; } /* تقليل هوامش الورقة */
+    body { padding: 0 !important; margin: 0 !important; background: #fff; }
+    .toolbar { display: none !important; }
+    
+    /* إلغاء المسافة العلوية الخاصة بالشاشة */
+    .cert-wrap-screen { margin-top: 0 !important; }
+    .certificate-wrap { margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
+    
+    /* ضغط الفراغات بين جميع المربعات والأقسام */
+    .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures { 
+      margin-bottom: 3px !important; 
+    }
+    
+    /* ضغط مساحات الأسطر (الاسم، الميلاد، العنوان...) */
+    .cv-row { padding: 1.5px 0 !important; }
+    .wd-row { padding: 2px 0 !important; }
+    .cert-col, .wali-dowry-col, .cert-witness-col { padding: 3px 8px !important; }
+    
+    /* ضغط العناوين والترويسة */
+    .cert-col-title, .col-subsection-title-light, .cert-witness-title, .party-signatures-title, .footer-title { 
+      margin-bottom: 2px !important; 
+      padding-bottom: 2px !important; 
+    }
+    .cert-header { min-height: auto !important; padding-bottom: 2px !important; margin-bottom: 4px !important; }
+    .cert-logo { width: 55px !important; height: 45px !important; margin-bottom: 2px !important; }
+    .cert-header-title-de { font-size: 14px !important; }
+    .cert-header-title-ar { font-size: 16px !important; }
+
+    /* ضغط مربعات التوقيعات السفلية لكي لا تدفع النص لصفحة أخرى */
+    .party-sig-cell { min-height: 40px !important; padding: 2px !important; }
+    .cert-footer { min-height: 120px !important; }
+    .cert-footer-sign { min-height: 120px !important; padding: 4px !important; }
+    .sign-box-inner { height: 60px !important; }
+  }
 </style>
 </head>
 <body>
@@ -18,7 +58,7 @@
   <span class="toolbar-code" style="color:#fff;">رقم الوثيقة: <strong id="toolbarCode">—</strong></span>
 </div>
 
-<div class="certificate-wrap" style="margin-top:70px;">
+<div class="certificate-wrap cert-wrap-screen">
   <div class="certificate">
     <div class="cert-header">
       <div class="cert-header-center">
@@ -103,6 +143,7 @@
       </div>
     </div>
 
+    <!-- التوقيعات -->
     <div class="cert-party-signatures">
       <div class="party-signatures-title"><span>Unterschriften der Parteien</span><span class="ar">إمضاءات الأطراف</span></div>
       <div class="party-signatures-grid">
@@ -114,6 +155,7 @@
       </div>
     </div>
 
+    <!-- تذييل الصفحة -->
     <div class="cert-footer">
       <div class="cert-footer-sign"><div class="sign-box"><div class="sign-box-inner"></div></div><div class="sign-label-bottom">إدارة المركز - Imam</div><div class="sign-line"></div><div class="sign-caption">التوقيع / Unterschrift</div></div>
       <div class="cert-footer-text">
@@ -122,8 +164,7 @@
           نشهد نحن الموقعان أدناه أن الطلاق قد وقع رسمياً بين الزوجين المذكورين أعلاه بناءً على الرغبة والتوافق، وتم استنفاد مساعي الإصلاح وفقاً للأحكام الشرعية، وأقر الطرفان بتمام الإبراء وتسوية الحقوق المالية والاتفاق على الحضانة إن وجدت، وشهد على ذلك الشهود المذكورون أعلاه.
         </div>
         
-        <!-- خانة الأولاد تظهر في سطر مستقل هنا -->
-        <div id="childrenRow" style="display:none; text-align:center; font-weight:bold; font-size:12.5px; margin: 8px 0; color:#1a4d8a;"></div>
+        <div id="childrenRow" style="display:none; text-align:center; font-weight:bold; font-size:12.5px; margin: 6px 0; color:#1a4d8a;"></div>
 
         <div class="footer-text-de">Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen und von allen Beteiligten angenommen.</div>
         <div class="footer-note-center"><strong>ملاحظة:</strong> هذا العقد ليس بديلاً عن التسجيل في الدوائر الألمانية.</div>
