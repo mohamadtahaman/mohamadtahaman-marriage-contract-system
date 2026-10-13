@@ -63,12 +63,10 @@
       <div class="wali-dowry-grid">
         <div class="wali-dowry-col">
           <div class="col-subsection-title-light">بيانات الولي</div>
-          <!-- يظهر فقط إذا كانت الولي هي الزوجة -->
           <div id="waliCompact" style="display:none;">
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name Der Wali</span><span class="cv-label-ar">اسم الولي</span></div><div class="v-value v-ar">الزوجة نفسها</div></div>
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Status</span><span class="cv-label-ar">الصفة</span></div><div class="v-value">Bride herself</div></div>
           </div>
-          <!-- يظهر إذا كان هناك ولي فعلي -->
           <div id="waliFull">
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="wNameDe">—</div></div>
             <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="wNameAr">—</div></div>
@@ -91,6 +89,7 @@
         <div class="cert-witness-title"><span>Zeuge 1</span><span class="ar">الشاهد الأول</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w1NameDe">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="w1NameAr">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="w1Birth">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="w1Id">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="w1Address">—</div></div>
       </div>
@@ -98,6 +97,7 @@
         <div class="cert-witness-title"><span>Zeuge 2</span><span class="ar">الشاهد الثاني</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w2NameDe">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="w2NameAr">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="w2Birth">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="w2Id">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="w2Address">—</div></div>
       </div>
@@ -185,6 +185,7 @@
       [1,2].forEach(n => {
         document.getElementById(`w${n}NameAr`).textContent = c[`w${n}_name_ar`] || '—';
         document.getElementById(`w${n}NameDe`).textContent = c[`w${n}_name_de`] || '—';
+        document.getElementById(`w${n}Birth`).textContent = c[`w${n}_birth`] || '—';
         document.getElementById(`w${n}Id`).textContent = c[`w${n}_id`] || '—';
         document.getElementById(`w${n}Address`).textContent = c[`w${n}_address`] || '—';
       });
