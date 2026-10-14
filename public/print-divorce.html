@@ -16,8 +16,7 @@
   }
 
   /* ============================================================
-     أوامر الطباعة - الحل الصحيح باستخدام zoom بدل overflow:hidden
-     لا يُقصّ أي محتوى - كل شيء يُصغَّر بشكل متناسب ليدخل في A4
+     أوامر الطباعة - ضبط حجم المحتوى ليملأ صفحة A4 بشكل متناسق
      ============================================================ */
   @media print {
 
@@ -26,7 +25,6 @@
       margin: 0 !important;
     }
 
-    /* تحرير الارتفاع والسماح للمحتوى بالظهور كاملاً */
     html, body {
       background: #fff !important;
       margin: 0 !important;
@@ -35,12 +33,10 @@
       height: auto !important;
       min-height: 0 !important;
       max-height: none !important;
-      /* لا يوجد overflow: hidden هنا - نريد كل المحتوى ظاهراً */
     }
 
     .toolbar { display: none !important; }
 
-    /* الحاوية الرئيسية */
     .certificate-wrap,
     .cert-wrap-screen {
       margin: 0 !important;
@@ -51,17 +47,15 @@
     }
 
     /* ============================================================
-       المفتاح: تصغير الشهادة بشكل متناسب بـ 90%
-       - كل المحتوى يُصغَّر بنفس النسبة (نصوص، إطارات، صور)
-       - لا يوجد أي قصّ
-       - لا يتغير أي تصميم، فقط الحجم الكلي
+       تعديل المفتاح: zoom من 0.88 إلى 1.05 لملء الصفحة
+       - إذا عادت الصفحة الثانية، خفّضها إلى 1.0 ثم 0.95
        ============================================================ */
     .certificate {
-      zoom: 0.88;                    /* كل المتصفحات الحديثة تدعمها للطباعة */
-      -webkit-zoom: 0.88;            /* دعم Safari */
-      -moz-transform: scale(0.88);   /* دعم Firefox */
+      zoom: 1.05;
+      -webkit-zoom: 1.05;
+      -moz-transform: scale(1.05);
       -moz-transform-origin: top right;
-      transform: scale(0.88);        /* بديل قياسي */
+      transform: scale(1.05);
       transform-origin: top right;
       width: 100% !important;
       box-sizing: border-box !important;
@@ -71,7 +65,6 @@
       break-inside: avoid !important;
     }
 
-    /* إخفاء أي عناصر لا يجب طباعتها */
     .certificate::after,
     .cert-wrap-screen::after,
     body::after {
