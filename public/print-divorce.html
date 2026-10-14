@@ -19,41 +19,81 @@
     .cert-wrap-screen { margin-top: 70px; }
   }
   
-  /* أوامر الطباعة الصارمة والنهائية لضمان ورقة A4 واحدة */
+  /* ============================================================
+     أوامر الطباعة الصارمة والنهائية لضمان ورقة A4 واحدة
+     التعديلات المركّزة هنا فقط لمنع الصفحة البيضاء الثانية
+     ============================================================ */
   @media print {
-    /* إلغاء هوامش المتصفح الافتراضية لمنع ترحيل أي مساحة لصفحة ثانية */
-    @page { size: A4 portrait; margin: 0; }
-    
-    html, body { 
-      background: #fff; 
-      margin: 0 !important; 
-      padding: 0 !important; 
-      width: 210mm !important;
-      height: 297mm !important;
-      overflow: hidden !important; 
+    /* 1) تحديد مقاس الورقة A4 وهامش صفر لمنع المتصفح من حجز هوامش إضافية */
+    @page {
+      size: A4 portrait;
+      margin: 0 !important;
     }
-    
-    .toolbar { display: none !important; }
-    
-    .cert-wrap-screen { 
-      margin: 0 !important; 
-      padding: 6mm !important; /* الهوامش الداخلية للطباعة */
-      width: 100% !important;
-      height: 100% !important;
+
+    /* 2) تصفير هوامش html و body ومنع التمرير والفيض */
+    html, body {
+      background: #fff !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 210mm !important;
+      /* المفتاح الأساسي: تقليل الارتفاع من 297mm إلى قيمة أقل قليلاً
+         لامتصاص أي فيض صغير ناتج عن الحدود أو البكسل الكسري،
+         وبذلك لا يُنشئ المتصفح صفحة ثانية */
+      height: 290mm !important;
+      max-height: 290mm !important;
+      overflow: hidden !important;
       box-sizing: border-box !important;
     }
-    
-    .certificate { 
-      border: 3px solid #1a4d8a !important; 
-      padding: 8px !important; 
-      height: 100% !important; /* ملء المساحة المتاحة فقط */
-      box-sizing: border-box !important; 
-      overflow: hidden !important; 
+
+    /* 3) إخفاء شريط الأدوات */
+    .toolbar { display: none !important; }
+
+    /* 4) الحاوية الرئيسية: ملء المساحة المتاحة فقط بدون تجاوز */
+    .cert-wrap-screen {
+      margin: 0 !important;
+      padding: 5mm !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
     }
-    
-    .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures { margin-bottom: 4px !important; }
+
+    /* 5) الشهادة نفسها: منع الفيض مع الحفاظ على الحدود والتصميم */
+    .certificate {
+      border: 3px solid #1a4d8a !important;
+      padding: 8px !important;
+      height: 100% !important;
+      max-height: 100% !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+    }
+
+    /* 6) ضغط بسيط للمسافات الرأسية لضمان احتواء كل المحتوى في صفحة واحدة
+          (لا يغيّر الشكل العام، فقط يمنع الترحيل للصفحة التالية) */
+    .cert-info-strip,
+    .cert-two-cols,
+    .cert-wali-dowry,
+    .cert-witness-box,
+    .cert-party-signatures {
+      margin-bottom: 4px !important;
+    }
+
     .cv-row { padding: 1.5px 0 !important; }
     .cert-footer { min-height: 110px !important; }
+
+    /* 7) منع كسر أي عنصر داخل الصفحة (تفادي إنشاء صفحة ثانية لأجل عنصر واحد) */
+    .certificate,
+    .cert-header,
+    .cert-info-strip,
+    .cert-two-cols,
+    .cert-wali-dowry,
+    .cert-witness-box,
+    .cert-party-signatures,
+    .cert-footer {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
   }
 </style>
 </head>
