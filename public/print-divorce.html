@@ -7,58 +7,50 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/print.css">
 <style>
-  /* جعل الترويسة في المنتصف بدون صور الزوجين */
   .cert-header { grid-template-columns: 1fr !important; }
   .cert-header-photo { display: none !important; }
-
-  /* توسيط نصوص الشريط العلوي (التاريخ، نوع الطلاق، المركز) */
   .cert-info-strip .info-line { justify-content: center !important; }
 
-  /* مسافة علوية للشاشة فقط لتجنب شريط الأدوات */
   @media screen {
     .cert-wrap-screen { margin-top: 70px; }
   }
 
   /* ============================================================
-     أوامر الطباعة النهائية - حل جذري للصفحة البيضاء
+     أوامر الطباعة النهائية - حل جذري للفراغ والصفحة الثانية
      ============================================================ */
   @media print {
 
-    /* 1) مقاس A4 بالملليمتر + هوامش صفر */
     @page {
       size: 210mm 297mm !important;
       margin: 0 !important;
     }
 
-    /* 2) تصفير هوامش body مع قفل المقاس لـ A4 */
     html, body {
       background: #fff !important;
       margin: 0 !important;
       padding: 0 !important;
       width: 210mm !important;
       height: 297mm !important;
+      max-height: 297mm !important;
       overflow: hidden !important;
       box-sizing: border-box !important;
     }
 
-    /* 3) إخفاء شريط الأدوات */
     .toolbar { display: none !important; }
 
-    /* 4) الحاوية الرئيسية - تستخدم كل المساحة بدون فيض */
+    /* الحاوية الرئيسية */
     .certificate-wrap,
     .cert-wrap-screen {
       margin: 0 !important;
-      padding: 3mm !important;
+      padding: 4mm !important;
       width: 210mm !important;
       height: 297mm !important;
       max-height: 297mm !important;
       box-sizing: border-box !important;
       overflow: hidden !important;
-      page-break-after: avoid !important;
-      page-break-before: avoid !important;
     }
 
-    /* 5) الشهادة - تصميم كامل داخل مساحة A4 */
+    /* الشهادة - منع أي تمدد أو فراغ */
     .certificate {
       border: 2.5px solid #1a4d8a !important;
       padding: 6px !important;
@@ -67,76 +59,126 @@
       max-height: 100% !important;
       box-sizing: border-box !important;
       overflow: hidden !important;
-      display: flex !important;
-      flex-direction: column !important;
+      /* إزالة flex لأنه كان سبب الفراغ */
+      display: block !important;
       page-break-after: avoid !important;
+      page-break-inside: avoid !important;
     }
 
-    /* 6) ضغط رأس الصفحة */
-    .cert-header { margin-bottom: 3px !important; }
-    .cert-logo img { max-height: 55px !important; }
-    .cert-header-title-de { font-size: 13px !important; margin: 1px 0 !important; }
-    .cert-header-title-ar { font-size: 15px !important; margin: 1px 0 !important; }
+    /* رأس الصفحة - تصغير الشعار */
+    .cert-header { margin-bottom: 2px !important; padding: 2px !important; }
+    .cert-logo img { max-height: 45px !important; width: auto !important; }
+    .cert-header-title-de { font-size: 12px !important; margin: 1px 0 !important; }
+    .cert-header-title-ar { font-size: 14px !important; margin: 1px 0 !important; }
 
-    /* 7) ضغط الشريط العلوي */
+    /* الشريط العلوي */
     .cert-info-strip {
-      margin-bottom: 3px !important;
-      padding: 3px !important;
+      margin-bottom: 2px !important;
+      padding: 2px 3px !important;
     }
-    .cert-info-strip .info-line { font-size: 10px !important; }
+    .cert-info-strip .info-line { font-size: 9.5px !important; line-height: 1.3 !important; }
 
-    /* 8) ضغط الأقسام الرئيسية */
+    /* الأقسام الرئيسية - تقليص المسافات */
     .cert-two-cols,
     .cert-wali-dowry,
     .cert-witness-box,
     .cert-party-signatures {
-      margin-bottom: 3px !important;
+      margin-bottom: 2px !important;
+      page-break-inside: avoid !important;
     }
 
     .cert-col-title,
     .cert-witness-title,
     .party-signatures-title {
       padding: 2px 4px !important;
-      font-size: 11px !important;
+      font-size: 10.5px !important;
     }
 
-    /* 9) ضغط الصفوف */
+    /* الصفوف - تقليص مهم */
     .cv-row {
-      padding: 1px 0 !important;
-      font-size: 9.5px !important;
-      line-height: 1.25 !important;
+      padding: 0.5px 0 !important;
+      font-size: 9px !important;
+      line-height: 1.2 !important;
+      min-height: 0 !important;
     }
-    .cv-label { font-size: 9px !important; }
-    .v-value { font-size: 9.5px !important; }
+    .cv-label { font-size: 8.5px !important; }
+    .v-value { font-size: 9px !important; }
 
-    /* 10) ضغط قسم الولي والتسوية */
-    .wali-dowry-grid { gap: 4px !important; }
-    .wd-row { padding: 2px 4px !important; font-size: 10px !important; }
+    /* قسم الولي والتسوية */
+    .wali-dowry-grid { gap: 3px !important; }
+    .wd-row { padding: 1.5px 3px !important; font-size: 9.5px !important; line-height: 1.25 !important; }
+    .col-subsection-title-light { font-size: 10px !important; padding: 1px 3px !important; }
 
-    /* 11) ضغط التوقيعات */
-    .party-signatures-grid { gap: 3px !important; }
-    .party-sig-cell { padding: 2px !important; }
-    .sig-label { font-size: 9px !important; }
-    .sig-line { height: 26px !important; }
+    /* التوقيعات */
+    .party-signatures-grid { gap: 2px !important; }
+    .party-sig-cell { padding: 1.5px !important; }
+    .sig-label { font-size: 8.5px !important; }
+    .sig-line { height: 22px !important; margin-top: 2px !important; }
 
-    /* 12) ضغط التذييل */
+    /* ============================================
+       التذييل - إزالة أي فراغ أو تمدد
+       ============================================ */
     .cert-footer {
-      margin-top: auto !important;
-      min-height: 90px !important;
-      padding-top: 3px !important;
+      margin: 0 !important;
+      margin-top: 2px !important;
+      padding: 2px !important;
+      min-height: 0 !important;
+      height: auto !important;
+      max-height: none !important;
+      page-break-inside: avoid !important;
+      /* منع التمدد */
+      flex: 0 0 auto !important;
+      display: grid !important;
+      grid-template-columns: auto 1fr !important;
+      gap: 4px !important;
+      align-items: end !important;
     }
-    .footer-title { font-size: 11px !important; }
+
+    .cert-footer-sign {
+      min-height: 0 !important;
+      padding: 0 !important;
+      text-align: center !important;
+    }
+
+    .sign-box {
+      width: 45px !important;
+      height: 45px !important;
+      margin: 0 auto !important;
+    }
+    .sign-box-inner { width: 100% !important; height: 100% !important; }
+    .sign-label-bottom,
+    .sign-caption { font-size: 8px !important; margin: 1px 0 !important; }
+    .sign-line { margin: 2px 0 !important; }
+
+    .cert-footer-text {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    .footer-title {
+      font-size: 10px !important;
+      margin: 1px 0 !important;
+      padding: 1px 0 !important;
+    }
     .footer-text-ar,
     .footer-text-de {
-      font-size: 9px !important;
-      line-height: 1.35 !important;
-      margin: 2px 0 !important;
+      font-size: 8.5px !important;
+      line-height: 1.3 !important;
+      margin: 1px 0 !important;
+      padding: 0 !important;
     }
-    .footer-note-center { font-size: 9px !important; margin-top: 3px !important; }
-    .sign-box { width: 55px !important; height: 55px !important; }
-    .sign-label-bottom, .sign-caption { font-size: 9px !important; }
+    .footer-note-center {
+      font-size: 8.5px !important;
+      margin-top: 2px !important;
+      padding: 1px 0 !important;
+    }
+    #childrenRow {
+      font-size: 8.5px !important;
+      margin: 2px 0 !important;
+      padding: 0 !important;
+    }
 
-    /* 13) منع كسر أي عنصر بين صفحتين */
+    /* منع كسر أي عنصر */
     .certificate,
     .cert-header,
     .cert-info-strip,
@@ -151,6 +193,14 @@
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
+
+    /* إخفاء أي عنصر فاضي أو مخفي */
+    *:empty:not(img):not(input):not(br):not(hr) {
+      min-height: 0 !important;
+      height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
   }
 </style>
 </head>
@@ -164,7 +214,6 @@
 <div class="certificate-wrap cert-wrap-screen">
   <div class="certificate">
 
-    <!-- الترويسة -->
     <div class="cert-header">
       <div class="cert-header-center">
         <div class="cert-logo"><img src="./imeges/logo.webp" onerror="this.src='./imeges/logo.png';"></div>
@@ -173,16 +222,13 @@
       </div>
     </div>
 
-    <!-- الشريط العلوي -->
     <div class="cert-info-strip">
       <div class="cert-info-cell"><div class="info-line"><span class="label-de">Turmstraße 83, 10551 Berlin</span><span class="label-ar">عنوان المركز</span></div></div>
       <div class="cert-info-cell"><div class="info-line"><span class="label-de">Art der Scheidung</span><span class="label-ar">نوع الطلاق</span><span class="value" id="divorceType">—</span></div></div>
       <div class="cert-info-cell"><div class="info-line"><span class="label-de">Datum der Scheidung</span><span class="label-ar">التاريخ</span><span class="value" id="divorceDate">—</span></div></div>
     </div>
 
-    <!-- الزوجة والزوج -->
     <div class="cert-two-cols">
-      <!-- يمين: المطلقة -->
       <div class="cert-col">
         <div class="cert-col-title"><span>Ehefrau</span><span class="ar">المطلقة</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="bNameDe">—</div></div>
@@ -193,7 +239,6 @@
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="bId">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="bAddress">—</div></div>
       </div>
-      <!-- يسار: المطلق -->
       <div class="cert-col">
         <div class="cert-col-title"><span>Ehemann</span><span class="ar">المطلق</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="gNameDe">—</div></div>
@@ -206,10 +251,8 @@
       </div>
     </div>
 
-    <!-- الولي والتسوية المالية -->
     <div class="cert-wali-dowry">
       <div class="wali-dowry-grid">
-        <!-- يمين: الولي -->
         <div class="wali-dowry-col">
           <div class="col-subsection-title-light">بيانات الولي</div>
           <div id="waliCompact" style="display:none;">
@@ -224,7 +267,6 @@
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="wAddress">—</div></div>
           </div>
         </div>
-        <!-- يسار: التسوية المالية -->
         <div class="wali-dowry-col">
           <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Finanzielle Einigung:</span><span class="wd-label-ar">المهر المقدم / التسوية</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dPrompt">—</span></div></div>
           <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Aufgeschoben:</span><span class="wd-label-ar">المؤخر / الحقوق</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dDeferred">—</span></div></div>
@@ -233,7 +275,6 @@
       </div>
     </div>
 
-    <!-- الشهود -->
     <div class="cert-witness-box">
       <div class="cert-witness-col">
         <div class="cert-witness-title"><span>Zeuge 1</span><span class="ar">الشاهد الأول</span></div>
@@ -253,7 +294,6 @@
       </div>
     </div>
 
-    <!-- التوقيعات -->
     <div class="cert-party-signatures">
       <div class="party-signatures-title"><span>Unterschriften der Parteien</span><span class="ar">إمضاءات الأطراف</span></div>
       <div class="party-signatures-grid">
@@ -265,7 +305,6 @@
       </div>
     </div>
 
-    <!-- التذييل وصيغة الإثبات -->
     <div class="cert-footer">
       <div class="cert-footer-sign">
         <div class="sign-box"><div class="sign-box-inner"></div></div>
@@ -278,10 +317,7 @@
         <div class="footer-text-ar">
           نشهد نحن الموقعان أدناه أن الطلاق قد وقع رسمياً بين الزوجين المذكورين أعلاه بناءً على الرغبة والتوافق، وتم استنفاد مساعي الإصلاح وفقاً للأحكام الشرعية، وأقر الطرفان بتمام الإبراء وتسوية الحقوق المالية والاتفاق على الحضانة إن وجدت، وشهد على ذلك الشهود المذكورون أعلاه.
         </div>
-
-        <!-- سطر الأولاد -->
         <div id="childrenRow" style="display:none; text-align:center; font-weight:bold; font-size:12px; margin: 5px 0; color:#1a4d8a;"></div>
-
         <div class="footer-text-de">Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen und von allen Beteiligten angenommen.</div>
         <div class="footer-note-center"><strong>ملاحظة:</strong> هذا العقد ليس بديلاً عن التسجيل في الدوائر الألمانية.</div>
       </div>
@@ -291,14 +327,11 @@
 </div>
 
 <script>
-  // دالة الطباعة وتسمية ملف الـ PDF بالكود
   function printDoc() {
     const code = document.getElementById('toolbarCode').textContent;
     const oldTitle = document.title;
-    // تغيير عنوان الصفحة ليكون اسم الملف عند الحفظ (مثال: شهادة_عقد_طلاق_XXXXXX)
     document.title = "شهادة_عقد_طلاق_" + code;
     window.print();
-    // إعادة العنوان كما كان بعد الطباعة
     setTimeout(() => { document.title = oldTitle; }, 1000);
   }
 
