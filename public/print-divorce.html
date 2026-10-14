@@ -11,17 +11,15 @@
   .cert-header { grid-template-columns: 1fr !important; }
   .cert-header-photo { display: none !important; }
 
-  /* توسيط نصوص الشريط العلوي (التاريخ، نوع الطلاق، المركز) */
+  /* توسيط نصوص الشريط العلوي */
   .cert-info-strip .info-line { justify-content: center !important; }
 
-  /* مسافة علوية للشاشة فقط لتجنب شريط الأدوات */
   @media screen {
     .cert-wrap-screen { margin-top: 70px; }
   }
 
   /* ============================================================
-     أوامر الطباعة فقط - بدون أي تغيير في التصميم
-     الفكرة: نقصّ أي فيض بسيط بدل تصغير المحتوى
+     أوامر الطباعة النهائية - إزالة الصفحة الثانية بدون تغيير التصميم
      ============================================================ */
   @media print {
 
@@ -31,13 +29,16 @@
       margin: 0 !important;
     }
 
-    /* 2) قفل حجم الصفحة بـ A4 ومنع أي تمرير */
+    /* 2) قفل ارتفاع الصفحة بـ 292mm بدلاً من 297mm
+          الفرق 5mm يُستخدم كهامش أمان لمنع الصفحة الثانية
+          المحتوى سيبقى كما هو (لأنه لا يتجاوز هذا الحد أصلاً) */
     html, body {
       background: #fff !important;
       margin: 0 !important;
       padding: 0 !important;
       width: 210mm !important;
-      height: 297mm !important;
+      height: 292mm !important;
+      max-height: 292mm !important;
       overflow: hidden !important;
       box-sizing: border-box !important;
     }
@@ -45,28 +46,30 @@
     /* 3) إخفاء شريط الأدوات */
     .toolbar { display: none !important; }
 
-    /* 4) الحاوية الرئيسية - بدون أي تغيير في المحتوى */
+    /* 4) الحاوية الرئيسية - نفس الأبعاد المقصوصة */
     .certificate-wrap,
     .cert-wrap-screen {
       margin: 0 !important;
       padding: 6mm !important;
       width: 210mm !important;
-      height: 297mm !important;
+      height: 292mm !important;
+      max-height: 292mm !important;
       box-sizing: border-box !important;
       overflow: hidden !important;
     }
 
-    /* 5) الشهادة - إطار وعرض كما هو، مع قصّ أي فيض */
+    /* 5) الشهادة - كما هي مع قصّ الفيض */
     .certificate {
       border: 3px solid #1a4d8a !important;
       padding: 8px !important;
       width: 100% !important;
       height: 100% !important;
+      max-height: 100% !important;
       box-sizing: border-box !important;
       overflow: hidden !important;
     }
 
-    /* 6) ضغط بسيط جداً للمسافات فقط (بدون تصغير الخطوط) */
+    /* 6) المسافات البسيطة (بدون تصغير خطوط أو تغيير تصميم) */
     .cert-info-strip,
     .cert-two-cols,
     .cert-wali-dowry,
@@ -89,6 +92,14 @@
     .cert-footer {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
+    }
+
+    /* 8) منع الصفحة الثانية بقوة - إلغاء أي فاصل صفحات */
+    .certificate::after,
+    .cert-wrap-screen::after,
+    body::after {
+      content: none !important;
+      display: none !important;
     }
   }
 </style>
@@ -220,7 +231,6 @@
 </div>
 
 <script>
-  // دالة الطباعة وتسمية ملف الـ PDF بالكود
   function printDoc() {
     const code = document.getElementById('toolbarCode').textContent;
     const oldTitle = document.title;
