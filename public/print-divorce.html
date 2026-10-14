@@ -7,11 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/print.css">
 <style>
-  /* جعل الترويسة في المنتصف بدون صور الزوجين */
   .cert-header { grid-template-columns: 1fr !important; }
   .cert-header-photo { display: none !important; }
-
-  /* توسيط نصوص الشريط العلوي */
   .cert-info-strip .info-line { justify-content: center !important; }
 
   @media screen {
@@ -19,82 +16,62 @@
   }
 
   /* ============================================================
-     أوامر الطباعة النهائية - إزالة الصفحة الثانية بدون تغيير التصميم
+     أوامر الطباعة - الحل الصحيح باستخدام zoom بدل overflow:hidden
+     لا يُقصّ أي محتوى - كل شيء يُصغَّر بشكل متناسب ليدخل في A4
      ============================================================ */
   @media print {
 
-    /* 1) مقاس A4 + هوامش صفر */
     @page {
-      size: 210mm 297mm !important;
+      size: A4 portrait !important;
       margin: 0 !important;
     }
 
-    /* 2) قفل ارتفاع الصفحة بـ 292mm بدلاً من 297mm
-          الفرق 5mm يُستخدم كهامش أمان لمنع الصفحة الثانية
-          المحتوى سيبقى كما هو (لأنه لا يتجاوز هذا الحد أصلاً) */
+    /* تحرير الارتفاع والسماح للمحتوى بالظهور كاملاً */
     html, body {
       background: #fff !important;
       margin: 0 !important;
       padding: 0 !important;
       width: 210mm !important;
-      height: 292mm !important;
-      max-height: 292mm !important;
-      overflow: hidden !important;
-      box-sizing: border-box !important;
+      height: auto !important;
+      min-height: 0 !important;
+      max-height: none !important;
+      /* لا يوجد overflow: hidden هنا - نريد كل المحتوى ظاهراً */
     }
 
-    /* 3) إخفاء شريط الأدوات */
     .toolbar { display: none !important; }
 
-    /* 4) الحاوية الرئيسية - نفس الأبعاد المقصوصة */
+    /* الحاوية الرئيسية */
     .certificate-wrap,
     .cert-wrap-screen {
       margin: 0 !important;
-      padding: 6mm !important;
+      padding: 3mm !important;
       width: 210mm !important;
-      height: 292mm !important;
-      max-height: 292mm !important;
+      height: auto !important;
       box-sizing: border-box !important;
-      overflow: hidden !important;
     }
 
-    /* 5) الشهادة - كما هي مع قصّ الفيض */
+    /* ============================================================
+       المفتاح: تصغير الشهادة بشكل متناسب بـ 90%
+       - كل المحتوى يُصغَّر بنفس النسبة (نصوص، إطارات، صور)
+       - لا يوجد أي قصّ
+       - لا يتغير أي تصميم، فقط الحجم الكلي
+       ============================================================ */
     .certificate {
+      zoom: 0.88;                    /* كل المتصفحات الحديثة تدعمها للطباعة */
+      -webkit-zoom: 0.88;            /* دعم Safari */
+      -moz-transform: scale(0.88);   /* دعم Firefox */
+      -moz-transform-origin: top right;
+      transform: scale(0.88);        /* بديل قياسي */
+      transform-origin: top right;
+      width: 100% !important;
+      box-sizing: border-box !important;
       border: 3px solid #1a4d8a !important;
       padding: 8px !important;
-      width: 100% !important;
-      height: 100% !important;
-      max-height: 100% !important;
-      box-sizing: border-box !important;
-      overflow: hidden !important;
-    }
-
-    /* 6) المسافات البسيطة (بدون تصغير خطوط أو تغيير تصميم) */
-    .cert-info-strip,
-    .cert-two-cols,
-    .cert-wali-dowry,
-    .cert-witness-box,
-    .cert-party-signatures {
-      margin-bottom: 4px !important;
-    }
-
-    .cv-row { padding: 1.5px 0 !important; }
-    .cert-footer { min-height: 110px !important; }
-
-    /* 7) منع كسر أي عنصر بين صفحتين */
-    .certificate,
-    .cert-header,
-    .cert-info-strip,
-    .cert-two-cols,
-    .cert-wali-dowry,
-    .cert-witness-box,
-    .cert-party-signatures,
-    .cert-footer {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
     }
 
-    /* 8) منع الصفحة الثانية بقوة - إلغاء أي فاصل صفحات */
+    /* إخفاء أي عناصر لا يجب طباعتها */
     .certificate::after,
     .cert-wrap-screen::after,
     body::after {
