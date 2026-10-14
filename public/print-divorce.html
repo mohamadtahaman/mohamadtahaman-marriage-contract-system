@@ -7,70 +7,62 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/print.css">
 <style>
+  /* جعل الترويسة في المنتصف بدون صور الزوجين */
   .cert-header { grid-template-columns: 1fr !important; }
   .cert-header-photo { display: none !important; }
+  
+  /* توسيط نصوص الشريط العلوي (التاريخ، نوع الطلاق، المركز) */
   .cert-info-strip .info-line { justify-content: center !important; }
-
+  
+  /* مسافة علوية للشاشة فقط لتجنب شريط الأدوات */
   @media screen {
     .cert-wrap-screen { margin-top: 70px; }
   }
-
-  /* ============================================================
-     أوامر الطباعة - ضبط حجم المحتوى ليملأ صفحة A4 بشكل متناسق
-     ============================================================ */
+  
+  /* =========================================================
+     أوامر الطباعة الصارمة جداً لضمان ورقة A4 واحدة فقط
+  ========================================================= */
   @media print {
-
-    @page {
-      size: A4 portrait !important;
-      margin: 0 !important;
+    @page { 
+      size: A4 portrait; 
+      margin: 0 !important; /* إلغاء هوامش المتصفح نهائياً */
     }
-
-    html, body {
-      background: #fff !important;
-      margin: 0 !important;
-      padding: 0 !important;
+    
+    html, body { 
+      background: #fff !important; 
+      margin: 0 !important; 
+      padding: 0 !important; 
       width: 210mm !important;
-      height: auto !important;
-      min-height: 0 !important;
-      max-height: none !important;
+      height: 295mm !important; /* أقل بـ 2 ملم من A4 لمنع الصفحة الفارغة */
+      overflow: hidden !important; 
     }
-
+    
     .toolbar { display: none !important; }
-
-    .certificate-wrap,
-    .cert-wrap-screen {
-      margin: 0 !important;
-      padding: 3mm !important;
+    
+    .cert-wrap-screen { 
+      margin: 0 !important; 
+      padding: 6mm !important; /* الهوامش الداخلية للطباعة */
       width: 210mm !important;
-      height: auto !important;
+      height: 295mm !important; /* إجبار الحاوية على نفس المقاس */
       box-sizing: border-box !important;
-    }
-
-    /* ============================================================
-       تعديل المفتاح: zoom من 0.88 إلى 1.05 لملء الصفحة
-       - إذا عادت الصفحة الثانية، خفّضها إلى 1.0 ثم 0.95
-       ============================================================ */
-    .certificate {
-      zoom: 1.05;
-      -webkit-zoom: 1.05;
-      -moz-transform: scale(1.05);
-      -moz-transform-origin: top right;
-      transform: scale(1.05);
-      transform-origin: top right;
-      width: 100% !important;
-      box-sizing: border-box !important;
-      border: 3px solid #1a4d8a !important;
-      padding: 8px !important;
+      page-break-after: avoid !important;
       page-break-inside: avoid !important;
-      break-inside: avoid !important;
     }
-
-    .certificate::after,
-    .cert-wrap-screen::after,
-    body::after {
-      content: none !important;
-      display: none !important;
+    
+    .certificate { 
+      border: 3px solid #1a4d8a !important; 
+      padding: 8px !important; 
+      height: 100% !important; /* ملء المساحة المتاحة فقط */
+      box-sizing: border-box !important; 
+      overflow: hidden !important; 
+      page-break-after: avoid !important;
+      page-break-inside: avoid !important;
     }
+    
+    /* تقليل الفراغات بين الأقسام لمنع التمدد الداخلي */
+    .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures { margin-bottom: 4px !important; }
+    .cv-row { padding: 1.5px 0 !important; }
+    .cert-footer { min-height: 110px !important; }
   }
 </style>
 </head>
@@ -92,15 +84,16 @@
       </div>
     </div>
 
-    <!-- الشريط العلوي -->
+    <!-- الشريط العلوي (المركز يمين، النوع وسط، التاريخ يسار) -->
     <div class="cert-info-strip">
       <div class="cert-info-cell"><div class="info-line"><span class="label-de">Turmstraße 83, 10551 Berlin</span><span class="label-ar">عنوان المركز</span></div></div>
       <div class="cert-info-cell"><div class="info-line"><span class="label-de">Art der Scheidung</span><span class="label-ar">نوع الطلاق</span><span class="value" id="divorceType">—</span></div></div>
       <div class="cert-info-cell"><div class="info-line"><span class="label-de">Datum der Scheidung</span><span class="label-ar">التاريخ</span><span class="value" id="divorceDate">—</span></div></div>
     </div>
 
-    <!-- الزوجة والزوج -->
+    <!-- الزوجة والزوج (المطلقة يمين، المطلق يسار) -->
     <div class="cert-two-cols">
+      <!-- يمين: المطلقة -->
       <div class="cert-col">
         <div class="cert-col-title"><span>Ehefrau</span><span class="ar">المطلقة</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="bNameDe">—</div></div>
@@ -111,6 +104,7 @@
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="bId">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="bAddress">—</div></div>
       </div>
+      <!-- يسار: المطلق -->
       <div class="cert-col">
         <div class="cert-col-title"><span>Ehemann</span><span class="ar">المطلق</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="gNameDe">—</div></div>
@@ -123,9 +117,10 @@
       </div>
     </div>
 
-    <!-- الولي والتسوية المالية -->
+    <!-- الولي والتسوية (الولي يمين، التسوية يسار) -->
     <div class="cert-wali-dowry">
       <div class="wali-dowry-grid">
+        <!-- يمين: الولي -->
         <div class="wali-dowry-col">
           <div class="col-subsection-title-light">بيانات الولي</div>
           <div id="waliCompact" style="display:none;">
@@ -140,6 +135,7 @@
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="wAddress">—</div></div>
           </div>
         </div>
+        <!-- يسار: التسوية المالية والملاحظات -->
         <div class="wali-dowry-col">
           <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Finanzielle Einigung:</span><span class="wd-label-ar">المهر المقدم / التسوية</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dPrompt">—</span></div></div>
           <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Aufgeschoben:</span><span class="wd-label-ar">المؤخر / الحقوق</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dDeferred">—</span></div></div>
@@ -148,8 +144,9 @@
       </div>
     </div>
 
-    <!-- الشهود -->
+    <!-- الشهود (الشاهد الأول يمين، الثاني يسار) -->
     <div class="cert-witness-box">
+      <!-- يمين: الشاهد الأول -->
       <div class="cert-witness-col">
         <div class="cert-witness-title"><span>Zeuge 1</span><span class="ar">الشاهد الأول</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w1NameDe">—</div></div>
@@ -158,6 +155,7 @@
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="w1Id">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="w1Address">—</div></div>
       </div>
+      <!-- يسار: الشاهد الثاني -->
       <div class="cert-witness-col">
         <div class="cert-witness-title"><span>Zeuge 2</span><span class="ar">الشاهد الثاني</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w2NameDe">—</div></div>
@@ -201,11 +199,14 @@
 </div>
 
 <script>
+  // دالة الطباعة وتسمية ملف الـ PDF بالكود
   function printDoc() {
     const code = document.getElementById('toolbarCode').textContent;
     const oldTitle = document.title;
+    // تغيير عنوان الصفحة ليكون اسم الملف عند الحفظ
     document.title = "شهادة_عقد_طلاق_" + code;
     window.print();
+    // إعادة العنوان كما كان
     setTimeout(() => { document.title = oldTitle; }, 1000);
   }
 
