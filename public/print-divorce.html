@@ -19,27 +19,39 @@
     .cert-wrap-screen { margin-top: 70px; }
   }
   
-  /* أوامر الطباعة الصارمة لضمان صفحة A4 واحدة وعدم تشويه التنسيق */
+  /* أوامر الطباعة الصارمة والنهائية لضمان ورقة A4 واحدة */
   @media print {
-    @page { size: A4 portrait; margin: 6mm; }
+    /* إلغاء هوامش المتصفح الافتراضية لمنع ترحيل أي مساحة لصفحة ثانية */
+    @page { size: A4 portrait; margin: 0; }
     
-    /* منع المتصفح تماماً من إنشاء صفحة ثانية فارغة */
     html, body { 
       background: #fff; 
       margin: 0 !important; 
       padding: 0 !important; 
-      height: 100vh !important; 
+      width: 210mm !important;
+      height: 297mm !important;
       overflow: hidden !important; 
     }
     
     .toolbar { display: none !important; }
-    .cert-wrap-screen { margin-top: 0 !important; }
-    .certificate-wrap { margin: 0; padding: 0; box-shadow: none; max-width: 100%; page-break-after: avoid !important; }
     
-    /* تقليل الارتفاع قليلاً لضمان بقائه داخل حدود الورقة */
-    .certificate { border: 3px solid #1a4d8a !important; padding: 8px !important; height: 280mm !important; box-sizing: border-box !important; overflow: hidden !important; }
+    .cert-wrap-screen { 
+      margin: 0 !important; 
+      padding: 6mm !important; /* الهوامش الداخلية للطباعة */
+      width: 100% !important;
+      height: 100% !important;
+      box-sizing: border-box !important;
+    }
     
-    .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures { margin-bottom: 3.5px !important; }
+    .certificate { 
+      border: 3px solid #1a4d8a !important; 
+      padding: 8px !important; 
+      height: 100% !important; /* ملء المساحة المتاحة فقط */
+      box-sizing: border-box !important; 
+      overflow: hidden !important; 
+    }
+    
+    .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures { margin-bottom: 4px !important; }
     .cv-row { padding: 1.5px 0 !important; }
     .cert-footer { min-height: 110px !important; }
   }
@@ -63,7 +75,7 @@
       </div>
     </div>
 
-    <!-- معلومات الوثيقة الأساسية (تم تعديل الترتيب ليصبح العنوان يميناً والتاريخ يساراً) -->
+    <!-- الشريط العلوي (تم تبديل التاريخ والمركز كما طلبت) -->
     <div class="cert-info-strip">
       <!-- يمين: عنوان المركز -->
       <div class="cert-info-cell"><div class="info-line"><span class="label-de">Turmstraße 83, 10551 Berlin</span><span class="label-ar">عنوان المركز</span></div></div>
@@ -73,20 +85,9 @@
       <div class="cert-info-cell"><div class="info-line"><span class="label-de">Datum der Scheidung</span><span class="label-ar">التاريخ</span><span class="value" id="divorceDate">—</span></div></div>
     </div>
 
-    <!-- المطلق والمطلقة -->
+    <!-- الزوجة والزوج (تم إعادتهم: الزوجة يمين والزوج يسار) -->
     <div class="cert-two-cols">
-      <!-- يمين: المطلق -->
-      <div class="cert-col">
-        <div class="cert-col-title"><span>Ehemann</span><span class="ar">المطلق</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="gNameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="gNameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="gBirth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Seine Mutter</span><span class="cv-label-ar">اسم الأم</span></div><div class="v-value" id="gMotherDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">اسم الأم</span></div><div class="v-value v-ar" id="gMotherAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="gId">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="gAddress">—</div></div>
-      </div>
-      <!-- يسار: المطلقة -->
+      <!-- يمين: المطلقة -->
       <div class="cert-col">
         <div class="cert-col-title"><span>Ehefrau</span><span class="ar">المطلقة</span></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="bNameDe">—</div></div>
@@ -97,23 +98,28 @@
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="bId">—</div></div>
         <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="bAddress">—</div></div>
       </div>
+      <!-- يسار: المطلق -->
+      <div class="cert-col">
+        <div class="cert-col-title"><span>Ehemann</span><span class="ar">المطلق</span></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="gNameDe">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="gNameAr">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="gBirth">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Seine Mutter</span><span class="cv-label-ar">اسم الأم</span></div><div class="v-value" id="gMotherDe">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">اسم الأم</span></div><div class="v-value v-ar" id="gMotherAr">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="gId">—</div></div>
+        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="gAddress">—</div></div>
+      </div>
     </div>
 
-    <!-- التسوية والولي -->
+    <!-- الولي والتسوية (تم إعادتهم: الولي يمين والتسوية يسار) -->
     <div class="cert-wali-dowry">
       <div class="wali-dowry-grid">
-        <!-- يمين: التسوية -->
-        <div class="wali-dowry-col">
-          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Finanzielle Einigung:</span><span class="wd-label-ar">المهر المقدم / التسوية</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dPrompt">—</span></div></div>
-          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Aufgeschoben:</span><span class="wd-label-ar">المؤخر / الحقوق</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dDeferred">—</span></div></div>
-          <div class="wd-row" id="notesRow" style="display:none;"><div class="wd-label"><span class="wd-label-de">Bemerkungen:</span><span class="wd-label-ar">ملاحظات</span></div><div class="wd-value"><span class="wd-value-ar" id="dNotes"></span></div></div>
-        </div>
-        <!-- يسار: الولي -->
+        <!-- يمين: الولي -->
         <div class="wali-dowry-col">
           <div class="col-subsection-title-light">بيانات الولي</div>
           <div id="waliCompact" style="display:none;">
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name Der Wali</span><span class="cv-label-ar">اسم الولي</span></div><div class="v-value v-ar">الزوجة نفسها</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Der Wali</span><span class="cv-label-ar">صلة القرابة</span></div><div class="v-value">Sie selbst</div></div>
+            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Status</span><span class="cv-label-ar">الصفة</span></div><div class="v-value">Bride herself</div></div>
           </div>
           <div id="waliFull">
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="wNameDe">—</div></div>
@@ -122,6 +128,12 @@
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="wId">—</div></div>
             <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="wAddress">—</div></div>
           </div>
+        </div>
+        <!-- يسار: التسوية المالية والملاحظات -->
+        <div class="wali-dowry-col">
+          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Finanzielle Einigung:</span><span class="wd-label-ar">المهر المقدم / التسوية</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dPrompt">—</span></div></div>
+          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Aufgeschoben:</span><span class="wd-label-ar">المؤخر / الحقوق</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dDeferred">—</span></div></div>
+          <div class="wd-row" id="notesRow" style="display:none;"><div class="wd-label"><span class="wd-label-de">Bemerkungen:</span><span class="wd-label-ar">ملاحظات</span></div><div class="wd-value"><span class="wd-value-ar" id="dNotes"></span></div></div>
         </div>
       </div>
     </div>
@@ -185,10 +197,10 @@
   function printDoc() {
     const code = document.getElementById('toolbarCode').textContent;
     const oldTitle = document.title;
-    // تغيير عنوان الصفحة ليكون اسم الملف عند الحفظ
+    // تغيير عنوان الصفحة ليكون اسم الملف عند الحفظ (مثال: شهادة_عقد_طلاق_XXXXXX)
     document.title = "شهادة_عقد_طلاق_" + code;
     window.print();
-    // إعادة العنوان كما كان
+    // إعادة العنوان كما كان بعد الطباعة
     setTimeout(() => { document.title = oldTitle; }, 1000);
   }
 
