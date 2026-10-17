@@ -12,21 +12,21 @@ export async function onRequest(context) {
 
     const db = env.DB;
 
-    // تحديث الجدول القديم مباشرة لضمان عدم ضياع أي وثيقة
+    // التأكد من وجود الجدول الأساسي
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS divorce_contracts_v3 (
         code TEXT PRIMARY KEY, divorce_date TEXT, divorce_type TEXT,
         bride_name_ar TEXT, bride_name_de TEXT, bride_birth TEXT, bride_mother_ar TEXT, bride_mother_de TEXT, bride_id TEXT, bride_address TEXT,
         groom_name_ar TEXT, groom_name_de TEXT, groom_birth TEXT, groom_mother_ar TEXT, groom_mother_de TEXT, groom_id TEXT, groom_address TEXT,
-        wali_is_bride INTEGER, wali_name_ar TEXT, wali_name_de TEXT, wali_birth TEXT, wali_id TEXT, wali_address TEXT, wali_rel_ar TEXT, wali_rel_de TEXT,
+        wali_is_bride INTEGER, wali_name_ar TEXT, wali_name_de TEXT, wali_birth TEXT, wali_id TEXT, wali_address TEXT,
         dowry_prompt TEXT, dowry_deferred TEXT, dowry_notes TEXT, children_details TEXT,
         w1_name_ar TEXT, w1_name_de TEXT, w1_birth TEXT, w1_id TEXT, w1_address TEXT,
         w2_name_ar TEXT, w2_name_de TEXT, w2_birth TEXT, w2_id TEXT, w2_address TEXT,
-        serial_id INTEGER, is_deleted INTEGER DEFAULT 0, created_at TEXT
+        created_at TEXT
       )
     `).run();
 
-    // إضافة الأعمدة الجديدة إذا لم تكن موجودة مسبقاً (يتجاهل الخطأ إذا كانت موجودة)
+    // إضافة الأعمدة الجديدة للأرشيف القديم بشكل آمن
     try { await db.prepare("ALTER TABLE divorce_contracts_v3 ADD COLUMN serial_id INTEGER").run(); } catch(e){}
     try { await db.prepare("ALTER TABLE divorce_contracts_v3 ADD COLUMN is_deleted INTEGER DEFAULT 0").run(); } catch(e){}
     try { await db.prepare("ALTER TABLE divorce_contracts_v3 ADD COLUMN wali_rel_ar TEXT").run(); } catch(e){}
@@ -45,11 +45,13 @@ export async function onRequest(context) {
 
     if (action === 'login') return new Response(JSON.stringify({ success: true }));
 
+    // جلب الأرشيف النشط
     if (action === 'list') {
       const { results } = await db.prepare("SELECT * FROM divorce_contracts_v3 WHERE is_deleted = 0 ORDER BY serial_id DESC").all();
       return new Response(JSON.stringify({ success: true, contracts: results || [] }));
     }
 
+    // جلب سلة المحذوفات
     if (action === 'list_deleted') {
       const { results } = await db.prepare("SELECT * FROM divorce_contracts_v3 WHERE is_deleted = 1 ORDER BY serial_id DESC").all();
       return new Response(JSON.stringify({ success: true, contracts: results || [] }));
@@ -59,7 +61,7 @@ export async function onRequest(context) {
       const contractCode = body.code || 'D' + Math.random().toString(36).substring(2, 8).toUpperCase();
       let serial_id = null;
       
-      // إذا كان عقداً جديداً، قم بتعيين رقم تسلسلي جديد
+      // إذا كان عقداً جديداً، نعطيه رقماً تسلسلياً جديداً
       if (!body.code) {
           const maxObj = await db.prepare("SELECT MAX(serial_id) as max_id FROM divorce_contracts_v3").first();
           serial_id = (maxObj && maxObj.max_id) ? maxObj.max_id + 1 : 1;
@@ -92,16 +94,19 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ success: !!contract, contract }));
     }
 
+    // الحذف الوهمي
     if (action === 'soft_delete') {
       await db.prepare("UPDATE divorce_contracts_v3 SET is_deleted = 1 WHERE code = ?").bind(body.code).run();
       return new Response(JSON.stringify({ success: true }));
     }
 
+    // استرجاع
     if (action === 'restore') {
       await db.prepare("UPDATE divorce_contracts_v3 SET is_deleted = 0 WHERE code = ?").bind(body.code).run();
       return new Response(JSON.stringify({ success: true }));
     }
 
+    // الحذف النهائي
     if (action === 'hard_delete') {
       await db.prepare("DELETE FROM divorce_contracts_v3 WHERE code = ?").bind(body.code).run();
       return new Response(JSON.stringify({ success: true }));
