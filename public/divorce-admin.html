@@ -14,15 +14,13 @@
   .checkbox-label { font-weight: bold; color: #c0392b; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 15px; background: #fff3f3; padding: 10px; border-radius: 6px; border: 1px solid #fadbd8; margin-bottom: 15px; }
   textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; }
   
-  /* تصميم الأيقونات المتطابق مع الصورة تماماً */
+  /* تصميم الأيقونات المتطابق مع الصورة */
   .actions-flex { display: flex; gap: 12px; align-items: center; justify-content: center; flex-direction: row-reverse; }
-  
   .icon-btn {
     width: 44px; height: 44px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: 0.2s; padding: 0; outline: none;
   }
-  
   .icon-btn svg { width: 22px; height: 22px; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
   
   .icon-view { background: #f0f8f4; border: 1.5px solid #d3ebd8; color: #356b4f; }
@@ -33,14 +31,27 @@
   
   .icon-btn:hover { filter: brightness(0.95); transform: scale(1.05); }
 
-  /* تنسيق عمود الرقم التسلسلي والكود */
+  /* تنسيق الجدول */
   .id-cell { text-align: center; }
   .id-num { font-size: 18px; font-weight: 700; color: #2d6a4f; }
   .id-code { font-size: 10px; color: #aaa; letter-spacing: 1.5px; display: block; margin-top: 4px; text-transform: uppercase; }
-  
   .codes-table { border-collapse: separate; border-spacing: 0; width: 100%; }
   .codes-table th { color: #666; font-size: 14px; padding: 15px 10px; border-bottom: 2px solid #f0f0f0; }
   .codes-table td { font-weight: 600; color: #333; font-size: 14px; padding: 15px 10px; border-bottom: 1px solid #f5f5f5; text-align: center; vertical-align: middle; }
+
+  /* تصميم نافذة تأكيد الحذف النهائي */
+  .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-box { background: #fff; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+  .modal-box h3 { color: #c62828; margin-top: 0; font-size: 20px; }
+  .modal-box p { color: #555; font-size: 15px; margin-bottom: 20px; line-height: 1.5; }
+  .modal-box input { width: 100%; padding: 12px; margin-bottom: 20px; border: 2px solid #ddd; border-radius: 8px; text-align: center; font-size: 22px; font-weight: bold; letter-spacing: 5px; box-sizing: border-box; }
+  .modal-box input:focus { outline: none; border-color: #c62828; }
+  .modal-actions { display: flex; gap: 10px; justify-content: center; }
+  .modal-actions button { padding: 12px; flex: 1; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; border: none; }
+  .modal-actions .btn-cancel { background: #f5f5f5; color: #333; }
+  .modal-actions .btn-cancel:hover { background: #e0e0e0; }
+  .modal-actions .btn-confirm { background: #c62828; color: #fff; }
+  .modal-actions .btn-confirm:hover { background: #b71c1c; }
 </style>
 </head>
 <body>
@@ -51,6 +62,19 @@
     <div class="login-body">
       <input type="password" id="passwordInput" placeholder="كلمة المرور" style="width:100%; padding:10px; margin-bottom:15px;">
       <button onclick="login()" class="btn-login">دخول</button>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة تأكيد الحذف -->
+<div id="deleteConfirmModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>تحذير: حذف نهائي!</h3>
+    <p>أنت على وشك حذف هذه الوثيقة من النظام بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.<br><br>يرجى إدخال كود التأكيد <b>4321</b> للمتابعة:</p>
+    <input type="text" id="deleteCodeInput" placeholder="----" maxlength="4">
+    <div class="modal-actions">
+      <button class="btn-confirm" onclick="executeHardDelete()">حذف الوثيقة</button>
+      <button class="btn-cancel" onclick="closeDeleteModal()">إلغاء</button>
     </div>
   </div>
 </div>
@@ -72,7 +96,6 @@
 
   <div class="panel-content">
     
-    <!-- قسم الإصدار والتعديل -->
     <div id="tab-new" class="tab-content">
       <div class="card"><div class="card-header"><h2>تفاصيل الوثيقة</h2></div>
         <div class="card-body form-grid">
@@ -248,7 +271,6 @@
     return d;
   }
 
-  // رسم الأيقونات (SVG) الاحترافية المطابقة للصورة 100%
   const svgView = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
   const svgPrint = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 8V4h10v4"></path><rect x="4" y="8" width="16" height="9" rx="2"></rect><path d="M8 17v4h8v-4"></path></svg>`;
   const svgEdit = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 4l4 4-10 10-4 1 1-4L16 4z"></path><line x1="12" y1="20" x2="20" y2="20"></line></svg>`;
@@ -275,7 +297,6 @@
     if(data.success) { alert('تم الحفظ بنجاح!'); switchTab('list'); } else alert('خطأ: ' + data.message);
   }
 
-  // تحميل الأرشيف النشط بتصميم مطابق للصورة
   async function loadContracts() {
     const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'list',username:'admin',password:pwd}) });
     const data = await res.json();
@@ -290,7 +311,6 @@
         <td style="color:#666; letter-spacing:1px;">${formatDisplayDate(c.divorce_date)}</td>
         <td>
           <div class="actions-flex">
-            <!-- الترتيب يظهر لليسار كما في الصورة: حذف، تعديل، طباعة، عرض -->
             <button title="نقل للمحذوفات" class="icon-btn icon-delete" onclick="softDelete('${c.code}')">${svgDelete}</button>
             <button title="تعديل" class="icon-btn icon-edit" onclick="editContract('${c.code}')">${svgEdit}</button>
             <button title="طباعة" class="icon-btn icon-print" onclick="window.open('./print-divorce.html?code=${c.code}')">${svgPrint}</button>
@@ -300,7 +320,6 @@
       </tr>`).join('');
   }
 
-  // تحميل سلة المحذوفات
   async function loadDeletedContracts() {
     const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'list_deleted',username:'admin',password:pwd}) });
     const data = await res.json();
@@ -315,8 +334,8 @@
         <td style="color:#666; letter-spacing:1px;">${formatDisplayDate(c.divorce_date)}</td>
         <td>
           <div class="actions-flex">
-            <!-- الترتيب: حذف نهائي، استرجاع، عرض -->
-            <button title="حذف نهائي" class="icon-btn icon-delete" onclick="hardDelete('${c.code}')">${svgDelete}</button>
+            <!-- استدعاء دالة الحذف النهائي بالنافذة المنبثقة -->
+            <button title="حذف نهائي" class="icon-btn icon-delete" onclick="openDeleteModal('${c.code}')">${svgDelete}</button>
             <button title="استرجاع الوثيقة" class="icon-btn icon-restore" onclick="restoreContract('${c.code}')">${svgRestore}</button>
             <button title="عرض" class="icon-btn icon-view" onclick="window.open('./print-divorce.html?code=${c.code}')">${svgView}</button>
           </div>
@@ -365,9 +384,35 @@
     loadDeletedContracts();
   }
 
-  async function hardDelete(code) {
-    if(confirm('تحذير: هل أنت متأكد من المسح النهائي لهذه الوثيقة؟ لا يمكن التراجع عن هذا الإجراء!')) {
-      await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'hard_delete',code,username:'admin',password:pwd}) });
+  // ==========================================
+  // نظام الحذف النهائي عبر النافذة المنبثقة والكود
+  // ==========================================
+  let contractToHardDelete = null;
+
+  function openDeleteModal(code) {
+    contractToHardDelete = code;
+    document.getElementById('deleteCodeInput').value = '';
+    document.getElementById('deleteConfirmModal').classList.remove('hidden');
+    document.getElementById('deleteCodeInput').focus();
+  }
+
+  function closeDeleteModal() {
+    contractToHardDelete = null;
+    document.getElementById('deleteConfirmModal').classList.add('hidden');
+  }
+
+  async function executeHardDelete() {
+    const inputCode = document.getElementById('deleteCodeInput').value;
+    
+    // التحقق من أن الكود المدخل هو 4321
+    if (inputCode !== '4321') {
+      alert('كود التأكيد غير صحيح! يرجى إدخال 4321 لإتمام الحذف.');
+      return;
+    }
+
+    if (contractToHardDelete) {
+      await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'hard_delete', code:contractToHardDelete, username:'admin', password:pwd}) });
+      closeDeleteModal();
       loadDeletedContracts();
     }
   }
