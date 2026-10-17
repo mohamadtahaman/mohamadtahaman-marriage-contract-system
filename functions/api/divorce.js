@@ -11,13 +11,14 @@ export async function onRequest(context) {
     }
 
     const db = env.DB;
-    // تحديث الجدول إلى v4 لإضافة حقول صلة القرابة (relation)
+
+    // 1. العودة للجدول v3 الذي يحتوي على كل وثائقك السابقة
     await db.prepare(`
-      CREATE TABLE IF NOT EXISTS divorce_contracts_v4 (
+      CREATE TABLE IF NOT EXISTS divorce_contracts_v3 (
         code TEXT PRIMARY KEY, divorce_date TEXT, divorce_type TEXT,
         bride_name_ar TEXT, bride_name_de TEXT, bride_birth TEXT, bride_mother_ar TEXT, bride_mother_de TEXT, bride_id TEXT, bride_address TEXT,
         groom_name_ar TEXT, groom_name_de TEXT, groom_birth TEXT, groom_mother_ar TEXT, groom_mother_de TEXT, groom_id TEXT, groom_address TEXT,
-        wali_is_bride INTEGER, wali_name_ar TEXT, wali_name_de TEXT, wali_birth TEXT, wali_id TEXT, wali_address TEXT, wali_rel_ar TEXT, wali_rel_de TEXT,
+        wali_is_bride INTEGER, wali_name_ar TEXT, wali_name_de TEXT, wali_birth TEXT, wali_id TEXT, wali_address TEXT,
         dowry_prompt TEXT, dowry_deferred TEXT, dowry_notes TEXT, children_details TEXT,
         w1_name_ar TEXT, w1_name_de TEXT, w1_birth TEXT, w1_id TEXT, w1_address TEXT,
         w2_name_ar TEXT, w2_name_de TEXT, w2_birth TEXT, w2_id TEXT, w2_address TEXT,
@@ -25,17 +26,22 @@ export async function onRequest(context) {
       )
     `).run();
 
+    // 2. أوامر ذكية لإضافة خانات صلة القرابة للجدول القديم بأمان شديد (يتجاهل الخطأ إذا كانت مضافة مسبقاً)
+    try { await db.prepare("ALTER TABLE divorce_contracts_v3 ADD COLUMN wali_rel_ar TEXT").run(); } catch(e) {}
+    try { await db.prepare("ALTER TABLE divorce_contracts_v3 ADD COLUMN wali_rel_de TEXT").run(); } catch(e) {}
+
     if (action === 'login') return new Response(JSON.stringify({ success: true }));
 
     if (action === 'list') {
-      const { results } = await db.prepare("SELECT * FROM divorce_contracts_v4 ORDER BY created_at DESC").all();
+      // جلب البيانات من الجدول القديم المليء بالوثائق
+      const { results } = await db.prepare("SELECT * FROM divorce_contracts_v3 ORDER BY created_at DESC").all();
       return new Response(JSON.stringify({ success: true, contracts: results || [] }));
     }
 
     if (action === 'save') {
       const contractCode = body.code || 'D' + Math.random().toString(36).substring(2, 8).toUpperCase();
       await db.prepare(`
-        INSERT INTO divorce_contracts_v4 (
+        INSERT INTO divorce_contracts_v3 (
           code, divorce_date, divorce_type,
           bride_name_ar, bride_name_de, bride_birth, bride_mother_ar, bride_mother_de, bride_id, bride_address,
           groom_name_ar, groom_name_de, groom_birth, groom_mother_ar, groom_mother_de, groom_id, groom_address,
@@ -65,12 +71,12 @@ export async function onRequest(context) {
     }
 
     if (action === 'view') {
-      const contract = await db.prepare("SELECT * FROM divorce_contracts_v4 WHERE code = ?").bind(body.code).first();
+      const contract = await db.prepare("SELECT * FROM divorce_contracts_v3 WHERE code = ?").bind(body.code).first();
       return new Response(JSON.stringify({ success: !!contract, contract }));
     }
 
     if (action === 'delete') {
-      await db.prepare("DELETE FROM divorce_contracts_v4 WHERE code = ?").bind(body.code).run();
+      await db.prepare("DELETE FROM divorce_contracts_v3 WHERE code = ?").bind(body.code).run();
       return new Response(JSON.stringify({ success: true }));
     }
   } catch (err) { return new Response(JSON.stringify({ success: false, message: err.message }), { status: 500 }); }
