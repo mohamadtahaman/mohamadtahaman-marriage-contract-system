@@ -13,8 +13,29 @@
   .checkbox-label { font-weight: bold; color: #c0392b; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 15px; background: #fff3f3; padding: 10px; border-radius: 6px; border: 1px solid #fadbd8; margin-bottom: 15px; }
   textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; }
   
-  /* أزرار الإجراءات الكلاسيكية المتطابقة مع نظام الزواج */
-  .action-buttons { display: flex; gap: 5px; }
+  /* تصميم الأيقونات المتطابق مع الصورة */
+  .actions-flex { display: flex; gap: 8px; align-items: center; justify-content: center; }
+  .icon-btn {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px;
+    transition: 0.2s; background: none; text-decoration: none;
+  }
+  .icon-view { background: #e8f5e9; border: 1px solid #81c784; color: #2e7d32; }
+  .icon-print { background: #f5f5f5; border: 1px solid #bdbdbd; color: #616161; }
+  .icon-edit { background: #fff8e1; border: 1px solid #ffd54f; color: #f57f17; }
+  .icon-delete { background: #ffebee; border: 1px solid #e57373; color: #c62828; }
+  .icon-restore { background: #e3f2fd; border: 1px solid #64b5f6; color: #1565c0; }
+  .icon-btn:hover { filter: brightness(0.9); }
+
+  /* تنسيق عمود الرقم التسلسلي والكود */
+  .id-cell { text-align: center; }
+  .id-num { font-size: 16px; font-weight: bold; color: #2d6a4f; }
+  .id-code { font-size: 9px; color: #999; letter-spacing: 1px; display: block; margin-top: 2px; }
+  
+  /* ضبط عرض الأعمدة */
+  .codes-table th, .codes-table td { text-align: center; vertical-align: middle; padding: 12px 8px; }
 </style>
 </head>
 <body>
@@ -39,24 +60,25 @@
   </div>
 
   <div class="admin-tabs">
-    <button class="admin-tab active" onclick="switchTab('new')">إصدار / تعديل وثيقة طلاق</button>
+    <button class="admin-tab active" onclick="switchTab('new')">إصدار / تعديل وثيقة</button>
     <button class="admin-tab" onclick="switchTab('list')">سجل الوثائق</button>
+    <button class="admin-tab" onclick="switchTab('trash')" style="color:#c62828;">🗑️ المحذوفات</button>
   </div>
 
   <div class="panel-content">
+    
+    <!-- قسم الإصدار والتعديل -->
     <div id="tab-new" class="tab-content">
-      
       <div class="card"><div class="card-header"><h2>تفاصيل الوثيقة</h2></div>
         <div class="card-body form-grid">
           <div class="field"><label>تاريخ الطلاق</label><input type="date" id="divorceDate" min="1900-01-01" max="2099-12-31"></div>
-          <div class="field"><label>رقم الوثيقة (اختياري / يُترك فارغاً للجديد)</label><input type="text" id="divorceCode"></div>
+          <div class="field"><label>رقم الوثيقة الكودي (مخفي)</label><input type="text" id="divorceCode" readonly style="background:#f0f0f0;"></div>
           <div class="field" style="grid-column:span 2;"><label>نوع الطلاق / تفاصيل التسوية</label><input type="text" id="divorceType" value="اتفاقي (Einvernehmliche Scheidung)"></div>
         </div>
       </div>
 
       <div class="section-divider"></div>
 
-      <!-- المطلقة -->
       <div class="card"><div class="card-header"><h2>بيانات المطلقة (Ehefrau)</h2></div>
         <div class="card-body form-grid">
           <div class="field"><label>الاسم (بالعربية فقط)</label><input type="text" id="bNameAr" oninput="validateArabic(this)"></div>
@@ -71,7 +93,6 @@
 
       <div class="section-divider"></div>
 
-      <!-- المطلق -->
       <div class="card"><div class="card-header"><h2>بيانات المطلق (Ehemann)</h2></div>
         <div class="card-body form-grid">
           <div class="field"><label>الاسم (بالعربية فقط)</label><input type="text" id="gNameAr" oninput="validateArabic(this)"></div>
@@ -86,26 +107,21 @@
 
       <div class="section-divider"></div>
 
-      <!-- الولي والتسوية -->
       <div class="card"><div class="card-header"><h2>الولي، التسوية المالية، والأولاد</h2></div>
         <div class="card-body">
           <label class="checkbox-label">
             <input type="checkbox" id="waliIsBride" onchange="toggleWali()"> الولي هي الزوجة نفسها (Sie selbst)
           </label>
-          
           <div class="form-grid" id="waliFields">
             <div class="field"><label>اسم الولي (عربي)</label><input type="text" id="wNameAr" oninput="validateArabic(this)"></div>
             <div class="field"><label>اسم الولي (ألماني)</label><input type="text" id="wNameDe" oninput="validateGerman(this)"></div>
-            <!-- صلة القرابة -->
             <div class="field"><label>صلة القرابة (عربي)</label><input type="text" id="wRelAr" placeholder="مثال: الأب، الأخ..."></div>
             <div class="field"><label>صلة القرابة (ألماني)</label><input type="text" id="wRelDe" placeholder="مثال: Vater, Bruder..."></div>
             <div class="field"><label>تاريخ الميلاد</label><input type="date" id="wBirth" min="1900-01-01" max="2099-12-31"></div>
             <div class="field"><label>رقم الهوية</label><input type="text" id="wId"></div>
             <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="wAddress"></div>
           </div>
-
           <hr style="margin:20px 0; border:1px solid #eee;">
-
           <div class="form-grid">
             <div class="field"><label>المهر المقدم / التسوية</label><input type="text" id="dPrompt"></div>
             <div class="field"><label>المؤخر / الحقوق</label><input type="text" id="dDeferred"></div>
@@ -117,7 +133,6 @@
 
       <div class="section-divider"></div>
 
-      <!-- الشهود -->
       <div class="card"><div class="card-header"><h2>الشهود</h2></div>
         <div class="card-body form-grid">
           <div class="field"><label>الشاهد الأول (عربي)</label><input type="text" id="w1NameAr" oninput="validateArabic(this)"></div>
@@ -125,9 +140,7 @@
           <div class="field"><label>تاريخ الميلاد</label><input type="date" id="w1Birth" min="1900-01-01" max="2099-12-31"></div>
           <div class="field"><label>رقم الهوية</label><input type="text" id="w1Id"></div>
           <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="w1Address"></div>
-          
           <hr style="grid-column:span 2; border:none; border-top:1px dashed #ddd; margin:10px 0;">
-
           <div class="field"><label>الشاهد الثاني (عربي)</label><input type="text" id="w2NameAr" oninput="validateArabic(this)"></div>
           <div class="field"><label>الشاهد الثاني (ألماني)</label><input type="text" id="w2NameDe" oninput="validateGerman(this)"></div>
           <div class="field"><label>تاريخ الميلاد</label><input type="date" id="w2Birth" min="1900-01-01" max="2099-12-31"></div>
@@ -139,13 +152,29 @@
       <button class="btn-primary" onclick="saveContract()" style="width:100%; padding:15px; font-size:16px; margin-bottom:40px;">حفظ وتوثيق العقد</button>
     </div>
 
+    <!-- قسم سجل الوثائق النشطة -->
     <div id="tab-list" class="tab-content hidden">
       <div class="card">
         <div class="card-header" style="display:flex; justify-content:space-between;"><h2>سجل الوثائق</h2><button onclick="loadContracts()" class="btn-secondary">تحديث</button></div>
         <div class="card-body no-padding">
           <table class="codes-table">
-            <thead><tr><th>رقم الوثيقة</th><th>التاريخ</th><th>المطلق</th><th>المطلقة</th><th style="width:170px;">إجراءات</th></tr></thead>
+            <thead><tr><th style="width:80px;">#</th><th>المطلق</th><th>المطلقة</th><th>تاريخ الطلاق</th><th style="width:200px;">إجراءات</th></tr></thead>
             <tbody id="contractsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- قسم سلة المحذوفات -->
+    <div id="tab-trash" class="tab-content hidden">
+      <div class="card" style="border:1px solid #e57373;">
+        <div class="card-header" style="display:flex; justify-content:space-between; background:#ffebee;">
+          <h2 style="color:#c62828;">سلة المحذوفات</h2><button onclick="loadDeletedContracts()" class="btn-secondary">تحديث</button>
+        </div>
+        <div class="card-body no-padding">
+          <table class="codes-table">
+            <thead><tr><th style="width:80px;">#</th><th>المطلق</th><th>المطلقة</th><th>تاريخ الطلاق</th><th style="width:160px;">إجراءات</th></tr></thead>
+            <tbody id="deletedContractsBody"></tbody>
           </table>
         </div>
       </div>
@@ -160,19 +189,24 @@
 
   function validateArabic(input) { input.value = input.value.replace(/[a-zA-Z]/g, ''); }
   function validateGerman(input) { input.value = input.value.replace(/[\u0600-\u06FF]/g, ''); }
+  function toggleWali() { document.getElementById('waliFields').style.display = document.getElementById('waliIsBride').checked ? 'none' : 'grid'; }
 
-  function toggleWali() {
-    document.getElementById('waliFields').style.display = document.getElementById('waliIsBride').checked ? 'none' : 'grid';
-  }
-
-  // تم تصحيح دالة التبديل لتكون آمنة ولا تعتمد على الماوس لتجنب الخطأ
   function switchTab(id) {
     document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
     const targetBtn = document.querySelector(`button[onclick="switchTab('${id}')"]`);
     if(targetBtn) targetBtn.classList.add('active');
     document.getElementById('tab-'+id).classList.remove('hidden');
+    
+    // إعادة تعيين فورم الإدخال عند فتح تاب جديد (New) لضمان عدم تداخل التعديل مع الإضافة
+    if(id === 'new') {
+        document.querySelectorAll('input:not([type="checkbox"]), textarea').forEach(el => el.value = '');
+        document.getElementById('divorceType').value = 'اتفاقي (Einvernehmliche Scheidung)';
+        document.getElementById('waliIsBride').checked = false;
+        toggleWali();
+    }
     if(id==='list') loadContracts();
+    if(id==='trash') loadDeletedContracts();
   }
 
   async function login() {
@@ -184,13 +218,20 @@
   function showPanel() { document.getElementById('loginScreen').style.display='none'; document.getElementById('adminPanel').style.display='block'; }
   function logout() { sessionStorage.removeItem('divorce_pw'); location.reload(); }
 
-  // تحويل التاريخ من النظام القديم (أوروبي) إلى نظام المتصفح الجديد ليظهر في خانة التعديل
   function toInputDate(d) {
     if(!d) return '';
     if(d.match(/^\d{4}-\d{2}-\d{2}$/)) return d;
     const parts = d.split('.');
     if(parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
     return '';
+  }
+  
+  // تنسيق التاريخ للعرض في الجداول
+  function formatDisplayDate(d) {
+    if(!d) return '—';
+    const parts = d.split('-');
+    if(parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
+    return d;
   }
 
   async function saveContract() {
@@ -215,19 +256,50 @@
     if(data.success) { alert('تم الحفظ بنجاح!'); switchTab('list'); } else alert('خطأ: ' + data.message);
   }
 
+  // تحميل الأرشيف النشط بالأيقونات المطلوبة
   async function loadContracts() {
     const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'list',username:'admin',password:pwd}) });
     const data = await res.json();
-    
-    // استعادة الأزرار الكلاسيكية المتطابقة مع نظام الزواج
     document.getElementById('contractsBody').innerHTML = data.contracts.map(c=>`
       <tr>
-        <td><b>${c.code}</b></td><td>${c.divorce_date||'—'}</td><td>${c.groom_name_ar||'—'}</td><td>${c.bride_name_ar||'—'}</td>
+        <td class="id-cell">
+            <span class="id-num">${c.serial_id ? String(c.serial_id).padStart(2, '0') : '—'}</span>
+            <span class="id-code">${c.code}</span>
+        </td>
+        <td>${c.groom_name_de || '—'}</td>
+        <td>${c.bride_name_de || '—'}</td>
+        <td>${formatDisplayDate(c.divorce_date)}</td>
         <td>
-          <div class="action-buttons">
-            <button class="btn-primary" onclick="window.open('./print-divorce.html?code=${c.code}')" style="padding:4px 8px; font-size:12px;">طباعة</button>
-            <button class="btn-secondary" onclick="editContract('${c.code}')" style="padding:4px 8px; font-size:12px; background-color:#e67e22; border:none; color:white;">تعديل</button>
-            <button class="btn-danger" onclick="del('${c.code}')" style="padding:4px 8px; font-size:12px;">حذف</button>
+          <div class="actions-flex">
+            <!-- الترتيب يمين لليسار: عرض، طباعة، تعديل، حذف مسودة -->
+            <button title="عرض" class="icon-btn icon-view" onclick="window.open('./print-divorce.html?code=${c.code}')">👁️</button>
+            <button title="طباعة" class="icon-btn icon-print" onclick="window.open('./print-divorce.html?code=${c.code}')">🖨️</button>
+            <button title="تعديل" class="icon-btn icon-edit" onclick="editContract('${c.code}')">✏️</button>
+            <button title="نقل للمحذوفات" class="icon-btn icon-delete" onclick="softDelete('${c.code}')">🗑️</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  // تحميل سلة المحذوفات بالأيقونات المطلوبة
+  async function loadDeletedContracts() {
+    const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'list_deleted',username:'admin',password:pwd}) });
+    const data = await res.json();
+    document.getElementById('deletedContractsBody').innerHTML = data.contracts.map(c=>`
+      <tr>
+        <td class="id-cell">
+            <span class="id-num">${c.serial_id ? String(c.serial_id).padStart(2, '0') : '—'}</span>
+            <span class="id-code" style="color:#c62828;">${c.code}</span>
+        </td>
+        <td>${c.groom_name_de || '—'}</td>
+        <td>${c.bride_name_de || '—'}</td>
+        <td>${formatDisplayDate(c.divorce_date)}</td>
+        <td>
+          <div class="actions-flex">
+            <!-- الترتيب يمين لليسار: عرض، استرجاع، مسح نهائي -->
+            <button title="عرض" class="icon-btn icon-view" onclick="window.open('./print-divorce.html?code=${c.code}')">👁️</button>
+            <button title="استرجاع الوثيقة" class="icon-btn icon-restore" onclick="restoreContract('${c.code}')">↩️</button>
+            <button title="حذف نهائي" class="icon-btn icon-delete" onclick="hardDelete('${c.code}')">🗑️</button>
           </div>
         </td>
       </tr>`).join('');
@@ -238,6 +310,13 @@
     const data = await res.json();
     if(data.success) {
       const c = data.contract;
+      // لا تستخدم الدالة switchTab('new') هنا لأننا برمجناها لتمسح الحقول للجديد
+      // سنظهر التبويب يدوياً ثم نملأ البيانات
+      document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
+      document.querySelector(`button[onclick="switchTab('new')"]`).classList.add('active');
+      document.getElementById('tab-new').classList.remove('hidden');
+
       document.getElementById('divorceCode').value = c.code;
       document.getElementById('divorceDate').value = toInputDate(c.divorce_date);
       document.getElementById('divorceType').value = c.divorce_type || '';
@@ -245,7 +324,7 @@
       document.getElementById('bNameAr').value = c.bride_name_ar || ''; document.getElementById('bNameDe').value = c.bride_name_de || ''; document.getElementById('bBirth').value = toInputDate(c.bride_birth); document.getElementById('bMotherAr').value = c.bride_mother_ar || ''; document.getElementById('bMotherDe').value = c.bride_mother_de || ''; document.getElementById('bId').value = c.bride_id || ''; document.getElementById('bAddress').value = c.bride_address || '';
       document.getElementById('gNameAr').value = c.groom_name_ar || ''; document.getElementById('gNameDe').value = c.groom_name_de || ''; document.getElementById('gBirth').value = toInputDate(c.groom_birth); document.getElementById('gMotherAr').value = c.groom_mother_ar || ''; document.getElementById('gMotherDe').value = c.groom_mother_de || ''; document.getElementById('gId').value = c.groom_id || ''; document.getElementById('gAddress').value = c.groom_address || '';
       
-      document.getElementById('waliIsBride').checked = c.wali_is_bride;
+      document.getElementById('waliIsBride').checked = c.wali_is_bride === 1;
       toggleWali();
       document.getElementById('wNameAr').value = c.wali_name_ar || ''; document.getElementById('wNameDe').value = c.wali_name_de || ''; document.getElementById('wBirth').value = toInputDate(c.wali_birth); document.getElementById('wId').value = c.wali_id || ''; document.getElementById('wAddress').value = c.wali_address || '';
       document.getElementById('wRelAr').value = c.wali_rel_ar || ''; document.getElementById('wRelDe').value = c.wali_rel_de || '';
@@ -254,16 +333,28 @@
       
       document.getElementById('w1NameAr').value = c.w1_name_ar || ''; document.getElementById('w1NameDe').value = c.w1_name_de || ''; document.getElementById('w1Birth').value = toInputDate(c.w1_birth); document.getElementById('w1Id').value = c.w1_id || ''; document.getElementById('w1Address').value = c.w1_address || '';
       document.getElementById('w2NameAr').value = c.w2_name_ar || ''; document.getElementById('w2NameDe').value = c.w2_name_de || ''; document.getElementById('w2Birth').value = toInputDate(c.w2_birth); document.getElementById('w2Id').value = c.w2_id || ''; document.getElementById('w2Address').value = c.w2_address || '';
-      
-      // التبديل للتبويب وتعبئة الخانات بأمان
-      switchTab('new');
     }
   }
 
-  async function del(code) {
-    if(confirm('متأكد من الحذف؟')) {
-      await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'delete',code,username:'admin',password:pwd}) });
+  // حذف مؤقت (إرسال للمحذوفات)
+  async function softDelete(code) {
+    if(confirm('هل تريد نقل هذه الوثيقة إلى سلة المحذوفات؟')) {
+      await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'soft_delete',code,username:'admin',password:pwd}) });
       loadContracts();
+    }
+  }
+
+  // استرجاع من المحذوفات
+  async function restoreContract(code) {
+    await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'restore',code,username:'admin',password:pwd}) });
+    loadDeletedContracts();
+  }
+
+  // مسح نهائي للأبد
+  async function hardDelete(code) {
+    if(confirm('تحذير: هل أنت متأكد من المسح النهائي لهذه الوثيقة؟ لا يمكن التراجع عن هذا الإجراء!')) {
+      await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'hard_delete',code,username:'admin',password:pwd}) });
+      loadDeletedContracts();
     }
   }
 </script></body></html>
