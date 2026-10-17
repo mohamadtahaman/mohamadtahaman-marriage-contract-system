@@ -3,216 +3,157 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>شهادة عقد طلاق - Arresalah Zentrum</title>
+<title>إدارة الأحوال الشخصية والطلاق - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/print.css">
+<link rel="stylesheet" href="./css/admin.css">
 <style>
-  /* جعل الترويسة في المنتصف بدون صور الزوجين */
-  .cert-header { grid-template-columns: 1fr !important; }
-  .cert-header-photo { display: none !important; }
-
-  /* توسيط نصوص الشريط العلوي (التاريخ، نوع الطلاق، المركز) */
-  .cert-info-strip .info-line { justify-content: center !important; }
-
-  /* مسافة علوية للشاشة فقط لتجنب شريط الأدوات */
-  @media screen {
-    .cert-wrap-screen { margin-top: 70px; }
-  }
-
-  /* ============================================================
-     أوامر الطباعة فقط - بدون أي تغيير في التصميم
-     الفكرة: نقصّ أي فيض بسيط بدل تصغير المحتوى
-     ============================================================ */
-  @media print {
-
-    /* 1) مقاس A4 + هوامش صفر */
-    @page {
-      size: 210mm 297mm !important;
-      margin: 0 !important;
-    }
-
-    /* 2) قفل حجم الصفحة بـ A4 ومنع أي تمرير */
-    html, body {
-      background: #fff !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 210mm !important;
-      height: 297mm !important;
-      overflow: hidden !important;
-      box-sizing: border-box !important;
-    }
-
-    /* 3) إخفاء شريط الأدوات */
-    .toolbar { display: none !important; }
-
-    /* 4) الحاوية الرئيسية - بدون أي تغيير في المحتوى */
-    .certificate-wrap,
-    .cert-wrap-screen {
-      margin: 0 !important;
-      padding: 6mm !important;
-      width: 210mm !important;
-      height: 297mm !important;
-      box-sizing: border-box !important;
-      overflow: hidden !important;
-    }
-
-    /* 5) الشهادة - إطار وعرض كما هو، مع قصّ أي فيض */
-    .certificate {
-      border: 3px solid #1a4d8a !important;
-      padding: 8px !important;
-      width: 100% !important;
-      height: 100% !important;
-      box-sizing: border-box !important;
-      overflow: hidden !important;
-    }
-
-    /* 6) ضغط بسيط جداً للمسافات فقط (بدون تصغير الخطوط) */
-    .cert-info-strip,
-    .cert-two-cols,
-    .cert-wali-dowry,
-    .cert-witness-box,
-    .cert-party-signatures {
-      margin-bottom: 4px !important;
-    }
-
-    .cv-row { padding: 1.5px 0 !important; }
-    .cert-footer { min-height: 110px !important; }
-
-    /* 7) منع كسر أي عنصر بين صفحتين */
-    .certificate,
-    .cert-header,
-    .cert-info-strip,
-    .cert-two-cols,
-    .cert-wali-dowry,
-    .cert-witness-box,
-    .cert-party-signatures,
-    .cert-footer {
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-  }
+  #loginScreen, #adminPanel { display: none; }
+  .section-divider { border-bottom: 2px dashed #ddd; margin: 25px 0; }
+  .field { position: relative; }
+  .checkbox-label { font-weight: bold; color: #c0392b; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 15px; background: #fff3f3; padding: 10px; border-radius: 6px; border: 1px solid #fadbd8; margin-bottom: 15px; }
+  textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; }
+  
+  /* أزرار الإجراءات في الأرشيف */
+  .action-btn { background: #f8f9fa; border: 1px solid #ddd; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; margin: 0 2px; }
+  .action-btn:hover { background: #e9ecef; }
+  .action-btn.print { color: #1a4d8a; border-color: #1a4d8a; }
+  .action-btn.edit { color: #e67e22; border-color: #e67e22; }
+  .action-btn.delete { color: #e74c3c; border-color: #e74c3c; }
 </style>
 </head>
 <body>
 
-<div id="toolbar" class="toolbar">
-  <button onclick="printDoc()" class="btn-print">🖨 طباعة (تصدير PDF)</button>
-  <span class="toolbar-code" style="color:#fff;">رقم الوثيقة: <strong id="toolbarCode">—</strong></span>
+<div id="loginScreen" class="login-wrap">
+  <div class="login-box">
+    <div class="login-header"><h1>Arresalah Zentrum</h1><p>إدارة الطلاق</p></div>
+    <div class="login-body">
+      <input type="password" id="passwordInput" placeholder="كلمة المرور" style="width:100%; padding:10px; margin-bottom:15px;">
+      <button onclick="login()" class="btn-login">دخول</button>
+    </div>
+  </div>
 </div>
 
-<div class="certificate-wrap cert-wrap-screen">
-  <div class="certificate">
-    <!-- الترويسة -->
-    <div class="cert-header">
-      <div class="cert-header-center">
-        <div class="cert-logo"><img src="./imeges/logo.webp" onerror="this.src='./imeges/logo.png';"></div>
-        <div class="cert-header-title-de">Islamische Scheidungsurkunde</div>
-        <div class="cert-header-title-ar">شهادة عقد طلاق إسلامي</div>
-      </div>
+<div id="adminPanel" class="panel-wrap">
+  <div class="panel-header">
+    <div class="panel-title"><h1>إدارة وثائق الطلاق</h1></div>
+    <div class="panel-actions">
+      <a href="./admin.html" class="btn-secondary" style="text-decoration:none; padding:8px 12px; margin-left:10px;">نظام الزواج</a>
+      <button onclick="logout()" class="btn-danger">خروج</button>
     </div>
+  </div>
 
-    <!-- الشريط العلوي -->
-    <div class="cert-info-strip">
-      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Turmstraße 83, 10551 Berlin</span><span class="label-ar">عنوان المركز</span></div></div>
-      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Art der Scheidung</span><span class="label-ar">نوع الطلاق</span><span class="value" id="divorceType">—</span></div></div>
-      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Datum der Scheidung</span><span class="label-ar">التاريخ</span><span class="value" id="divorceDate">—</span></div></div>
-    </div>
+  <div class="admin-tabs">
+    <button class="admin-tab active" onclick="switchTab('new')">📝 إصدار / تعديل وثيقة طلاق</button>
+    <button class="admin-tab" onclick="switchTab('list')">📋 سجل الوثائق</button>
+  </div>
 
-    <!-- الزوجة والزوج -->
-    <div class="cert-two-cols">
-      <div class="cert-col">
-        <div class="cert-col-title"><span>Ehefrau</span><span class="ar">المطلقة</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="bNameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="bNameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="bBirth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Ihre Mutter</span><span class="cv-label-ar"></span></div><div class="v-value" id="bMotherDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">اسم الأم</span></div><div class="v-value v-ar" id="bMotherAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="bId">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="bAddress">—</div></div>
+  <div class="panel-content">
+    <div id="tab-new" class="tab-content">
+      
+      <div class="card"><div class="card-header"><h2>تفاصيل الوثيقة</h2></div>
+        <div class="card-body form-grid">
+          <!-- استخدام input type="date" ليعطي قوائم منسدلة ويمنع الحروف -->
+          <div class="field"><label>تاريخ الطلاق</label><input type="date" id="divorceDate" min="1900-01-01" max="2099-12-31"></div>
+          <div class="field"><label>رقم الوثيقة (اختياري / يُترك فارغاً للجديد)</label><input type="text" id="divorceCode"></div>
+          <div class="field" style="grid-column:span 2;"><label>نوع الطلاق / تفاصيل التسوية</label><input type="text" id="divorceType" value="اتفاقي (Einvernehmliche Scheidung)"></div>
+        </div>
       </div>
-      <div class="cert-col">
-        <div class="cert-col-title"><span>Ehemann</span><span class="ar">المطلق</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="gNameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="gNameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="gBirth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Seine Mutter</span><span class="cv-label-ar"></span></div><div class="v-value" id="gMotherDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">اسم الأم</span></div><div class="v-value v-ar" id="gMotherAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="gId">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="gAddress">—</div></div>
-      </div>
-    </div>
 
-    <!-- الولي والتسوية المالية -->
-    <div class="cert-wali-dowry">
-      <div class="wali-dowry-grid">
-        <div class="wali-dowry-col">
-          <div class="col-subsection-title-light">بيانات الولي</div>
-          <div id="waliCompact" style="display:none;">
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name Der Wali</span><span class="cv-label-ar">اسم الولي</span></div><div class="v-value v-ar">الزوجة نفسها</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Status</span><span class="cv-label-ar">الصفة</span></div><div class="v-value">Bride herself</div></div>
+      <div class="section-divider"></div>
+
+      <!-- المطلقة (مع فلترة الحروف) -->
+      <div class="card"><div class="card-header"><h2>بيانات المطلقة (Ehefrau)</h2></div>
+        <div class="card-body form-grid">
+          <div class="field"><label>الاسم (بالعربية فقط)</label><input type="text" id="bNameAr" oninput="validateArabic(this)"></div>
+          <div class="field"><label>الاسم (بالألمانية فقط)</label><input type="text" id="bNameDe" oninput="validateGerman(this)"></div>
+          <div class="field"><label>اسم الأم (بالعربية فقط)</label><input type="text" id="bMotherAr" oninput="validateArabic(this)"></div>
+          <div class="field"><label>اسم الأم (بالألمانية فقط)</label><input type="text" id="bMotherDe" oninput="validateGerman(this)"></div>
+          <div class="field"><label>تاريخ الميلاد</label><input type="date" id="bBirth" min="1900-01-01" max="2099-12-31"></div>
+          <div class="field"><label>رقم الهوية</label><input type="text" id="bId"></div>
+          <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="bAddress"></div>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- المطلق -->
+      <div class="card"><div class="card-header"><h2>بيانات المطلق (Ehemann)</h2></div>
+        <div class="card-body form-grid">
+          <div class="field"><label>الاسم (بالعربية فقط)</label><input type="text" id="gNameAr" oninput="validateArabic(this)"></div>
+          <div class="field"><label>الاسم (بالألمانية فقط)</label><input type="text" id="gNameDe" oninput="validateGerman(this)"></div>
+          <div class="field"><label>اسم الأم (بالعربية فقط)</label><input type="text" id="gMotherAr" oninput="validateArabic(this)"></div>
+          <div class="field"><label>اسم الأم (بالألمانية فقط)</label><input type="text" id="gMotherDe" oninput="validateGerman(this)"></div>
+          <div class="field"><label>تاريخ الميلاد</label><input type="date" id="gBirth" min="1900-01-01" max="2099-12-31"></div>
+          <div class="field"><label>رقم الهوية</label><input type="text" id="gId"></div>
+          <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="gAddress"></div>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- الولي والتسوية -->
+      <div class="card"><div class="card-header"><h2>الولي، التسوية المالية، والأولاد</h2></div>
+        <div class="card-body">
+          <label class="checkbox-label">
+            <input type="checkbox" id="waliIsBride" onchange="toggleWali()"> الولي هي الزوجة نفسها (Sie selbst)
+          </label>
+          
+          <div class="form-grid" id="waliFields">
+            <div class="field"><label>اسم الولي (عربي)</label><input type="text" id="wNameAr" oninput="validateArabic(this)"></div>
+            <div class="field"><label>اسم الولي (ألماني)</label><input type="text" id="wNameDe" oninput="validateGerman(this)"></div>
+            <!-- صلة القرابة الجديدة -->
+            <div class="field"><label>صلة القرابة (عربي)</label><input type="text" id="wRelAr" placeholder="مثال: الأب، الأخ..."></div>
+            <div class="field"><label>صلة القرابة (ألماني)</label><input type="text" id="wRelDe" placeholder="مثال: Vater, Bruder..."></div>
+            
+            <div class="field"><label>تاريخ الميلاد</label><input type="date" id="wBirth" min="1900-01-01" max="2099-12-31"></div>
+            <div class="field"><label>رقم الهوية</label><input type="text" id="wId"></div>
+            <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="wAddress"></div>
           </div>
-          <div id="waliFull">
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="wNameDe">—</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="wNameAr">—</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="wBirth">—</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="wId">—</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="wAddress">—</div></div>
+
+          <hr style="margin:20px 0; border:1px solid #eee;">
+
+          <div class="form-grid">
+            <div class="field"><label>المهر المقدم / التسوية</label><input type="text" id="dPrompt"></div>
+            <div class="field"><label>المؤخر / الحقوق</label><input type="text" id="dDeferred"></div>
+            <div class="field" style="grid-column:span 2;"><label>ملاحظات إضافية في العقد</label><textarea id="dNotes" rows="2"></textarea></div>
+            <div class="field" style="grid-column:span 2;"><label>الأولاد والحضانة</label><textarea id="childrenDetails" rows="2"></textarea></div>
           </div>
         </div>
-        <div class="wali-dowry-col">
-          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Finanzielle Einigung:</span><span class="wd-label-ar">المهر المقدم / التسوية</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dPrompt">—</span></div></div>
-          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Aufgeschoben:</span><span class="wd-label-ar">المؤخر / الحقوق</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dDeferred">—</span></div></div>
-          <div class="wd-row" id="notesRow" style="display:none;"><div class="wd-label"><span class="wd-label-de">Bemerkungen:</span><span class="wd-label-ar">ملاحظات</span></div><div class="wd-value"><span class="wd-value-ar" id="dNotes"></span></div></div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- الشهود -->
+      <div class="card"><div class="card-header"><h2>الشهود</h2></div>
+        <div class="card-body form-grid">
+          <div class="field"><label>الشاهد الأول (عربي)</label><input type="text" id="w1NameAr" oninput="validateArabic(this)"></div>
+          <div class="field"><label>الشاهد الأول (ألماني)</label><input type="text" id="w1NameDe" oninput="validateGerman(this)"></div>
+          <div class="field"><label>تاريخ الميلاد</label><input type="date" id="w1Birth" min="1900-01-01" max="2099-12-31"></div>
+          <div class="field"><label>رقم الهوية</label><input type="text" id="w1Id"></div>
+          <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="w1Address"></div>
+          
+          <hr style="grid-column:span 2; border:none; border-top:1px dashed #ddd; margin:10px 0;">
+
+          <div class="field"><label>الشاهد الثاني (عربي)</label><input type="text" id="w2NameAr" oninput="validateArabic(this)"></div>
+          <div class="field"><label>الشاهد الثاني (ألماني)</label><input type="text" id="w2NameDe" oninput="validateGerman(this)"></div>
+          <div class="field"><label>تاريخ الميلاد</label><input type="date" id="w2Birth" min="1900-01-01" max="2099-12-31"></div>
+          <div class="field"><label>رقم الهوية</label><input type="text" id="w2Id"></div>
+          <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="w2Address"></div>
         </div>
       </div>
+
+      <button class="btn-primary" onclick="saveContract()" style="width:100%; padding:15px; font-size:16px; margin-bottom:40px;">حفظ وتوثيق العقد</button>
     </div>
 
-    <!-- الشهود -->
-    <div class="cert-witness-box">
-      <div class="cert-witness-col">
-        <div class="cert-witness-title"><span>Zeuge 1</span><span class="ar">الشاهد الأول</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w1NameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="w1NameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="w1Birth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="w1Id">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="w1Address">—</div></div>
-      </div>
-      <div class="cert-witness-col">
-        <div class="cert-witness-title"><span>Zeuge 2</span><span class="ar">الشاهد الثاني</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w2NameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="w2NameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="w2Birth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="w2Id">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="w2Address">—</div></div>
-      </div>
-    </div>
-
-    <!-- التوقيعات -->
-    <div class="cert-party-signatures">
-      <div class="party-signatures-title"><span>Unterschriften der Parteien</span><span class="ar">إمضاءات الأطراف</span></div>
-      <div class="party-signatures-grid">
-        <div class="party-sig-cell"><div class="sig-label">المطلق<small>Ehemann</small></div><div class="sig-line"></div></div>
-        <div class="party-sig-cell"><div class="sig-label">المطلقة<small>Ehefrau</small></div><div class="sig-line"></div></div>
-        <div class="party-sig-cell"><div class="sig-label">الولي<small>Wali</small></div><div class="sig-line"></div></div>
-        <div class="party-sig-cell"><div class="sig-label">الشاهد الأول<small>Zeuge 1</small></div><div class="sig-line"></div></div>
-        <div class="party-sig-cell"><div class="sig-label">الشاهد الثاني<small>Zeuge 2</small></div><div class="sig-line"></div></div>
-      </div>
-    </div>
-
-    <!-- التذييل وصيغة الإثبات -->
-    <div class="cert-footer">
-      <div class="cert-footer-sign"><div class="sign-box"><div class="sign-box-inner"></div></div><div class="sign-label-bottom">إدارة المركز - Imam</div><div class="sign-line"></div><div class="sign-caption">التوقيع / Unterschrift</div></div>
-      <div class="cert-footer-text">
-        <div class="footer-title">صيغة الإثبات</div>
-        <div class="footer-text-ar">
-          نشهد نحن الموقعان أدناه أن الطلاق قد وقع رسمياً بين الزوجين المذكورين أعلاه بناءً على الرغبة والتوافق، وتم استنفاد مساعي الإصلاح وفقاً للأحكام الشرعية، وأقر الطرفان بتمام الإبراء وتسوية الحقوق المالية والاتفاق على الحضانة إن وجدت، وشهد على ذلك الشهود المذكورون أعلاه.
+    <div id="tab-list" class="tab-content hidden">
+      <div class="card">
+        <div class="card-header" style="display:flex; justify-content:space-between;"><h2>سجل الوثائق</h2><button onclick="loadContracts()" class="btn-secondary">تحديث</button></div>
+        <div class="card-body no-padding">
+          <table class="codes-table">
+            <thead><tr><th>رقم الوثيقة</th><th>التاريخ</th><th>المطلق</th><th>المطلقة</th><th style="width:200px;">إجراءات</th></tr></thead>
+            <tbody id="contractsBody"></tbody>
+          </table>
         </div>
-        
-        <!-- سطر الأولاد -->
-        <div id="childrenRow" style="display:none; text-align:center; font-weight:bold; font-size:12px; margin: 5px 0; color:#1a4d8a;"></div>
-
-        <div class="footer-text-de">Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen und von allen Beteiligten angenommen.</div>
-        <div class="footer-note-center"><strong>ملاحظة:</strong> هذا العقد ليس بديلاً عن التسجيل في الدوائر الألمانية.</div>
       </div>
     </div>
 
@@ -220,72 +161,102 @@
 </div>
 
 <script>
-  // دالة الطباعة وتسمية ملف الـ PDF بالكود
-  function printDoc() {
-    const code = document.getElementById('toolbarCode').textContent;
-    const oldTitle = document.title;
-    document.title = "شهادة_عقد_طلاق_" + code;
-    window.print();
-    setTimeout(() => { document.title = oldTitle; }, 1000);
+  let pwd = sessionStorage.getItem('divorce_pw') || '';
+  if(pwd) showPanel(); else document.getElementById('loginScreen').style.display='flex';
+
+  // فلترة اللغات
+  function validateArabic(input) { input.value = input.value.replace(/[a-zA-Z]/g, ''); }
+  function validateGerman(input) { input.value = input.value.replace(/[\u0600-\u06FF]/g, ''); }
+
+  function toggleWali() {
+    document.getElementById('waliFields').style.display = document.getElementById('waliIsBride').checked ? 'none' : 'grid';
   }
 
-  window.onload = async () => {
-    const code = new URLSearchParams(window.location.search).get('code');
-    const pwd = sessionStorage.getItem('divorce_pw') || '';
-    if(!code) return alert('الكود مفقود');
+  function switchTab(id) {
+    document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
+    event.target.classList.add('active');
+    document.getElementById('tab-'+id).classList.remove('hidden');
+    if(id==='list') loadContracts();
+  }
 
+  async function login() {
+    pwd = document.getElementById('passwordInput').value;
+    const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'login',username:'admin',password:pwd}) });
+    if((await res.json()).success) { sessionStorage.setItem('divorce_pw', pwd); showPanel(); } else alert('خطأ في كلمة المرور');
+  }
+
+  function showPanel() { document.getElementById('loginScreen').style.display='none'; document.getElementById('adminPanel').style.display='block'; }
+  function logout() { sessionStorage.removeItem('divorce_pw'); location.reload(); }
+
+  async function saveContract() {
+    const isBrideWali = document.getElementById('waliIsBride').checked;
+    const payload = {
+      action:'save', username:'admin', password:pwd, code: document.getElementById('divorceCode').value,
+      divorce_date: document.getElementById('divorceDate').value, divorce_type: document.getElementById('divorceType').value,
+      bride_name_ar: document.getElementById('bNameAr').value, bride_name_de: document.getElementById('bNameDe').value, bride_birth: document.getElementById('bBirth').value, bride_mother_ar: document.getElementById('bMotherAr').value, bride_mother_de: document.getElementById('bMotherDe').value, bride_id: document.getElementById('bId').value, bride_address: document.getElementById('bAddress').value,
+      groom_name_ar: document.getElementById('gNameAr').value, groom_name_de: document.getElementById('gNameDe').value, groom_birth: document.getElementById('gBirth').value, groom_mother_ar: document.getElementById('gMotherAr').value, groom_mother_de: document.getElementById('gMotherDe').value, groom_id: document.getElementById('gId').value, groom_address: document.getElementById('gAddress').value,
+      
+      wali_is_bride: isBrideWali, 
+      wali_name_ar: document.getElementById('wNameAr').value, wali_name_de: document.getElementById('wNameDe').value, wali_birth: document.getElementById('wBirth').value, wali_id: document.getElementById('wId').value, wali_address: document.getElementById('wAddress').value,
+      // تحديد صلة القرابة (إذا كانت الزوجة يتم إرسال القيم تلقائياً)
+      wali_rel_ar: isBrideWali ? 'الزوجة نفسها' : document.getElementById('wRelAr').value,
+      wali_rel_de: isBrideWali ? 'Sie selbst' : document.getElementById('wRelDe').value,
+      
+      dowry_prompt: document.getElementById('dPrompt').value, dowry_deferred: document.getElementById('dDeferred').value, dowry_notes: document.getElementById('dNotes').value, children_details: document.getElementById('childrenDetails').value,
+      w1_name_ar: document.getElementById('w1NameAr').value, w1_name_de: document.getElementById('w1NameDe').value, w1_birth: document.getElementById('w1Birth').value, w1_id: document.getElementById('w1Id').value, w1_address: document.getElementById('w1Address').value,
+      w2_name_ar: document.getElementById('w2NameAr').value, w2_name_de: document.getElementById('w2NameDe').value, w2_birth: document.getElementById('w2Birth').value, w2_id: document.getElementById('w2Id').value, w2_address: document.getElementById('w2Address').value
+    };
+    const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+    const data = await res.json();
+    if(data.success) { alert('تم الحفظ بنجاح!'); switchTab('list'); } else alert('خطأ: ' + data.message);
+  }
+
+  async function loadContracts() {
+    const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'list',username:'admin',password:pwd}) });
+    const data = await res.json();
+    document.getElementById('contractsBody').innerHTML = data.contracts.map(c=>`
+      <tr>
+        <td><b>${c.code}</b></td><td>${c.divorce_date||'—'}</td><td>${c.groom_name_ar||'—'}</td><td>${c.bride_name_ar||'—'}</td>
+        <td>
+          <button class="action-btn print" onclick="window.open('./print-divorce.html?code=${c.code}')">🖨️ طباعة</button>
+          <button class="action-btn edit" onclick="editContract('${c.code}')">✏️ تعديل</button>
+          <button class="action-btn delete" onclick="del('${c.code}')">🗑️ حذف</button>
+        </td>
+      </tr>`).join('');
+  }
+  
+  // دالة التعديل
+  async function editContract(code) {
     const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'view', code, username:'admin', password:pwd}) });
     const data = await res.json();
     if(data.success) {
       const c = data.contract;
-      document.getElementById('toolbarCode').textContent = c.code;
-      document.getElementById('divorceDate').textContent = c.divorce_date || '—';
-      document.getElementById('divorceType').textContent = c.divorce_type || '—';
-
-      ['b','g'].forEach(p => {
-        document.getElementById(p+'NameAr').textContent = c[p==='b'?'bride_name_ar':'groom_name_ar'] || '—';
-        document.getElementById(p+'NameDe').textContent = c[p==='b'?'bride_name_de':'groom_name_de'] || '—';
-        document.getElementById(p+'Birth').textContent = c[p==='b'?'bride_birth':'groom_birth'] || '—';
-        document.getElementById(p+'MotherAr').textContent = c[p==='b'?'bride_mother_ar':'groom_mother_ar'] || '—';
-        document.getElementById(p+'MotherDe').textContent = c[p==='b'?'bride_mother_de':'groom_mother_de'] || '—';
-        document.getElementById(p+'Id').textContent = c[p==='b'?'bride_id':'groom_id'] || '—';
-        document.getElementById(p+'Address').textContent = c[p==='b'?'bride_address':'groom_address'] || '—';
-      });
-
-      if (c.wali_is_bride) {
-        document.getElementById('waliFull').style.display = 'none';
-        document.getElementById('waliCompact').style.display = 'block';
-      } else {
-        document.getElementById('waliFull').style.display = 'block';
-        document.getElementById('waliCompact').style.display = 'none';
-        document.getElementById('wNameAr').textContent = c.wali_name_ar || '—';
-        document.getElementById('wNameDe').textContent = c.wali_name_de || '—';
-        document.getElementById('wBirth').textContent = c.wali_birth || '—';
-        document.getElementById('wId').textContent = c.wali_id || '—';
-        document.getElementById('wAddress').textContent = c.wali_address || '—';
-      }
-
-      document.getElementById('dPrompt').textContent = c.dowry_prompt || '—';
-      document.getElementById('dDeferred').textContent = c.dowry_deferred || '—';
-      if(c.dowry_notes) {
-        document.getElementById('notesRow').style.display = 'flex';
-        document.getElementById('dNotes').textContent = c.dowry_notes;
-      }
-
-      if(c.children_details) {
-        document.getElementById('childrenRow').style.display = 'block';
-        document.getElementById('childrenRow').textContent = c.children_details;
-      }
-
-      [1,2].forEach(n => {
-        document.getElementById(`w${n}NameAr`).textContent = c[`w${n}_name_ar`] || '—';
-        document.getElementById(`w${n}NameDe`).textContent = c[`w${n}_name_de`] || '—';
-        document.getElementById(`w${n}Birth`).textContent = c[`w${n}_birth`] || '—';
-        document.getElementById(`w${n}Id`).textContent = c[`w${n}_id`] || '—';
-        document.getElementById(`w${n}Address`).textContent = c[`w${n}_address`] || '—';
-      });
+      document.getElementById('divorceCode').value = c.code;
+      document.getElementById('divorceDate').value = c.divorce_date || '';
+      document.getElementById('divorceType').value = c.divorce_type || '';
+      
+      document.getElementById('bNameAr').value = c.bride_name_ar || ''; document.getElementById('bNameDe').value = c.bride_name_de || ''; document.getElementById('bBirth').value = c.bride_birth || ''; document.getElementById('bMotherAr').value = c.bride_mother_ar || ''; document.getElementById('bMotherDe').value = c.bride_mother_de || ''; document.getElementById('bId').value = c.bride_id || ''; document.getElementById('bAddress').value = c.bride_address || '';
+      document.getElementById('gNameAr').value = c.groom_name_ar || ''; document.getElementById('gNameDe').value = c.groom_name_de || ''; document.getElementById('gBirth').value = c.groom_birth || ''; document.getElementById('gMotherAr').value = c.groom_mother_ar || ''; document.getElementById('gMotherDe').value = c.groom_mother_de || ''; document.getElementById('gId').value = c.groom_id || ''; document.getElementById('gAddress').value = c.groom_address || '';
+      
+      document.getElementById('waliIsBride').checked = c.wali_is_bride;
+      toggleWali();
+      document.getElementById('wNameAr').value = c.wali_name_ar || ''; document.getElementById('wNameDe').value = c.wali_name_de || ''; document.getElementById('wBirth').value = c.wali_birth || ''; document.getElementById('wId').value = c.wali_id || ''; document.getElementById('wAddress').value = c.wali_address || '';
+      document.getElementById('wRelAr').value = c.wali_rel_ar || ''; document.getElementById('wRelDe').value = c.wali_rel_de || '';
+      
+      document.getElementById('dPrompt').value = c.dowry_prompt || ''; document.getElementById('dDeferred').value = c.dowry_deferred || ''; document.getElementById('dNotes').value = c.dowry_notes || ''; document.getElementById('childrenDetails').value = c.children_details || '';
+      
+      document.getElementById('w1NameAr').value = c.w1_name_ar || ''; document.getElementById('w1NameDe').value = c.w1_name_de || ''; document.getElementById('w1Birth').value = c.w1_birth || ''; document.getElementById('w1Id').value = c.w1_id || ''; document.getElementById('w1Address').value = c.w1_address || '';
+      document.getElementById('w2NameAr').value = c.w2_name_ar || ''; document.getElementById('w2NameDe').value = c.w2_name_de || ''; document.getElementById('w2Birth').value = c.w2_birth || ''; document.getElementById('w2Id').value = c.w2_id || ''; document.getElementById('w2Address').value = c.w2_address || '';
+      
+      switchTab('new');
     }
-  };
-</script>
-</body>
-</html>
+  }
+
+  async function del(code) {
+    if(confirm('متأكد من الحذف؟')) {
+      await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'delete',code,username:'admin',password:pwd}) });
+      loadContracts();
+    }
+  }
+</script></body></html>
