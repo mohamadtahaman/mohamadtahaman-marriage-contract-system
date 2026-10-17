@@ -13,12 +13,8 @@
   .checkbox-label { font-weight: bold; color: #c0392b; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 15px; background: #fff3f3; padding: 10px; border-radius: 6px; border: 1px solid #fadbd8; margin-bottom: 15px; }
   textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; }
   
-  /* أزرار الإجراءات في الأرشيف */
-  .action-btn { background: #f8f9fa; border: 1px solid #ddd; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; margin: 0 2px; }
-  .action-btn:hover { background: #e9ecef; }
-  .action-btn.print { color: #1a4d8a; border-color: #1a4d8a; }
-  .action-btn.edit { color: #e67e22; border-color: #e67e22; }
-  .action-btn.delete { color: #e74c3c; border-color: #e74c3c; }
+  /* أزرار الإجراءات الكلاسيكية المتطابقة مع نظام الزواج */
+  .action-buttons { display: flex; gap: 5px; }
 </style>
 </head>
 <body>
@@ -43,8 +39,8 @@
   </div>
 
   <div class="admin-tabs">
-    <button class="admin-tab active" onclick="switchTab('new')">📝 إصدار / تعديل وثيقة طلاق</button>
-    <button class="admin-tab" onclick="switchTab('list')">📋 سجل الوثائق</button>
+    <button class="admin-tab active" onclick="switchTab('new')">إصدار / تعديل وثيقة طلاق</button>
+    <button class="admin-tab" onclick="switchTab('list')">سجل الوثائق</button>
   </div>
 
   <div class="panel-content">
@@ -52,7 +48,6 @@
       
       <div class="card"><div class="card-header"><h2>تفاصيل الوثيقة</h2></div>
         <div class="card-body form-grid">
-          <!-- استخدام input type="date" ليعطي قوائم منسدلة ويمنع الحروف -->
           <div class="field"><label>تاريخ الطلاق</label><input type="date" id="divorceDate" min="1900-01-01" max="2099-12-31"></div>
           <div class="field"><label>رقم الوثيقة (اختياري / يُترك فارغاً للجديد)</label><input type="text" id="divorceCode"></div>
           <div class="field" style="grid-column:span 2;"><label>نوع الطلاق / تفاصيل التسوية</label><input type="text" id="divorceType" value="اتفاقي (Einvernehmliche Scheidung)"></div>
@@ -61,7 +56,7 @@
 
       <div class="section-divider"></div>
 
-      <!-- المطلقة (مع فلترة الحروف) -->
+      <!-- المطلقة -->
       <div class="card"><div class="card-header"><h2>بيانات المطلقة (Ehefrau)</h2></div>
         <div class="card-body form-grid">
           <div class="field"><label>الاسم (بالعربية فقط)</label><input type="text" id="bNameAr" oninput="validateArabic(this)"></div>
@@ -101,10 +96,9 @@
           <div class="form-grid" id="waliFields">
             <div class="field"><label>اسم الولي (عربي)</label><input type="text" id="wNameAr" oninput="validateArabic(this)"></div>
             <div class="field"><label>اسم الولي (ألماني)</label><input type="text" id="wNameDe" oninput="validateGerman(this)"></div>
-            <!-- صلة القرابة الجديدة -->
+            <!-- صلة القرابة -->
             <div class="field"><label>صلة القرابة (عربي)</label><input type="text" id="wRelAr" placeholder="مثال: الأب، الأخ..."></div>
             <div class="field"><label>صلة القرابة (ألماني)</label><input type="text" id="wRelDe" placeholder="مثال: Vater, Bruder..."></div>
-            
             <div class="field"><label>تاريخ الميلاد</label><input type="date" id="wBirth" min="1900-01-01" max="2099-12-31"></div>
             <div class="field"><label>رقم الهوية</label><input type="text" id="wId"></div>
             <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="wAddress"></div>
@@ -150,7 +144,7 @@
         <div class="card-header" style="display:flex; justify-content:space-between;"><h2>سجل الوثائق</h2><button onclick="loadContracts()" class="btn-secondary">تحديث</button></div>
         <div class="card-body no-padding">
           <table class="codes-table">
-            <thead><tr><th>رقم الوثيقة</th><th>التاريخ</th><th>المطلق</th><th>المطلقة</th><th style="width:200px;">إجراءات</th></tr></thead>
+            <thead><tr><th>رقم الوثيقة</th><th>التاريخ</th><th>المطلق</th><th>المطلقة</th><th style="width:170px;">إجراءات</th></tr></thead>
             <tbody id="contractsBody"></tbody>
           </table>
         </div>
@@ -164,7 +158,6 @@
   let pwd = sessionStorage.getItem('divorce_pw') || '';
   if(pwd) showPanel(); else document.getElementById('loginScreen').style.display='flex';
 
-  // فلترة اللغات
   function validateArabic(input) { input.value = input.value.replace(/[a-zA-Z]/g, ''); }
   function validateGerman(input) { input.value = input.value.replace(/[\u0600-\u06FF]/g, ''); }
 
@@ -172,10 +165,12 @@
     document.getElementById('waliFields').style.display = document.getElementById('waliIsBride').checked ? 'none' : 'grid';
   }
 
+  // تم تصحيح دالة التبديل لتكون آمنة ولا تعتمد على الماوس لتجنب الخطأ
   function switchTab(id) {
     document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
-    event.target.classList.add('active');
+    const targetBtn = document.querySelector(`button[onclick="switchTab('${id}')"]`);
+    if(targetBtn) targetBtn.classList.add('active');
     document.getElementById('tab-'+id).classList.remove('hidden');
     if(id==='list') loadContracts();
   }
@@ -189,6 +184,15 @@
   function showPanel() { document.getElementById('loginScreen').style.display='none'; document.getElementById('adminPanel').style.display='block'; }
   function logout() { sessionStorage.removeItem('divorce_pw'); location.reload(); }
 
+  // تحويل التاريخ من النظام القديم (أوروبي) إلى نظام المتصفح الجديد ليظهر في خانة التعديل
+  function toInputDate(d) {
+    if(!d) return '';
+    if(d.match(/^\d{4}-\d{2}-\d{2}$/)) return d;
+    const parts = d.split('.');
+    if(parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    return '';
+  }
+
   async function saveContract() {
     const isBrideWali = document.getElementById('waliIsBride').checked;
     const payload = {
@@ -199,7 +203,6 @@
       
       wali_is_bride: isBrideWali, 
       wali_name_ar: document.getElementById('wNameAr').value, wali_name_de: document.getElementById('wNameDe').value, wali_birth: document.getElementById('wBirth').value, wali_id: document.getElementById('wId').value, wali_address: document.getElementById('wAddress').value,
-      // تحديد صلة القرابة (إذا كانت الزوجة يتم إرسال القيم تلقائياً)
       wali_rel_ar: isBrideWali ? 'الزوجة نفسها' : document.getElementById('wRelAr').value,
       wali_rel_de: isBrideWali ? 'Sie selbst' : document.getElementById('wRelDe').value,
       
@@ -215,40 +218,44 @@
   async function loadContracts() {
     const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'list',username:'admin',password:pwd}) });
     const data = await res.json();
+    
+    // استعادة الأزرار الكلاسيكية المتطابقة مع نظام الزواج
     document.getElementById('contractsBody').innerHTML = data.contracts.map(c=>`
       <tr>
         <td><b>${c.code}</b></td><td>${c.divorce_date||'—'}</td><td>${c.groom_name_ar||'—'}</td><td>${c.bride_name_ar||'—'}</td>
         <td>
-          <button class="action-btn print" onclick="window.open('./print-divorce.html?code=${c.code}')">🖨️ طباعة</button>
-          <button class="action-btn edit" onclick="editContract('${c.code}')">✏️ تعديل</button>
-          <button class="action-btn delete" onclick="del('${c.code}')">🗑️ حذف</button>
+          <div class="action-buttons">
+            <button class="btn-primary" onclick="window.open('./print-divorce.html?code=${c.code}')" style="padding:4px 8px; font-size:12px;">طباعة</button>
+            <button class="btn-secondary" onclick="editContract('${c.code}')" style="padding:4px 8px; font-size:12px; background-color:#e67e22; border:none; color:white;">تعديل</button>
+            <button class="btn-danger" onclick="del('${c.code}')" style="padding:4px 8px; font-size:12px;">حذف</button>
+          </div>
         </td>
       </tr>`).join('');
   }
   
-  // دالة التعديل
   async function editContract(code) {
     const res = await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'view', code, username:'admin', password:pwd}) });
     const data = await res.json();
     if(data.success) {
       const c = data.contract;
       document.getElementById('divorceCode').value = c.code;
-      document.getElementById('divorceDate').value = c.divorce_date || '';
+      document.getElementById('divorceDate').value = toInputDate(c.divorce_date);
       document.getElementById('divorceType').value = c.divorce_type || '';
       
-      document.getElementById('bNameAr').value = c.bride_name_ar || ''; document.getElementById('bNameDe').value = c.bride_name_de || ''; document.getElementById('bBirth').value = c.bride_birth || ''; document.getElementById('bMotherAr').value = c.bride_mother_ar || ''; document.getElementById('bMotherDe').value = c.bride_mother_de || ''; document.getElementById('bId').value = c.bride_id || ''; document.getElementById('bAddress').value = c.bride_address || '';
-      document.getElementById('gNameAr').value = c.groom_name_ar || ''; document.getElementById('gNameDe').value = c.groom_name_de || ''; document.getElementById('gBirth').value = c.groom_birth || ''; document.getElementById('gMotherAr').value = c.groom_mother_ar || ''; document.getElementById('gMotherDe').value = c.groom_mother_de || ''; document.getElementById('gId').value = c.groom_id || ''; document.getElementById('gAddress').value = c.groom_address || '';
+      document.getElementById('bNameAr').value = c.bride_name_ar || ''; document.getElementById('bNameDe').value = c.bride_name_de || ''; document.getElementById('bBirth').value = toInputDate(c.bride_birth); document.getElementById('bMotherAr').value = c.bride_mother_ar || ''; document.getElementById('bMotherDe').value = c.bride_mother_de || ''; document.getElementById('bId').value = c.bride_id || ''; document.getElementById('bAddress').value = c.bride_address || '';
+      document.getElementById('gNameAr').value = c.groom_name_ar || ''; document.getElementById('gNameDe').value = c.groom_name_de || ''; document.getElementById('gBirth').value = toInputDate(c.groom_birth); document.getElementById('gMotherAr').value = c.groom_mother_ar || ''; document.getElementById('gMotherDe').value = c.groom_mother_de || ''; document.getElementById('gId').value = c.groom_id || ''; document.getElementById('gAddress').value = c.groom_address || '';
       
       document.getElementById('waliIsBride').checked = c.wali_is_bride;
       toggleWali();
-      document.getElementById('wNameAr').value = c.wali_name_ar || ''; document.getElementById('wNameDe').value = c.wali_name_de || ''; document.getElementById('wBirth').value = c.wali_birth || ''; document.getElementById('wId').value = c.wali_id || ''; document.getElementById('wAddress').value = c.wali_address || '';
+      document.getElementById('wNameAr').value = c.wali_name_ar || ''; document.getElementById('wNameDe').value = c.wali_name_de || ''; document.getElementById('wBirth').value = toInputDate(c.wali_birth); document.getElementById('wId').value = c.wali_id || ''; document.getElementById('wAddress').value = c.wali_address || '';
       document.getElementById('wRelAr').value = c.wali_rel_ar || ''; document.getElementById('wRelDe').value = c.wali_rel_de || '';
       
       document.getElementById('dPrompt').value = c.dowry_prompt || ''; document.getElementById('dDeferred').value = c.dowry_deferred || ''; document.getElementById('dNotes').value = c.dowry_notes || ''; document.getElementById('childrenDetails').value = c.children_details || '';
       
-      document.getElementById('w1NameAr').value = c.w1_name_ar || ''; document.getElementById('w1NameDe').value = c.w1_name_de || ''; document.getElementById('w1Birth').value = c.w1_birth || ''; document.getElementById('w1Id').value = c.w1_id || ''; document.getElementById('w1Address').value = c.w1_address || '';
-      document.getElementById('w2NameAr').value = c.w2_name_ar || ''; document.getElementById('w2NameDe').value = c.w2_name_de || ''; document.getElementById('w2Birth').value = c.w2_birth || ''; document.getElementById('w2Id').value = c.w2_id || ''; document.getElementById('w2Address').value = c.w2_address || '';
+      document.getElementById('w1NameAr').value = c.w1_name_ar || ''; document.getElementById('w1NameDe').value = c.w1_name_de || ''; document.getElementById('w1Birth').value = toInputDate(c.w1_birth); document.getElementById('w1Id').value = c.w1_id || ''; document.getElementById('w1Address').value = c.w1_address || '';
+      document.getElementById('w2NameAr').value = c.w2_name_ar || ''; document.getElementById('w2NameDe').value = c.w2_name_de || ''; document.getElementById('w2Birth').value = toInputDate(c.w2_birth); document.getElementById('w2Id').value = c.w2_id || ''; document.getElementById('w2Address').value = c.w2_address || '';
       
+      // التبديل للتبويب وتعبئة الخانات بأمان
       switchTab('new');
     }
   }
