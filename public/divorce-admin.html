@@ -9,11 +9,49 @@
 <style>
   #loginScreen, #adminPanel { display: none; }
   .hidden { display: none !important; }
-  .section-divider { border-bottom: 2px dashed #ddd; margin: 25px 0; }
   .field { position: relative; }
   .checkbox-label { font-weight: bold; color: #c0392b; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 15px; background: #fff3f3; padding: 10px; border-radius: 6px; border: 1px solid #fadbd8; margin-bottom: 15px; }
   textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; }
   
+  /* =========================================
+     تصميم إطارات الإدخال الجديدة (الاحترافية)
+  ========================================= */
+  .party-card {
+    position: relative;
+    border: 2px solid #e0e6ed;
+    border-radius: 12px;
+    padding: 35px 25px 25px;
+    background: #ffffff;
+    margin-top: 45px;
+    margin-bottom: 30px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+  }
+  .party-card:hover {
+    box-shadow: 0 10px 25px rgba(26, 77, 138, 0.1);
+    border-color: #1a4d8a;
+  }
+  .party-title {
+    position: absolute;
+    top: -18px; /* رفع العنوان ليقطع الإطار في المنتصف */
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 10;
+  }
+  .party-title span {
+    background: #1a4d8a;
+    color: #ffffff;
+    padding: 6px 30px;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: 700;
+    border: 3px solid #ffffff; /* إطار أبيض لعزل العنوان عن الخط */
+    box-shadow: 0 4px 12px rgba(26, 77, 138, 0.25); /* ظل احترافي */
+    display: inline-block;
+    letter-spacing: 0.5px;
+  }
+
   /* تصميم الأيقونات المتطابق مع الصورة */
   .actions-flex { display: flex; gap: 12px; align-items: center; justify-content: center; flex-direction: row-reverse; }
   .icon-btn {
@@ -28,7 +66,6 @@
   .icon-edit { background: #fdfaf0; border: 1.5px solid #f2e6b1; color: #9c8022; }
   .icon-delete { background: #fcf0f0; border: 1.5px solid #f7d4d4; color: #c8413b; }
   .icon-restore { background: #f0f7ff; border: 1.5px solid #cce3ff; color: #2b70c9; }
-  
   .icon-btn:hover { filter: brightness(0.95); transform: scale(1.05); }
 
   /* تنسيق الجدول */
@@ -66,11 +103,10 @@
   </div>
 </div>
 
-<!-- نافذة تأكيد الحذف -->
 <div id="deleteConfirmModal" class="modal-overlay hidden">
   <div class="modal-box">
     <h3>تحذير: حذف نهائي!</h3>
-    <p>أنت على وشك حذف هذه الوثيقة من النظام بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.<br><br>يرجى إدخال كود التأكيد <b>****</b> للمتابعة:</p>
+    <p>أنت على وشك حذف هذه الوثيقة من النظام بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.<br><br>يرجى إدخال كود التأكيد <b>4321</b> للمتابعة:</p>
     <input type="text" id="deleteCodeInput" placeholder="----" maxlength="4">
     <div class="modal-actions">
       <button class="btn-confirm" onclick="executeHardDelete()">حذف الوثيقة</button>
@@ -97,17 +133,21 @@
   <div class="panel-content">
     
     <div id="tab-new" class="tab-content">
-      <div class="card"><div class="card-header"><h2>تفاصيل الوثيقة</h2></div>
-        <div class="card-body form-grid">
+      
+      <!-- إطار تفاصيل الوثيقة -->
+      <div class="party-card">
+        <div class="party-title"><span>تفاصيل الوثيقة</span></div>
+        <div class="form-grid">
           <div class="field"><label>تاريخ الطلاق</label><input type="date" id="divorceDate" min="1900-01-01" max="2099-12-31"></div>
           <div class="field"><label>رقم الوثيقة الكودي (مخفي)</label><input type="text" id="divorceCode" readonly style="background:#f0f0f0;"></div>
           <div class="field" style="grid-column:span 2;"><label>نوع الطلاق / تفاصيل التسوية</label><input type="text" id="divorceType" value="اتفاقي (Einvernehmliche Scheidung)"></div>
         </div>
       </div>
-      <div class="section-divider"></div>
       
-      <div class="card"><div class="card-header"><h2>بيانات المطلقة (Ehefrau)</h2></div>
-        <div class="card-body form-grid">
+      <!-- إطار المطلقة -->
+      <div class="party-card">
+        <div class="party-title"><span>بيانات المطلقة (Ehefrau)</span></div>
+        <div class="form-grid">
           <div class="field"><label>الاسم (بالعربية فقط)</label><input type="text" id="bNameAr" oninput="validateArabic(this)"></div>
           <div class="field"><label>الاسم (بالألمانية فقط)</label><input type="text" id="bNameDe" oninput="validateGerman(this)"></div>
           <div class="field"><label>اسم الأم (بالعربية فقط)</label><input type="text" id="bMotherAr" oninput="validateArabic(this)"></div>
@@ -117,10 +157,11 @@
           <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="bAddress"></div>
         </div>
       </div>
-      <div class="section-divider"></div>
 
-      <div class="card"><div class="card-header"><h2>بيانات المطلق (Ehemann)</h2></div>
-        <div class="card-body form-grid">
+      <!-- إطار المطلق -->
+      <div class="party-card">
+        <div class="party-title"><span>بيانات المطلق (Ehemann)</span></div>
+        <div class="form-grid">
           <div class="field"><label>الاسم (بالعربية فقط)</label><input type="text" id="gNameAr" oninput="validateArabic(this)"></div>
           <div class="field"><label>الاسم (بالألمانية فقط)</label><input type="text" id="gNameDe" oninput="validateGerman(this)"></div>
           <div class="field"><label>اسم الأم (بالعربية فقط)</label><input type="text" id="gMotherAr" oninput="validateArabic(this)"></div>
@@ -130,10 +171,11 @@
           <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="gAddress"></div>
         </div>
       </div>
-      <div class="section-divider"></div>
 
-      <div class="card"><div class="card-header"><h2>الولي، التسوية المالية، والأولاد</h2></div>
-        <div class="card-body">
+      <!-- إطار الولي والتسوية المالية -->
+      <div class="party-card">
+        <div class="party-title"><span>الولي، التسوية المالية، والأولاد</span></div>
+        <div>
           <label class="checkbox-label"><input type="checkbox" id="waliIsBride" onchange="toggleWali()"> الولي هي الزوجة نفسها (Sie selbst)</label>
           <div class="form-grid" id="waliFields">
             <div class="field"><label>اسم الولي (عربي)</label><input type="text" id="wNameAr" oninput="validateArabic(this)"></div>
@@ -144,7 +186,7 @@
             <div class="field"><label>رقم الهوية</label><input type="text" id="wId"></div>
             <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="wAddress"></div>
           </div>
-          <hr style="margin:20px 0; border:1px solid #eee;">
+          <hr style="margin:25px 0; border:1px solid #eee;">
           <div class="form-grid">
             <div class="field"><label>المهر المقدم / التسوية</label><input type="text" id="dPrompt"></div>
             <div class="field"><label>المؤخر / الحقوق</label><input type="text" id="dDeferred"></div>
@@ -153,16 +195,19 @@
           </div>
         </div>
       </div>
-      <div class="section-divider"></div>
 
-      <div class="card"><div class="card-header"><h2>الشهود</h2></div>
-        <div class="card-body form-grid">
+      <!-- إطار الشهود -->
+      <div class="party-card">
+        <div class="party-title"><span>بيانات الشهود</span></div>
+        <div class="form-grid">
           <div class="field"><label>الشاهد الأول (عربي)</label><input type="text" id="w1NameAr" oninput="validateArabic(this)"></div>
           <div class="field"><label>الشاهد الأول (ألماني)</label><input type="text" id="w1NameDe" oninput="validateGerman(this)"></div>
           <div class="field"><label>تاريخ الميلاد</label><input type="date" id="w1Birth" min="1900-01-01" max="2099-12-31"></div>
           <div class="field"><label>رقم الهوية</label><input type="text" id="w1Id"></div>
           <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="w1Address"></div>
-          <hr style="grid-column:span 2; border:none; border-top:1px dashed #ddd; margin:10px 0;">
+          
+          <hr style="grid-column:span 2; border:none; border-top:1px dashed #ddd; margin:15px 0;">
+          
           <div class="field"><label>الشاهد الثاني (عربي)</label><input type="text" id="w2NameAr" oninput="validateArabic(this)"></div>
           <div class="field"><label>الشاهد الثاني (ألماني)</label><input type="text" id="w2NameDe" oninput="validateGerman(this)"></div>
           <div class="field"><label>تاريخ الميلاد</label><input type="date" id="w2Birth" min="1900-01-01" max="2099-12-31"></div>
@@ -170,7 +215,8 @@
           <div class="field" style="grid-column:span 2;"><label>العنوان / Ort</label><input type="text" id="w2Address"></div>
         </div>
       </div>
-      <button class="btn-primary" onclick="saveContract()" style="width:100%; padding:15px; font-size:16px; margin-bottom:40px;">حفظ وتوثيق العقد</button>
+      
+      <button class="btn-primary" onclick="saveContract()" style="width:100%; padding:15px; font-size:16px; margin-top:20px; margin-bottom:50px; border-radius:12px; box-shadow: 0 4px 15px rgba(26, 77, 138, 0.3);">حفظ وتوثيق العقد</button>
     </div>
 
     <!-- سجل الوثائق النشطة -->
@@ -334,7 +380,6 @@
         <td style="color:#666; letter-spacing:1px;">${formatDisplayDate(c.divorce_date)}</td>
         <td>
           <div class="actions-flex">
-            <!-- استدعاء دالة الحذف النهائي بالنافذة المنبثقة -->
             <button title="حذف نهائي" class="icon-btn icon-delete" onclick="openDeleteModal('${c.code}')">${svgDelete}</button>
             <button title="استرجاع الوثيقة" class="icon-btn icon-restore" onclick="restoreContract('${c.code}')">${svgRestore}</button>
             <button title="عرض" class="icon-btn icon-view" onclick="window.open('./print-divorce.html?code=${c.code}')">${svgView}</button>
@@ -369,6 +414,8 @@
       
       document.getElementById('w1NameAr').value = c.w1_name_ar || ''; document.getElementById('w1NameDe').value = c.w1_name_de || ''; document.getElementById('w1Birth').value = toInputDate(c.w1_birth); document.getElementById('w1Id').value = c.w1_id || ''; document.getElementById('w1Address').value = c.w1_address || '';
       document.getElementById('w2NameAr').value = c.w2_name_ar || ''; document.getElementById('w2NameDe').value = c.w2_name_de || ''; document.getElementById('w2Birth').value = toInputDate(c.w2_birth); document.getElementById('w2Id').value = c.w2_id || ''; document.getElementById('w2Address').value = c.w2_address || '';
+      
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
 
@@ -384,16 +431,13 @@
     loadDeletedContracts();
   }
 
-  // ==========================================
-  // نظام الحذف النهائي عبر النافذة المنبثقة والكود
-  // ==========================================
   let contractToHardDelete = null;
 
   function openDeleteModal(code) {
     contractToHardDelete = code;
     document.getElementById('deleteCodeInput').value = '';
     document.getElementById('deleteConfirmModal').classList.remove('hidden');
-    document.getElementById('deleteCodeInput').focus();
+    setTimeout(() => document.getElementById('deleteCodeInput').focus(), 100);
   }
 
   function closeDeleteModal() {
@@ -403,13 +447,10 @@
 
   async function executeHardDelete() {
     const inputCode = document.getElementById('deleteCodeInput').value;
-    
-    // التحقق من أن الكود المدخل هو 4321
     if (inputCode !== '4321') {
-      alert('. كود التأكيد غير صحيح !');
+      alert('كود التأكيد غير صحيح! يرجى إدخال 4321 لإتمام الحذف.');
       return;
     }
-
     if (contractToHardDelete) {
       await fetch('/api/divorce', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'hard_delete', code:contractToHardDelete, username:'admin', password:pwd}) });
       closeDeleteModal();
