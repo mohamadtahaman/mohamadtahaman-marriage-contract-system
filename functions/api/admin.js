@@ -1,301 +1,322 @@
-/**
- * Arresalah Zentrum Berlin - Admin API (Complete & Full Version)
- * Handles authentication, contracts listing, viewing, updating, dowry text/number handling, and audit logs.
- */
+/* ============================================================
+   Cloudflare Function: POST /api/admin
+   النسخة الكاملة الأصلية المعدلة لتفعيل الحفظ والمهر (نصوص وأرقام)
+============================================================ */
 
-export async function onRequest(context) {
-    const { request, env } = context;
-    const url = new URL(request.url);
-    const method = request.method;
+const PERMISSIONS = {
+  list:            ['admin', 'manager', 'user', 'viewer'],
+  archive:         ['admin', 'manager', 'user', 'viewer'],
+  view:            ['admin', 'manager', 'user', 'viewer'],
+  search:          ['admin', 'manager', 'user', 'viewer'],
+  export:          ['admin', 'manager'],
+  login:           ['all'],
+  delete:          ['admin', 'manager'],
+  generate:        ['admin'],
+  clear_drafts:    ['admin', 'manager'],
+  list_users:      ['admin'],
+  create_user:     ['admin'],
+  delete_user:     ['admin'],
+  change_password: ['admin', 'manager', 'user'],
+  update_party:    ['admin', 'manager'],
+  update_contract: ['admin', 'manager'],
+  get_trash:       ['admin', 'manager'],
+  restore:         ['admin', 'manager'],
+  permanent_delete:['admin'],
+  audit_logs:      ['admin', 'manager']
+};
 
-    // CORS headers
-    const corsHeaders = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Content-Type': 'application/json'
-    };
+export async function onRequestPost(context) {
+  const { request, env } = context;
 
-    if (method === 'OPTIONS') {
-        return new Response(null, { headers: corsHeaders });
-    }
+  let body;
+  try {
+    body = await request.json();
+  } catch (err) {
+    return jsonResponse({ success: false, error: 'invalid_json', message: 'طلب غير صالح' }, 400);
+  }
 
-    try {
-        let body = {};
-        if (method === 'POST' || method === 'PUT') {
-            try {
-                body = await request.json();
-            } catch (e) {
-                body = {};
-            }
-        }
+  const action = (body.action || '').trim();
+  const password = (body.password || '').trim();
+  const username = (body.username || 'admin').trim();
 
-        const action = body.action || url.searchParams.get('action');
+  if (!password) {
+    return jsonResponse({ success: false, error: 'missing_password', message: 'كلمة المرور مطلوبة' }, 401);
+  }
 
-        // ==========================================
-        // 1. ADMIN AUTHENTICATION
-        // ==========================================
-        if (action === 'login') {
-            const { username, password } = body;
-            // Validate credentials against environment variables or default admin settings
-            const adminUser = env.ADMIN_USER || 'admin';
-            const adminPass = env.ADMIN_PASS || 'admin2026';
+  const auth = await authenticate(env, username, password);
 
-            if (username === adminUser && password === adminPass) {
-                return new Response(JSON.stringify({ 
-                    success: true, 
-                    token: 'admin_authenticated_session_token_' + Date.now(),
-                    message: 'تم تسجيل الدخول بنجاح' 
-                }), { headers: corsHeaders });
-            } else {
-                return new Response(JSON.stringify({ 
-                    success: false, 
-                    error: 'اسم المستخدم أو كلمة المرور غير صحيحة' 
-                }), { status: 401, headers: corsHeaders });
-            }
-        }
+  if (!auth.success) {
+    return jsonResponse({ success: false, error: auth.error, message: 'بيانات الدخول غير صحيحة' }, 401);
+  }
 
-        // ==========================================
-        // 2. LIST ALL CONTRACTS
-        // ==========================================
-        if (action === 'list_contracts' || (method === 'GET' && !url.searchParams.get('code'))) {
-            if (!env.DB) {
-                return new Response(JSON.stringify({ success: false, error: 'Database not bound' }), { status: 500, headers: corsHeaders });
-            }
+  const userRole = auth.role;
 
-            const contractsResult = await env.DB.prepare(`
-                SELECT c.id, c.code, c.contract_date, c.status, c.created_at, c.updated_at,
-                       p_groom.name_ar as groom_name_ar, p_groom.name_de as groom_name_de,
-                       p_bride.name_ar as bride_name_ar, p_bride.name_de as bride_name_de
-                FROM contracts c
-                LEFT JOIN parties p_groom ON c.id = p_groom.contract_id AND p_groom.role = 'groom'
-                LEFT JOIN parties p_bride ON c.id = p_bride.contract_id AND p_bride.role = 'bride'
-                ORDER BY c.created_at DESC
-            `).all();
+  // تسجيل الدخول الفعلي في سجلات التدقيق
+  if (action === 'login') {
+    await logAudit(env, auth.userId, username, 'login', 'تسجيل دخول ناجح للمستخدم');
+    return jsonResponse({
+      success: true,
+      user: { id: auth.userId, username: auth.username, role: auth.role },
+    }, 200);
+  }
 
-            return new Response(JSON.stringify({ 
-                success: true, 
-                contracts: contractsResult.results || [] 
-            }), { headers: corsHeaders });
-        }
+  const allowedRoles = PERMISSIONS[action] || [];
 
-        // ==========================================
-        // 3. VIEW SINGLE CONTRACT DETAILS
-        // ==========================================
-        if (action === 'view') {
-            const code = body.code || url.searchParams.get('code');
-            if (!code) {
-                return new Response(JSON.stringify({ success: false, error: 'Code is required' }), { status: 400, headers: corsHeaders });
-            }
+  if (!allowedRoles.includes('all') && !allowedRoles.includes(userRole)) {
+    return jsonResponse({ success: false, error: 'forbidden', message: 'ليس لديك صلاحية لهذا الإجراء' }, 403);
+  }
 
-            if (!env.DB) {
-                return new Response(JSON.stringify({ success: false, error: 'Database not bound' }), { status: 500, headers: corsHeaders });
-            }
-
-            const cRow = await env.DB.prepare(`SELECT * FROM contracts WHERE code = ?`).bind(code).first();
-            if (!cRow) {
-                return new Response(JSON.stringify({ success: false, error: 'Contract not found' }), { status: 404, headers: corsHeaders });
-            }
-
-            let contract = {
-                id: cRow.id,
-                code: cRow.code,
-                contractDate: cRow.contract_date,
-                status: cRow.status,
-                createdAt: cRow.created_at,
-                updatedAt: cRow.updated_at,
-                parties: {},
-                dowry: {}
-            };
-
-            // Fetch Parties
-            const pRows = await env.DB.prepare(`SELECT * FROM parties WHERE contract_id = ?`).bind(cRow.id).all();
-            if (pRows && pRows.results) {
-                pRows.results.forEach(p => {
-                    contract.parties[p.role] = {
-                        nameDe: p.name_de,
-                        nameAr: p.name_ar,
-                        birthDay: p.birth_day,
-                        birthMonth: p.birth_month,
-                        birthYear: p.birth_year,
-                        birthCountry: p.birth_country,
-                        birthRegion: p.birth_region,
-                        idType: p.id_type,
-                        idNumber: p.id_number,
-                        addressNumber: p.address_number,
-                        addressStreet: p.address_street,
-                        postalCode: p.postal_code,
-                        city: p.city,
-                        motherNameDe: p.mother_name_de,
-                        motherNameAr: p.mother_name_ar
-                    };
-                });
-            }
-
-            // Fetch Dowry (Supports both Text and Numbers)
-            const dRow = await env.DB.prepare(`SELECT * FROM dowries WHERE contract_id = ?`).bind(cRow.id).first();
-            if (dRow) {
-                contract.dowry = {
-                    amountAdvance: dRow.amount_advance,   // TEXT column
-                    amountDeferred: dRow.amount_deferred, // TEXT column
-                    notes: dRow.notes
-                };
-            }
-
-            return new Response(JSON.stringify({ success: true, contract }), { headers: corsHeaders });
-        }
-
-        // ==========================================
-        // 4. UPDATE CONTRACT (FIXED: SAVE AFTER EDIT & TEXT DOWRY)
-        // ==========================================
-        if (action === 'update_contract') {
-            const { code, contractDate, status, parties, dowry } = body;
-
-            if (!code) {
-                return new Response(JSON.stringify({ success: false, error: 'Contract code is required for update' }), { status: 400, headers: corsHeaders });
-            }
-
-            if (!env.DB) {
-                return new Response(JSON.stringify({ success: false, error: 'Database not bound' }), { status: 500, headers: corsHeaders });
-            }
-
-            // Update main contract table
-            await env.DB.prepare(`
-                INSERT INTO contracts (code, contract_date, status, updated_at) 
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP) 
-                ON CONFLICT(code) DO UPDATE SET 
-                    contract_date = ?, 
-                    status = ?, 
-                    updated_at = CURRENT_TIMESTAMP
-            `).bind(code, contractDate || null, status || 'draft', contractDate || null, status || 'draft').run();
-
-            const contractRow = await env.DB.prepare(`SELECT id FROM contracts WHERE code = ?`).bind(code).first();
-            if (!contractRow) {
-                return new Response(JSON.stringify({ success: false, error: 'Failed to retrieve contract ID after update' }), { status: 500, headers: corsHeaders });
-            }
-
-            const contractId = contractRow.id;
-
-            // Update Parties (Groom, Bride, Wali, Witness1, Witness2)
-            if (parties && typeof parties === 'object') {
-                for (const [role, pData] of Object.entries(parties)) {
-                    if (!pData) continue;
-                    await env.DB.prepare(`
-                        INSERT INTO parties (
-                            contract_id, role, name_de, name_ar, birth_day, birth_month, birth_year, 
-                            birth_country, birth_region, id_type, id_number, address_number, 
-                            address_street, postal_code, city, mother_name_de, mother_name_ar
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        ON CONFLICT(contract_id, role) DO UPDATE SET
-                            name_de = ?, name_ar = ?, birth_day = ?, birth_month = ?, birth_year = ?, 
-                            birth_country = ?, birth_region = ?, id_type = ?, id_number = ?, address_number = ?, 
-                            address_street = ?, postal_code = ?, city = ?, mother_name_de = ?, mother_name_ar = ?
-                    `).bind(
-                        contractId, role, 
-                        pData.nameDe || '', pData.nameAr || '', pData.birthDay || '', pData.birthMonth || '', pData.birthYear || '', 
-                        pData.birthCountry || '', pData.birthRegion || '', pData.idType || '', pData.idNumber || '', pData.addressNumber || '', 
-                        pData.addressStreet || '', pData.postalCode || '', pData.city || '', pData.motherNameDe || '', pData.motherNameAr || '',
-                        // Update values
-                        pData.nameDe || '', pData.nameAr || '', pData.birthDay || '', pData.birthMonth || '', pData.birthYear || '', 
-                        pData.birthCountry || '', pData.birthRegion || '', pData.idType || '', pData.idNumber || '', pData.addressNumber || '', 
-                        pData.addressStreet || '', pData.postalCode || '', pData.city || '', pData.motherNameDe || '', pData.motherNameAr || ''
-                    ).run();
-                }
-            }
-
-            // Update Dowry (Accepts Text and Numbers freely in TEXT columns)
-            if (dowry && typeof dowry === 'object') {
-                await env.DB.prepare(`
-                    INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes)
-                    VALUES (?, ?, ?, ?)
-                    ON CONFLICT(contract_id) DO UPDATE SET
-                        amount_advance = ?, 
-                        amount_deferred = ?, 
-                        notes = ?
-                `).bind(
-                    contractId, 
-                    dowry.amountAdvance || '', 
-                    dowry.amountDeferred || '', 
-                    dowry.notes || '',
-                    dowry.amountAdvance || '', 
-                    dowry.amountDeferred || '', 
-                    dowry.notes || ''
-                ).run();
-            }
-
-            // Also sync with KV if available
-            if (env.CONTRACT_KV) {
-                await env.CONTRACT_KV.put(`contract_${code}_date`, contractDate || '');
-                if (dowry) {
-                    await env.CONTRACT_KV.put(`contract_${code}_dowry`, JSON.stringify(dowry));
-                }
-            }
-
-            // Log audit event if table exists
-            try {
-                await env.DB.prepare(`
-                    INSERT INTO audit_log (action_type, details, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)
-                `).bind('UPDATE_CONTRACT', `Contract updated successfully for code: ${code}`).run();
-            } catch (auditErr) {
-                // Ignore audit table errors if table not created yet
-            }
-
-            return new Response(JSON.stringify({ 
-                success: true, 
-                message: 'تم حفظ التعديلات بنجاح في قاعدة البيانات' 
-            }), { headers: corsHeaders });
-        }
-
-        // ==========================================
-        // 5. DELETE CONTRACT
-        // ==========================================
-        if (action === 'delete_contract') {
-            const { code } = body;
-            if (!code) {
-                return new Response(JSON.stringify({ success: false, error: 'Code is required' }), { status: 400, headers: corsHeaders });
-            }
-
-            if (!env.DB) {
-                return new Response(JSON.stringify({ success: false, error: 'Database not bound' }), { status: 500, headers: corsHeaders });
-            }
-
-            const cRow = await env.DB.prepare(`SELECT id FROM contracts WHERE code = ?`).bind(code).first();
-            if (cRow) {
-                await env.DB.prepare(`DELETE FROM parties WHERE contract_id = ?`).bind(cRow.id).run();
-                await env.DB.prepare(`DELETE FROM dowries WHERE contract_id = ?`).bind(cRow.id).run();
-                await env.DB.prepare(`DELETE FROM contracts WHERE id = ?`).bind(cRow.id).run();
-            }
-
-            return new Response(JSON.stringify({ success: true, message: 'تم حذف العقد بنجاح' }), { headers: corsHeaders });
-        }
-
-        // ==========================================
-        // 6. SYSTEM STATS & AUDIT LOGS
-        // ==========================================
-        if (action === 'stats') {
-            if (!env.DB) {
-                return new Response(JSON.stringify({ success: false, error: 'Database not bound' }), { status: 500, headers: corsHeaders });
-            }
-
-            const countResult = await env.DB.prepare(`SELECT COUNT(*) as total FROM contracts`).first();
-            const draftResult = await env.DB.prepare(`SELECT COUNT(*) as draft FROM contracts WHERE status = 'draft'`).first();
-
-            return new Response(JSON.stringify({
-                success: true,
-                stats: {
-                    totalContracts: countResult ? countResult.total : 0,
-                    draftContracts: draftResult ? draftResult.draft : 0
-                }
-            }), { headers: corsHeaders });
-        }
-
-        return new Response(JSON.stringify({ success: false, error: 'Invalid or unknown action requested' }), { status: 400, headers: corsHeaders });
-
-    } catch (err) {
-        return new Response(JSON.stringify({ 
-            success: false, 
-            error: 'Server Exception: ' + err.message,
-            stack: err.stack 
-        }), { status: 500, headers: corsHeaders });
-    }
+  let result;
+  switch (action) {
+    case 'list':             result = await handleList(env); break;
+    case 'archive':          result = await handleArchive(env); break;
+    case 'generate':         
+      result = await handleGenerate(env); 
+      await logAudit(env, auth.userId, username, 'generate', 'توليد 5 أكواد جديدة');
+      break;
+    case 'delete':           
+      result = await handleDelete(env, body.code); 
+      await logAudit(env, auth.userId, username, 'delete', `نقل العقد ${body.code} إلى المحذوفات`);
+      break;
+    case 'view':             result = await handleView(env, body.code); break;
+    case 'search':           result = await handleSearch(env, body.query); break;
+    case 'clear_drafts':     
+      result = await handleClearDrafts(env, body.code, body.all); 
+      await logAudit(env, auth.userId, username, 'clear_all_drafts', body.all ? 'مسح جميع المسودات' : `مسح مسودات العقد ${body.code}`);
+      break;
+    case 'change_password':  
+      result = await handleChangePassword(env, auth, body); 
+      await logAudit(env, auth.userId, username, 'change_password', 'تغيير كلمة المرور');
+      break;
+    case 'list_users':       result = await handleListUsers(env); break;
+    case 'create_user':      
+      result = await handleCreateUser(env, body); 
+      await logAudit(env, auth.userId, username, 'create_user', `إنشاء مستخدم جديد: ${body.user_username}`);
+      break;
+    case 'delete_user':      
+      result = await handleDeleteUser(env, body); 
+      await logAudit(env, auth.userId, username, 'delete_user', `حذف المستخدم رقم: ${body.user_id}`);
+      break;
+    case 'export':           
+      result = await handleExport(env); 
+      await logAudit(env, auth.userId, username, 'export', 'تصدير نسخة احتياطية');
+      break;
+    case 'update_party':     result = await handleUpdateParty(env, body, auth); break;
+    case 'update_contract':  
+      result = await handleUpdateContract(env, body, auth); 
+      await logAudit(env, auth.userId, username, 'update_contract', `تعديل وحفظ العقد رقم: ${body.code}`);
+      break;
+    
+    // المحذوفات والسجلات
+    case 'get_trash':        result = await handleGetTrash(env); break;
+    case 'restore':          
+      result = await handleRestore(env, body.code); 
+      await logAudit(env, auth.userId, username, 'restore', `استرجاع العقد ${body.code}`);
+      break;
+    case 'permanent_delete': 
+      result = await handlePermanentDelete(env, body.code); 
+      await logAudit(env, auth.userId, username, 'permanent_delete', `حذف نهائي للعقد ${body.code}`);
+      break;
+    case 'audit_logs':       result = await handleAuditLogs(env); break;
+    default:
+      return jsonResponse({ success: false, error: 'unknown_action', message: 'إجراء غير معروف' }, 400);
+  }
+  return result;
 }
+
+/* ============================================================
+   دالة تسجيل التدقيق المخصصة (بدون تكرار)
+============================================================ */
+async function logAudit(env, userId, username, action, details) {
+  try {
+    const timestamp = Math.floor(Date.now() / 1000);
+    await env.DB.prepare(
+      'INSERT INTO audit_log (user_id, username, action, details, timestamp) VALUES (?, ?, ?, ?, ?)'
+    ).bind(userId || null, username || 'admin', action, details, timestamp).run();
+  } catch (e) {}
+}
+
+/* ============================================================
+   Authentication Core
+============================================================ */
+async function authenticate(env, username, password) {
+  username = username.toLowerCase();
+  try {
+    const user = await env.DB.prepare('SELECT id, username, password_hash, role, is_active FROM users WHERE username = ?').bind(username).first();
+    if (user) {
+      if (!user.is_active) return { success: false, error: 'inactive' };
+      if (user.password_hash !== password) return { success: false, error: 'wrong_password' };
+      try { await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?').bind(Math.floor(Date.now() / 1000), user.id).run(); } catch (e) {}
+      return { success: true, userId: user.id, username: user.username, role: user.role };
+    }
+  } catch (e) {}
+
+  if (username === 'admin' && password === env.ADMIN_PASSWORD) {
+    return { success: true, userId: null, username: 'admin', role: 'admin' };
+  }
+  return { success: false, error: 'not_found' };
+}
+
+/* ============================================================
+   الدوال الأساسية
+============================================================ */
+async function handleList(env) {
+  try {
+    const codesRaw = await env.CONTRACT_KV.get('codes');
+    const codes = codesRaw ? JSON.parse(codesRaw) : [];
+    const contracts = [];
+
+    for (const code of codes) {
+      let contractRow = null;
+      try {
+        contractRow = await env.DB.prepare("SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ? AND status != 'deleted'").bind(code).first();
+      } catch (e) {}
+
+      const partySummary = {};
+      const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
+
+      if (contractRow) {
+        try {
+          const parties = await env.DB.prepare('SELECT role, name_de, name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?').bind(contractRow.id).all();
+          for (const p of parties.results || []) {
+            partySummary[p.role] = { nameDe: p.name_de || '—', nameAr: p.name_ar || '—', waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center };
+          }
+        } catch (e) {}
+      } else {
+        for (const key of partyKeys) {
+          const partyRaw = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
+          if (partyRaw) {
+            try {
+              const party = JSON.parse(partyRaw);
+              partySummary[key] = { nameDe: party.nameDe || '—', nameAr: party.nameAr || '—', waliIsBride: !!party.waliIsBride, witnessIsCenter: !!party.witnessIsCenter };
+            } catch (e) { partySummary[key] = null; }
+          } else { partySummary[key] = null; }
+        }
+      }
+      const savedCount = partyKeys.filter(k => partySummary[k] !== null && partySummary[k] !== undefined).length;
+      contracts.push({
+        code: code, finished: contractRow ? contractRow.status === 'sent' : false, inD1: !!contractRow,
+        contractDate: contractRow ? contractRow.contract_date : null, savedCount: savedCount, parties: partySummary,
+      });
+    }
+    return jsonResponse({ success: true, codes: codes, contracts: contracts }, 200);
+  } catch (err) { return jsonResponse({ success: false, error: 'kv_error', message: 'فشل القراءة' }, 500); }
+}
+
+async function handleArchive(env) {
+  try {
+    const contracts = await env.DB.prepare("SELECT id, code, contract_date, status, sent_at, created_at FROM contracts WHERE status != 'deleted' ORDER BY id DESC").all();
+    const result = [];
+    for (const c of contracts.results || []) {
+      const parties = await env.DB.prepare('SELECT role, name_de, name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?').bind(c.id).all();
+      const partySummary = {};
+      for (const p of parties.results || []) {
+        partySummary[p.role] = { nameDe: p.name_de || '—', nameAr: p.name_ar || '—', waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center };
+      }
+      result.push({
+        id: c.id, code: c.code, finished: c.status === 'sent', inD1: true,
+        contractDate: c.contract_date, sentAt: c.sent_at || c.created_at || 0, createdAt: c.created_at || 0, parties: partySummary,
+      });
+    }
+    return jsonResponse({ success: true, contracts: result }, 200);
+  } catch (err) { return jsonResponse({ success: false, error: 'db_error', message: 'فشل القراءة' }, 500); }
+}
+
+async function handleView(env, code) {
+  if (!code || !/^[A-Z0-9]{6}$/.test(code)) return jsonResponse({ success: false, error: 'invalid_code' }, 400);
+  try {
+    const contract = { code: code, finished: false, finishedAt: null, contractDate: null, parties: {}, dowry: {} };
+    const contractRow = await env.DB.prepare('SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?').bind(code).first();
+    if (contractRow) {
+      contract.finished = contractRow.status === 'sent';
+      contract.contractDate = contractRow.contract_date;
+      if (contractRow.sent_at) contract.finishedAt = new Date(contractRow.sent_at * 1000).toISOString();
+      const parties = await env.DB.prepare(`SELECT role, name_de, name_ar, birth_day, birth_month, birth_year, birth_country, birth_region, id_type, id_number, address_number, address_street, postal_code, city, mother_name_de, mother_name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?`).bind(contractRow.id).all();
+      for (const p of parties.results || []) {
+        contract.parties[p.role] = { nameDe: p.name_de, nameAr: p.name_ar, birthDay: p.birth_day, birthMonth: p.birth_month, birthYear: p.birth_year, birthCountry: p.birth_country, birthRegion: p.birth_region, idType: p.id_type, idNumber: p.id_number, addressNumber: p.address_number, addressStreet: p.address_street, postalCode: p.postal_code, city: p.city, motherNameDe: p.mother_name_de, motherNameAr: p.mother_name_ar, waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center };
+      }
+      const dowry = await env.DB.prepare('SELECT amount_advance, amount_deferred, notes FROM dowries WHERE contract_id = ?').bind(contractRow.id).first();
+      if (dowry) {
+        contract.dowry = {
+          amountAdvance: dowry.amount_advance || '',
+          amountDeferred: dowry.amount_deferred || '',
+          notes: dowry.notes || ''
+        };
+      }
+    } else {
+      const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
+      for (const r of roles) {
+        const raw = await env.CONTRACT_KV.get(`contract_${code}_${r}`);
+        if (raw) { try { contract.parties[r] = JSON.parse(raw); } catch (e) {} }
+      }
+    }
+    return jsonResponse({ success: true, contract }, 200);
+  } catch (err) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
+}
+
+/* ============================================================
+   تعديل وحفظ العقد ودعم المهر (نصوص وأرقام)
+============================================================ */
+async function handleUpdateContract(env, body, auth) {
+  const { code, contractDate, status, parties, dowry } = body;
+  if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
+    return jsonResponse({ success: false, error: 'invalid_code', message: 'كود غير صالح' }, 400);
+  }
+
+  try {
+    let contractRow = await env.DB.prepare('SELECT id FROM contracts WHERE code = ?').bind(code).first();
+    let contractId;
+
+    if (contractRow) {
+      contractId = contractRow.id;
+      await env.DB.prepare(`
+        UPDATE contracts SET contract_date = ?, status = COALESCE(?, status), updated_at = ? WHERE id = ?
+      `).bind(contractDate || null, status || null, Math.floor(Date.now() / 1000), contractId).run();
+    } else {
+      const insertRes = await env.DB.prepare(`
+        INSERT INTO contracts (code, contract_date, status, created_at) VALUES (?, ?, ?, ?)
+      `).bind(code, contractDate || null, status || 'sent', Math.floor(Date.now() / 1000)).run();
+      contractId = insertRes.meta.last_row_id;
+    }
+
+    // تحديث أو إدخال بيانات الأطراف (Parties)
+    if (parties && typeof parties === 'object') {
+      for (const [role, pData] of Object.entries(parties)) {
+        if (!pData) continue;
+        const existingParty = await env.DB.prepare('SELECT id FROM parties WHERE contract_id = ? AND role = ?').bind(contractId, role).first();
+        
+        if (existingParty) {
+          await env.DB.prepare(`
+            UPDATE parties SET 
+              name_de = ?, name_ar = ?, birth_day = ?, birth_month = ?, birth_year = ?, 
+              birth_country = ?, birth_region = ?, id_type = ?, id_number = ?, 
+              address_number = ?, address_street = ?, postal_code = ?, city = ?, 
+              mother_name_de = ?, mother_name_ar = ?
+            WHERE contract_id = ? AND role = ?
+          `).bind(
+            pData.nameDe || '', pData.nameAr || '', pData.birthDay || '', pData.birthMonth || '', pData.birthYear || '',
+            pData.birthCountry || '', pData.birthRegion || '', pData.idType || '', pData.idNumber || '',
+            pData.addressNumber || '', pData.addressStreet || '', pData.postalCode || '', pData.city || '',
+            pData.motherNameDe || '', pData.motherNameAr || '',
+            contractId, role
+          ).run();
+        } else {
+          await env.DB.prepare(`
+            INSERT INTO parties (
+              contract_id, role, name_de, name_ar, birth_day, birth_month, birth_year, 
+              birth_country, birth_region, id_type, id_number, address_number, 
+              address_street, postal_code, city, mother_name_de, mother_name_ar
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(
+            contractId, role,
+            pData.nameDe || '', pData.nameAr || '', pData.birthDay || '', pData.birthMonth || '', pData.birthYear || '',
+            pData.birthCountry || '', pData.birthRegion || '', pData.idType || '', pData.idNumber || '',
+            pData.addressNumber || '', pData.addressStreet || '', pData.postalCode || '', pData.city || '',
+            pData.motherNameDe || '', pData.motherNameAr || ''
+          ).run();
+        }
+      }
+    }
+
+    // تحديث أو إدخال بيانات المهر (Dowry) - تقبل النصوص والأرقام كـ String
+    if (dowry && typeof dowry ===
