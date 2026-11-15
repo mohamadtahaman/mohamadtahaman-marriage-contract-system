@@ -46,7 +46,41 @@
     text-align: right;
     direction: rtl;
   }
+<style>
+  /* تنسيق صندوق الملاحظات ليكون مضبوطاً داخل حدود العقد ومنضبطاً لليمين */
+  .notes-full-row {
+    margin: 8px 0;
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1.5px solid #1a4d8a;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+    direction: rtl;
+    text-align: right;
+  }
+  .notes-full-row .wd-label {
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: #1a4d8a;
+    border-bottom: 1px dashed #1a4d8a;
+    padding-bottom: 4px;
+  }
+  .notes-full-row .wd-value {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    line-height: 22px;
+    color: #222222;
+    text-align: right;
+    direction: rtl;
+    display: block;
+  }
 </style>
+
 </head>
 <body>
 
