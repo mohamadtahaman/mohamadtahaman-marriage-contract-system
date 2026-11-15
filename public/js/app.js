@@ -574,21 +574,21 @@ function buildPartyForm(def, p) {
   if (groom) {
     html += `
       <div class="dowry-box">
-        <div class="dowry-box-title">${t('dowryTitle')}</div>
+        <div class="dowry-box-title">تفاصيل المهر (Brautgabe)</div>
         <div class="dowry-fields">
           <div class="field">
-            <label>${t('dowryAdvance')}</label>
-            <input type="text"
-                   data-k="dowryAdvance" value="${esc(p.dowryAdvance)}" placeholder="أدخل المهر المقدم (مثال: خاتم ذهبي)">
+            <label>المهر المقدم</label>
+            <input type="text" inputmode="text" autocomplete="off" spellcheck="false"
+                   data-k="dowryAdvance" value="${esc(p.dowryAdvance)}" placeholder="مثال: خاتم ذهبي">
           </div>
           <div class="field">
-            <label>${t('dowryDeferred')}</label>
-            <input type="text"
-                   data-k="dowryDeferred" value="${esc(p.dowryDeferred)}" placeholder="أدخل المهر المؤخر">
+            <label>المهر المؤخر</label>
+            <input type="text" inputmode="text" autocomplete="off" spellcheck="false"
+                   data-k="dowryDeferred" value="${esc(p.dowryDeferred)}" placeholder="مثال: مبلغ مؤجل أو هدايا">
           </div>
           <div class="field field-full">
-            <label>${t('dowryNotes')}</label>
-            <textarea data-k="dowryNotes" maxlength="250" id="dowryNotesInput" placeholder="${t('dowryNotesPH')}">${esc(p.dowryNotes)}</textarea>
+            <label>ملاحظات المهر (Bemerkungen) <small style="color:#666; font-weight:normal;">(حد أقصى 250 حرفاً)</small></label>
+            <textarea data-k="dowryNotes" maxlength="250" id="dowryNotesInput" placeholder="اكتب شروط أو تفاصيل المهر هنا..." style="font-family: inherit; font-size: 14px; line-height: 1.5; padding: 10px; width: 100%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; resize: vertical; min-height: 80px;">${esc(p.dowryNotes)}</textarea>
             <div style="text-align: left; font-size: 12px; color: #666; margin-top: 4px;">
               <span id="charCount">${notesLength}</span> / 250 حرفاً
             </div>
