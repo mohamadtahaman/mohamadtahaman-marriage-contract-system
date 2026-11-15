@@ -11,7 +11,7 @@ const printState = {
   code: null,
   contract: null,
   logoPath: './imeges/logo.webp',
-  logoFallback: './imeges/logo.png',
+  logoFallback: './imeges/logo1.png',
 };
 
 /* ============================================================
