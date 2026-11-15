@@ -7,79 +7,30 @@
 <title>شهادة عقد زواج - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/print.css?v=1">
-<style>
-  /* تنسيق صندوق الملاحظات ليطابق حدود المربع الأخضر والخطوط المسطرة بدقة */
-  .notes-full-row {
-    margin: 6px 0;
-    padding: 8px 12px;
-    background: #fff;
-    border: 1.5px solid #1a4d8a;
-    border-radius: 6px;
+
+ <style>
+  /* إعادة الملاحظات لتكون داخل عمود المهر الأيسر تماماً (داخل حدود المربع الأخضر) */
+  .notes-full-row, .wali-dowry-col .wd-row.notes-box {
+    margin-top: 6px;
+    padding: 4px 6px;
+    background: #fdfdfd;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
     width: 100%;
     box-sizing: border-box;
-    /* خطوط أفقية مسطرة تشبه الخطوط الحمراء داخل المربع الأخضر */
-    background-image: repeating-linear-gradient(
-      transparent,
-      transparent 26px,
-      #e8d0d0 26px,
-      #e8d0d0 27px
-    );
-    background-attachment: local;
   }
-  .notes-full-row .wd-label {
-    font-weight: bold;
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px;
-    font-size: 12px;
-    color: #1a4d8a;
-    border-bottom: 1px dashed #1a4d8a;
-    padding-bottom: 3px;
-    background: #fff; /* عزل العنوان عن الخطوط المسطرة */
-  }
-  .notes-full-row .wd-value {
+  .wd-value {
+    unicode-bidi: plaintext;
+    direction: auto;
+    text-align: right;
     white-space: pre-wrap;
     word-break: break-word;
-    font-size: 12px;
-    line-height: 27px; /* مسافة متطابقة تماماً مع الخطوط المسطرة لتستقر عليها الكتابة */
-    color: #111;
-    text-align: right;
-    direction: rtl;
-  }
-<style>
-  /* تنسيق صندوق الملاحظات ليكون مضبوطاً داخل حدود العقد ومنضبطاً لليمين */
-  .notes-full-row {
-    margin: 8px 0;
-    padding: 8px 12px;
-    background: #ffffff;
-    border: 1.5px solid #1a4d8a;
-    border-radius: 6px;
-    width: 100%;
-    box-sizing: border-box;
-    direction: rtl;
-    text-align: right;
-  }
-  .notes-full-row .wd-label {
-    font-weight: bold;
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 6px;
-    font-size: 12px;
-    color: #1a4d8a;
-    border-bottom: 1px dashed #1a4d8a;
-    padding-bottom: 4px;
-  }
-  .notes-full-row .wd-value {
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-size: 12px;
-    line-height: 22px;
-    color: #222222;
-    text-align: right;
-    direction: rtl;
-    display: block;
+    font-size: 11px;
+    line-height: 1.35;
+    color: #222;
   }
 </style>
+
 
 </head>
 <body>
