@@ -1,10 +1,10 @@
 /* ============================================================
-   Print Contract - JS V16 (Final)
+   Print Contract - JS V17 (Final & Corrected Notes Placement)
    - Husband photo LEFT, Bride photo RIGHT
    - Bigger photos
    - Logo with fallback (webp → png)
    - Wali & Witnesses same as Groom/Bride (no mother)
-   - Dowry: Advance + Deferred + Notes (Full-width row)
+   - Dowry: Advance + Deferred + Notes (Inside left column under deferred dowry)
 ============================================================ */
 
 const printState = {
@@ -287,7 +287,7 @@ function buildCertificate(contract) {
   const groomHasPhoto = hasPhoto(g.photo);
   const brideHasPhoto = hasPhoto(b.photo);
 
-  // دعم النصوص الحرة والأرقام في المهر (مثل خاتم ذهبي)
+  // دعم النصوص الحرة والأرقام في المهر (مثل خاتم ذهبي أو Goldenring)
   function formatDowry(val) {
     if (!hasValue(val)) return '—';
     const s = String(val).trim();
@@ -411,7 +411,7 @@ function buildCertificate(contract) {
           }
         </div>
 
-        <!-- يسار: صفة الولي + المهر -->
+        <!-- يسار: صفة الولي + المهر + الملاحظات (داخل العمود الأيسر تماماً) -->
         <div class="wali-dowry-col">
 
           <div class="wd-row">
@@ -445,21 +445,21 @@ function buildCertificate(contract) {
             </div>
           </div>
 
+          ${hasNotes ? `
+            <div class="notes-column-box">
+              <div class="notes-col-label">
+                <span>Bemerkungen</span>
+                <span class="ar">ملاحظات / شروط</span>
+              </div>
+              <div class="notes-col-text">
+                ${escapeHtml(g.dowryNotes)}
+              </div>
+            </div>
+          ` : ''}
+
         </div>
 
       </div>
-
-      ${hasNotes ? `
-        <div class="notes-full-row">
-          <div class="wd-label">
-            <span class="wd-label-de">Bemerkungen:</span>
-            <span class="wd-label-ar">ملاحظات / شروط</span>
-          </div>
-          <div class="wd-value">
-            <span class="wd-value-ar">${escapeHtml(g.dowryNotes)}</span>
-          </div>
-        </div>
-      ` : ''}
     </div>
 
     <!-- ============ WITNESSES ============ -->
