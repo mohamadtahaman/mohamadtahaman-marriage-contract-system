@@ -4,7 +4,7 @@
    - Bigger photos
    - Logo with fallback (webp → png)
    - Wali & Witnesses same as Groom/Bride (no mother)
-   - Dowry: Advance + Deferred + Notes (hidden if empty)
+   - Dowry: Advance + Deferred + Notes (Full-width row)
 ============================================================ */
 
 const printState = {
@@ -287,16 +287,24 @@ function buildCertificate(contract) {
   const groomHasPhoto = hasPhoto(g.photo);
   const brideHasPhoto = hasPhoto(b.photo);
 
-  const dowryAdvance = hasValue(g.dowryAdvance) ? g.dowryAdvance + ' €' : '—';
-  const dowryDeferred = hasValue(g.dowryDeferred) ? g.dowryDeferred + ' €' : '—';
+  // دعم النصوص الحرة والأرقام في المهر (مثل خاتم ذهبي)
+  function formatDowry(val) {
+    if (!hasValue(val)) return '—';
+    const s = String(val).trim();
+    if (/^\d+(\.\d+)?$/.test(s)) {
+      return s + ' €';
+    }
+    return s;
+  }
+
+  const dowryAdvance = formatDowry(g.dowryAdvance);
+  const dowryDeferred = formatDowry(g.dowryDeferred);
   const hasNotes = hasValue(g.dowryNotes);
 
   const showWaliDetails = !waliIsBride;
 
   return `
     <!-- ============ HEADER ============ -->
-    <!-- في RTL: العنصر الأول = يمين الصفحة = الزوجة -->
-    <!-- في RTL: العنصر الأخير = يسار الصفحة = الزوج -->
     <div class="cert-header">
 
       <!-- يمين: صورة الزوجة -->
@@ -437,21 +445,21 @@ function buildCertificate(contract) {
             </div>
           </div>
 
-          ${hasNotes ? `
-            <div class="wd-row">
-              <div class="wd-label">
-                <span class="wd-label-de">Bemerkungen:</span>
-                <span class="wd-label-ar">ملاحظات</span>
-              </div>
-              <div class="wd-value">
-                <span class="wd-value-ar">${escapeHtml(g.dowryNotes)}</span>
-              </div>
-            </div>
-          ` : ''}
-
         </div>
 
       </div>
+
+      ${hasNotes ? `
+        <div class="notes-full-row">
+          <div class="wd-label">
+            <span class="wd-label-de">Bemerkungen:</span>
+            <span class="wd-label-ar">ملاحظات / شروط</span>
+          </div>
+          <div class="wd-value">
+            <span class="wd-value-ar">${escapeHtml(g.dowryNotes)}</span>
+          </div>
+        </div>
+      ` : ''}
     </div>
 
     <!-- ============ WITNESSES ============ -->
