@@ -3,289 +3,95 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>شهادة عقد زواج - Arresalah Zentrum</title>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/print.css">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./css/print.css?v=1">
 <style>
-  /* الترويسة في المنتصف */
+  /* تنسيقات لضمان توافق العرض مع سكريبت الطباعة (print.js) وتجنب ظهور الصفحة فارغة */
   .cert-header { grid-template-columns: 1fr !important; }
   .cert-header-photo { display: none !important; }
-  
-  /* توسيط نصوص الشريط العلوي */
   .cert-info-strip .info-line { justify-content: center !important; }
   
-  /* جعل خانة الملاحظات تأخذ العرض الكامل أفقياً */
-  .notes-full-row {
+  /* جعل خانة الملاحظات تأخذ العرض بالكامل أفقياً */
+  .notes-row, .notes-full-row, [class*="notes"] {
     grid-column: 1 / -1 !important;
     width: 100% !important;
-    display: flex !important;
-    flex-direction: column !important;
-    background: #fdfdfd;
-    padding: 6px 10px;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
-    margin-top: 4px;
-  }
-  .notes-full-row .wd-label {
-    font-weight: bold;
-    margin-bottom: 2px;
-    display: flex;
-    justify-content: space-between;
-  }
-  .notes-full-row .wd-value {
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-size: 13px;
-    line-height: 1.4;
-    color: #222;
   }
 
-  @media screen {
-    .cert-wrap-screen { margin-top: 70px; }
-  }
-  
-  /* أوامر الطباعة الصارمة لمنع الصفحة الثانية وضمان ظهور المساحة السفلية بالكامل */
   @media print {
     @page { size: A4 portrait; margin: 0; }
-    
-    html, body { 
-      background: #fff; 
-      margin: 0 !important; 
-      padding: 0 !important; 
+    html, body {
+      background: #fff;
+      margin: 0 !important;
+      padding: 0 !important;
       width: 210mm !important;
       height: 297mm !important;
-      overflow: hidden !important; 
+      overflow: hidden !important;
     }
-    
     .toolbar { display: none !important; }
-    
-    .cert-wrap-screen { 
-      margin: 0 !important; 
-      padding: 5mm !important; 
+    .certificate-wrap, .cert-wrap-screen {
+      margin: 0 !important;
+      padding: 4mm !important;
       width: 100% !important;
       height: 100% !important;
       box-sizing: border-box !important;
     }
-    
-    .certificate { 
-      border: 3px solid #1a4d8a !important; 
-      padding: 6px !important; 
-      height: 100% !important; 
-      box-sizing: border-box !important; 
-      overflow: hidden !important; 
+    .certificate {
+      border: 3px solid #1a4d8a !important;
+      padding: 6px !important;
+      height: 100% !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
     }
-    
-    .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures { margin-bottom: 3px !important; }
-    .cv-row { padding: 1px 0 !important; }
-    .cert-footer { min-height: 95px !important; padding-top: 2px !important; }
   }
 </style>
 </head>
 <body>
 
-<div id="toolbar" class="toolbar">
-  <button onclick="printDoc()" class="btn-print">🖨 طباعة (تصدير PDF)</button>
-  <span class="toolbar-code" style="color:#fff;">رقم الوثيقة: <strong id="toolbarCode">—</strong></span>
+<!-- شاشة التحميل -->
+<div id="loadingScreen" class="loading-screen">
+  <div class="spinner"></div>
+  <p>جارٍ تحضير الشهادة للطباعة...</p>
 </div>
 
-<div class="certificate-wrap cert-wrap-screen">
-  <div class="certificate">
-    <!-- الترويسة -->
-    <div class="cert-header">
-      <div class="cert-header-center">
-        <div class="cert-logo"><img src="./imeges/logo.webp" onerror="this.src='./imeges/logo.png';"></div>
-        <div class="cert-header-title-de">Islamische Heiratsurkunde</div>
-        <div class="cert-header-title-ar">شهادة عقد زواج إسلامي</div>
-      </div>
-    </div>
-
-    <!-- الشريط العلوي -->
-    <div class="cert-info-strip">
-      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Turmstraße 83, 10551 Berlin</span><span class="label-ar">عنوان المركز</span></div></div>
-      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Art der Eheschließung</span><span class="label-ar">نوع العقد</span><span class="value" id="contractType">رسمي</span></div></div>
-      <div class="cert-info-cell"><div class="info-line"><span class="label-de">Datum der Eheschließung</span><span class="label-ar">التاريخ</span><span class="value" id="contractDate">—</span></div></div>
-    </div>
-
-    <!-- الزوج والزوجة -->
-    <div class="cert-two-cols">
-      <!-- يمين: الزوجة -->
-      <div class="cert-col">
-        <div class="cert-col-title"><span>Ehefrau</span><span class="ar">الزوجة</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="bNameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="bNameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="bBirth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Ihre Mutter</span><span class="cv-label-ar">اسم الأم</span></div><div class="v-value" id="bMotherDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">اسم الأم</span></div><div class="v-value v-ar" id="bMotherAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="bId">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="bAddress">—</div></div>
-      </div>
-      <!-- يسار: الزوج -->
-      <div class="cert-col">
-        <div class="cert-col-title"><span>Ehemann</span><span class="ar">الزوج</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="gNameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="gNameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="gBirth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Seine Mutter</span><span class="cv-label-ar">اسم الأم</span></div><div class="v-value" id="gMotherDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">اسم الأم</span></div><div class="v-value v-ar" id="gMotherAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">رقم الهوية</span></div><div class="v-value" id="gId">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="gAddress">—</div></div>
-      </div>
-    </div>
-
-    <!-- الولي والمهر (مع دعم النصوص الطويلة للمهر) -->
-    <div class="cert-wali-dowry">
-      <div class="wali-dowry-grid">
-        <!-- يمين: الولي -->
-        <div class="wali-dowry-col">
-          <div class="col-subsection-title-light">بيانات الولي</div>
-          <div id="waliCompact" style="display:none;">
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Der Wali</span><span class="cv-label-ar">صلة القرابة</span></div><div class="v-value v-ar">الزوجة نفسها / Sie selbst</div></div>
-          </div>
-          <div id="waliFull">
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name Der Wali</span><span class="cv-label-ar">اسم الولي</span></div><div class="v-value" id="wNameDe">—</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="wNameAr">—</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Status</span><span class="cv-label-ar">صلة القرابة</span></div><div class="v-value" id="wRel">—</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="wBirth">—</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="wId">—</div></div>
-            <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="wAddress">—</div></div>
-          </div>
-        </div>
-        <!-- يسار: المهر (يقبل النصوص الطويلة مثل خاتم ذهبي) -->
-        <div class="wali-dowry-col">
-          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Brautgabe - Vorauszahlung:</span><span class="wd-label-ar">المهر المقدم</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dPrompt">—</span></div></div>
-          <div class="wd-row"><div class="wd-label"><span class="wd-label-de">Brautgabe - Aufgeschoben:</span><span class="wd-label-ar">المؤخر</span></div><div class="wd-value wd-gold"><span class="wd-value-de" id="dDeferred">—</span></div></div>
-          
-          <!-- الملاحظات بعرض كامل أفقياً -->
-          <div class="notes-full-row" id="notesRow" style="display:none;">
-            <div class="wd-label"><span class="wd-label-de">Bemerkungen:</span><span class="wd-label-ar">ملاحظات / شروط</span></div>
-            <div class="wd-value" id="dNotes"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- الشهود -->
-    <div class="cert-witness-box">
-      <!-- يمين: الشاهد الأول -->
-      <div class="cert-witness-col">
-        <div class="cert-witness-title"><span>Zeuge 1</span><span class="ar">الشاهد الأول</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w1NameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="w1NameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="w1Birth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="w1Id">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="w1Address">—</div></div>
-      </div>
-      <!-- يسار: الشاهد الثاني -->
-      <div class="cert-witness-col">
-        <div class="cert-witness-title"><span>Zeuge 2</span><span class="ar">الشاهد الثاني</span></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Name</span></div><div class="v-value" id="w2NameDe">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-ar">الاسم</span></div><div class="v-value v-ar" id="w2NameAr">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Geburtsdatum, Ort</span><span class="cv-label-ar">الميلاد</span></div><div class="v-value" id="w2Birth">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Personalausweis</span><span class="cv-label-ar">الهوية</span></div><div class="v-value" id="w2Id">—</div></div>
-        <div class="cv-row"><div class="cv-label"><span class="cv-label-de">Anschrift</span><span class="cv-label-ar">العنوان</span></div><div class="v-value" id="w2Address">—</div></div>
-      </div>
-    </div>
-
-    <!-- التوقيعات -->
-    <div class="cert-party-signatures">
-      <div class="party-signatures-title"><span>Unterschriften der Parteien</span><span class="ar">إمضاءات الأطراف</span></div>
-      <div class="party-signatures-grid">
-        <div class="party-sig-cell"><div class="sig-label">الزوج<small>Ehemann</small></div><div class="sig-line"></div></div>
-        <div class="party-sig-cell"><div class="sig-label">الزوجة<small>Ehefrau</small></div><div class="sig-line"></div></div>
-        <div class="party-sig-cell"><div class="sig-label">الولي<small>Wali</small></div><div class="sig-line"></div></div>
-        <div class="party-sig-cell"><div class="sig-label">الشاهد الأول<small>Zeuge 1</small></div><div class="sig-line"></div></div>
-        <div class="party-sig-cell"><div class="sig-label">الشاهد الثاني<small>Zeuge 2</small></div><div class="sig-line"></div></div>
-      </div>
-    </div>
-
-    <!-- التذييل وصيغة الإثبات -->
-    <div class="cert-footer">
-      <div class="cert-footer-sign"><div class="sign-box"><div class="sign-box-inner"></div></div><div class="sign-label-bottom">إدارة المركز - Imam</div><div class="sign-line"></div><div class="sign-caption">التوقيع / Unterschrift</div></div>
-      <div class="cert-footer-text">
-        <div class="footer-title">صيغة الإثبات</div>
-        <div class="footer-text-ar">
-          نشهد نحن الموقعين أدناه أننا حضرنا مجلس عقد زواج شرعي وفق الشرع الإسلامي بين الزوجين سالفي الذكر ولي الزوجة والشاهدين وجمع من المسلمين على كتاب الله وسنة رسوله رسوله ومهر المسمى عاليه ونسأل الله السعادة للزوجين في الدارين والذرية الصالحة.
-        </div>
-        <div class="footer-text-de">Dieser Vertrag wurde nach den islamischen Ehevorschriften geschlossen und von allen Beteiligten angenommen. Beide Ehepartner bekundeten ihr Einverständnis vor Zeugen.</div>
-        <div class="footer-note-center"><strong>ملاحظة:</strong> هذا العقد ليس بديلاً عن التسجيل في الدوائر الألمانية.</div>
-      </div>
-    </div>
-
+<!-- شاشة الخطأ -->
+<div id="errorScreen" class="error-screen hidden">
+  <div class="error-box">
+    <div class="error-icon">⚠️</div>
+    <h2 id="errorTitle">خطأ</h2>
+    <p id="errorMessage">حدث خطأ غير متوقع</p>
+    <button onclick="window.close()" class="btn-back">إغلاق</button>
   </div>
 </div>
 
-<script>
-  function printDoc() {
-    const code = document.getElementById('toolbarCode').textContent;
-    const oldTitle = document.title;
-    document.title = "شهادة_عقد_زواج_" + code;
-    window.print();
-    setTimeout(() => { document.title = oldTitle; }, 1000);
-  }
+<!-- شريط الأدوات (لا يُطبع) -->
+<div id="toolbar" class="toolbar hidden">
+  <div class="toolbar-left">
+    <button onclick="window.print()" class="btn-print">
+      🖨 طباعة
+    </button>
+    <button onclick="downloadPDF()" class="btn-pdf">
+      📄 تحميل PDF
+    </button>
+  </div>
+  <div class="toolbar-center">
+    <span class="toolbar-code">رقم العقد: <strong id="toolbarCode">—</strong></span>
+  </div>
+  <div class="toolbar-right">
+    <button onclick="window.close()" class="btn-close">
+      ✕ إغلاق
+    </button>
+  </div>
+</div>
 
-  function formatD(d) {
-    if(!d) return '—';
-    const parts = d.split('-');
-    if(parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
-    return d;
-  }
+<!-- الشهادة (تعتمد على print.js لملء البيانات بناءً على الهيكل الأصلي) -->
+<div id="certificateWrap" class="certificate-wrap hidden">
+  <div class="certificate" id="certificate">
+    <!-- سيتم بناؤه بواسطة السكريبت ديناميكياً -->
+  </div>
+</div>
 
-  window.onload = async () => {
-    const code = new URLSearchParams(window.location.search).get('code');
-    const pwd = sessionStorage.getItem('marriage_pw') || '';
-    if(!code) return alert('الكود مفقود');
-
-    // جلب بيانات عقد الزواج من الـ API الخاص بالزواج
-    const res = await fetch('/api/marriage', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'view', code, username:'admin', password:pwd}) });
-    const data = await res.json();
-    if(data.success) {
-      const c = data.contract;
-      document.getElementById('toolbarCode').textContent = c.code;
-      document.getElementById('contractDate').textContent = formatD(c.contract_date || c.marriage_date);
-
-      ['b','g'].forEach(p => {
-        document.getElementById(p+'NameAr').textContent = c[p==='b'?'bride_name_ar':'groom_name_ar'] || '—';
-        document.getElementById(p+'NameDe').textContent = c[p==='b'?'bride_name_de':'groom_name_de'] || '—';
-        document.getElementById(p+'Birth').textContent = formatD(c[p==='b'?'bride_birth':'groom_birth']);
-        document.getElementById(p+'MotherAr').textContent = c[p==='b'?'bride_mother_ar':'groom_mother_ar'] || '—';
-        document.getElementById(p+'MotherDe').textContent = c[p==='b'?'bride_mother_de':'groom_mother_de'] || '—';
-        document.getElementById(p+'Id').textContent = c[p==='b'?'bride_id':'groom_id'] || '—';
-        document.getElementById(p+'Address').textContent = c[p==='b'?'bride_address':'groom_address'] || '—';
-      });
-
-      if (c.wali_is_bride) {
-        document.getElementById('waliFull').style.display = 'none';
-        document.getElementById('waliCompact').style.display = 'block';
-      } else {
-        document.getElementById('waliFull').style.display = 'block';
-        document.getElementById('waliCompact').style.display = 'none';
-        document.getElementById('wNameAr').textContent = c.wali_name_ar || '—';
-        document.getElementById('wNameDe').textContent = c.wali_name_de || '—';
-        document.getElementById('wBirth').textContent = formatD(c.wali_birth);
-        document.getElementById('wId').textContent = c.wali_id || '—';
-        document.getElementById('wAddress').textContent = c.wali_address || '—';
-        document.getElementById('wRel').textContent = (c.wali_rel_ar || '—') + ' / ' + (c.wali_rel_de || '—');
-      }
-
-      // عرض المهر (يدعم النصوص الطويلة مثل خاتم ذهبي)
-      document.getElementById('dPrompt').textContent = c.dowry_prompt || c.mahr_prompt || '—';
-      document.getElementById('dDeferred').textContent = c.dowry_deferred || c.mahr_deferred || '—';
-      
-      const notes = c.dowry_notes || c.notes || c.bemerkungen;
-      if(notes) {
-        document.getElementById('notesRow').style.display = 'flex';
-        document.getElementById('dNotes').textContent = notes;
-      }
-
-      [1,2].forEach(n => {
-        document.getElementById(`w${n}NameAr`).textContent = c[`w${n}_name_ar`] || '';
-        document.getElementById(`w${n}NameDe`).textContent = c[`w${n}_name_de`] || '—';
-        document.getElementById(`w${n}Birth`).textContent = formatD(c[`w${n}_birth`]);
-        document.getElementById(`w${n}Id`).textContent = c[`w${n}_id`] || '—';
-        document.getElementById(`w${n}Address`).textContent = c[`w${n}_address`] || '—';
-      });
-    }
-  };
-</script>
+<script src="./js/print.js?v=1"></script>
 </body>
 </html>
