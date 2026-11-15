@@ -1,6 +1,6 @@
 /* ============================================================
    Cloudflare Function: POST /api/admin
-   النسخة المتكاملة (دعم D1 + KV للتوافق التام وجلب الحقول بدون فراغ)
+   النسخة الأصلية المُفعّلة للحفظ والعرض بشكل صحيح
 ============================================================ */
 
 const PERMISSIONS = {
@@ -256,30 +256,13 @@ async function handleView(env, code) {
       }
     }
 
-    // Fallback لضمان قراءة البيانات من KV إذا لم تكن مسجلة في D1
+    // Fallback لقراءة البيانات من KV إذا لزم الأمر لضمان عدم فراغ الخانات
     const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
     for (const r of roles) {
-      if (!contract.parties[r] || Object.keys(contract.parties[r]).length === 0) {
+      if (!contract.parties[r]) {
         const raw = await env.CONTRACT_KV.get(`contract_${code}_${r}`);
-        if (raw) { 
-          try { contract.parties[r] = JSON.parse(raw); } catch (e) {} 
-        }
+        if (raw) { try { contract.parties[r] = JSON.parse(raw); } catch (e) {} }
       }
-    }
-
-    if (!contract.contractDate) {
-      const dateKv = await env.CONTRACT_KV.get(`contract_${code}_date`);
-      if (dateKv) contract.contractDate = dateKv;
-    }
-
-    const dowryKv = await env.CONTRACT_KV.get(`contract_${code}_dowry`);
-    if (dowryKv && contract.parties.groom && !contract.parties.groom.dowryAdvance) {
-      try {
-        const dObj = JSON.parse(dowryKv);
-        contract.parties.groom.dowryAdvance = dObj.amountAdvance || '';
-        contract.parties.groom.dowryDeferred = dObj.amountDeferred || '';
-        contract.parties.groom.dowryNotes = dObj.notes || '';
-      } catch (e) {}
     }
 
     return jsonResponse({ success: true, contract }, 200);
@@ -338,10 +321,6 @@ async function handleUpdateParty(env, body, auth) {
       ).run();
     }
 
-    if (env.CONTRACT_KV) {
-      await env.CONTRACT_KV.put(`contract_${code}_${role}`, JSON.stringify(data));
-    }
-
     if (role === 'groom' && (data.dowryAdvance !== undefined || data.dowryDeferred !== undefined || data.dowryNotes !== undefined)) {
       const existingDowry = await env.DB.prepare('SELECT id FROM dowries WHERE contract_id = ?').bind(contractId).first();
       const adv = data.dowryAdvance !== undefined ? String(data.dowryAdvance) : '';
@@ -352,10 +331,6 @@ async function handleUpdateParty(env, body, auth) {
         await env.DB.prepare('UPDATE dowries SET amount_advance = ?, amount_deferred = ?, notes = ? WHERE contract_id = ?').bind(adv, def, notes, contractId).run();
       } else {
         await env.DB.prepare('INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes) VALUES (?, ?, ?, ?)').bind(contractId, adv, def, notes).run();
-      }
-
-      if (env.CONTRACT_KV) {
-        await env.CONTRACT_KV.put(`contract_${code}_dowry`, JSON.stringify({ amountAdvance: adv, amountDeferred: def, notes }));
       }
     }
 
@@ -378,11 +353,6 @@ async function handleUpdateContract(env, body, auth) {
     } else {
       await env.DB.prepare('INSERT INTO contracts (code, contract_date, status, created_at) VALUES (?, ?, "draft", ?)').bind(code, contract_date || null, Math.floor(Date.now() / 1000)).run();
     }
-
-    if (env.CONTRACT_KV) {
-      await env.CONTRACT_KV.put(`contract_${code}_date`, contract_date || '');
-    }
-
     return jsonResponse({ success: true, message: 'تم تحديث العقد بنجاح' }, 200);
   } catch (err) {
     return jsonResponse({ success: false, error: 'db_error', message: err.message }, 500);
@@ -515,13 +485,13 @@ async function handleDeleteUser(env, body) { return jsonResponse({ success: true
 async function handleExport(env) {
   try {
     const contracts = await env.DB.prepare('SELECT * FROM contracts ORDER BY id DESC').all();
-    const dataRes = [];
+    const result = [];
     for (const c of contracts.results || []) {
       const parties = await env.DB.prepare('SELECT * FROM parties WHERE contract_id = ?').bind(c.id).all();
       const dowry = await env.DB.prepare('SELECT * FROM dowries WHERE contract_id = ?').bind(c.id).first();
-      dataRes.push({ contract: c, parties: parties.results || [], dowry: dowry || null });
+      result.push({ contract: c, parties: parties.results || [], dowry: dowry || null });
     }
-    return jsonResponse({ success: true, exported_at: new Date().toISOString(), total: dataRes.length, data: dataRes }, 200);
+    return jsonResponse({ success: true, exported_at: new Date().toISOString(), total: result.length, data: result }, 200);
   } catch (err) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
 }
 
