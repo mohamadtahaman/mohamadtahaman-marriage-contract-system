@@ -10,7 +10,7 @@
 const printState = {
   code: null,
   contract: null,
-  logoPath: './imeges/logo.webp',
+  logoPath: './imeges/logo1.webp',
   logoFallback: './imeges/logo1.png',
 };
 
@@ -196,7 +196,6 @@ function buildPartyBlock(party, options = {}) {
       <div class="cv-row">
         <div class="cv-label">
           <span class="cv-label-de">${isBride ? 'Ihre Mutter' : 'Seine Mutter'}</span>
-          <span class="cv-label-ar">اسم الأم</span>
         </div>
         <div class="v-value">${escapeHtml(p.motherNameDe || '—')}</div>
       </div>
@@ -287,14 +286,10 @@ function buildCertificate(contract) {
   const groomHasPhoto = hasPhoto(g.photo);
   const brideHasPhoto = hasPhoto(b.photo);
 
-  // دعم النصوص الحرة والأرقام في المهر (مثل خاتم ذهبي أو Goldenring)
+  // دعم النصوص الحرة والأرقام في المهر بدون رمز اليورو
   function formatDowry(val) {
     if (!hasValue(val)) return '—';
-    const s = String(val).trim();
-    if (/^\d+(\.\d+)?$/.test(s)) {
-      return s + ' €';
-    }
-    return s;
+    return String(val).trim();
   }
 
   const dowryAdvance = formatDowry(g.dowryAdvance);
@@ -405,7 +400,7 @@ function buildCertificate(contract) {
                   <span class="cv-label-de">Status</span>
                   <span class="cv-label-ar">الحالة</span>
                 </div>
-                <div class="v-value">Bride herself</div>
+                <div class="v-value">Sie selbst</div>
               </div>
             `
           }
@@ -420,7 +415,7 @@ function buildCertificate(contract) {
               <span class="wd-label-ar">ولي الزوجة</span>
             </div>
             <div class="wd-value">
-              <span class="wd-value-de">${waliIsBride ? 'Bride herself' : 'Wali present'}</span>
+              <span class="wd-value-de">${waliIsBride ? 'Sie selbst' : 'Wali present'}</span>
               <span class="wd-value-ar">${waliIsBride ? 'الزوجة نفسها' : 'ولي معين'}</span>
             </div>
           </div>
