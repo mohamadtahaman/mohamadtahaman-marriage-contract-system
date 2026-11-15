@@ -1,5 +1,5 @@
 /* ============================================================
-   Marriage Contract System V3 - With Photo Upload
+   Marriage Contract System V3 - With Photo Upload & Text Dowry
 ============================================================ */
 
 const state = {
@@ -44,7 +44,7 @@ function emptyParty() {
     dowryAdvance: '', dowryDeferred: '', dowryNotes: '',
     waliIsBride: false,
     witnessIsCenter: false,
-    photo: '',  // ✅ الصورة الشخصية
+    photo: '',  // الصورة الشخصية
   };
 }
 
@@ -170,7 +170,7 @@ function applyLanguageFilter(input) {
 }
 
 /* ============================================================
-   ✅ Image Compression
+   Image Compression
 ============================================================ */
 async function compressImage(file, maxWidth = 600, maxHeight = 800, quality = 0.8) {
   return new Promise((resolve, reject) => {
@@ -182,7 +182,6 @@ async function compressImage(file, maxWidth = 600, maxHeight = 800, quality = 0.
       img.onload = () => {
         let { width, height } = img;
 
-        // احسب الأبعاد الجديدة
         if (width > height) {
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
@@ -202,10 +201,7 @@ async function compressImage(file, maxWidth = 600, maxHeight = 800, quality = 0.
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // جودة JPEG
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
-
-        // احسب الحجم التقريبي
         const sizeInBytes = Math.round((dataUrl.length - 'data:image/jpeg;base64,'.length) * 0.75);
 
         resolve({
@@ -446,7 +442,6 @@ function buildPartyForm(def, p) {
   const isWitness = def.isWitness;
   const isSpouse = def.isSpouse;
 
-  // الولي = الزوجة
   if (isWali && p.waliIsBride) {
     return `
       <div class="form-grid">
@@ -465,7 +460,6 @@ function buildPartyForm(def, p) {
       </div>`;
   }
 
-  // الشاهد = طرف المركز
   if (isWitness && p.witnessIsCenter) {
     return `
       <div class="form-grid">
@@ -583,13 +577,13 @@ function buildPartyForm(def, p) {
         <div class="dowry-fields">
           <div class="field">
             <label>${t('dowryAdvance')}</label>
-            <input type="text" inputmode="numeric" pattern="[0-9]*"
-                   data-k="dowryAdvance" value="${esc(p.dowryAdvance)}" placeholder="0">
+            <input type="text"
+                   data-k="dowryAdvance" value="${esc(p.dowryAdvance)}" placeholder="أدخل المهر المقدم (مثال: خاتم ذهبي)">
           </div>
           <div class="field">
             <label>${t('dowryDeferred')}</label>
-            <input type="text" inputmode="numeric" pattern="[0-9]*"
-                   data-k="dowryDeferred" value="${esc(p.dowryDeferred)}" placeholder="0">
+            <input type="text"
+                   data-k="dowryDeferred" value="${esc(p.dowryDeferred)}" placeholder="أدخل المهر المؤخر">
           </div>
           <div class="field field-full">
             <label>${t('dowryNotes')}</label>
@@ -600,7 +594,6 @@ function buildPartyForm(def, p) {
     `;
   }
 
-  // ✅ صورة شخصية للزوجين فقط
   if (isSpouse) {
     html += `
       <div class="photo-section">
@@ -670,7 +663,7 @@ function buildPartyForm(def, p) {
         ${t('save')}
       </button>
       <div class="save-hint" id="saveHint">${t('incomplete')}</div>
-    </div>`;
+    `;
 
   return html;
 }
@@ -684,7 +677,7 @@ function attachFormHandlers(partyKey) {
   document.querySelectorAll('#partyFormWrap [data-k]').forEach(inp => {
     const key = inp.dataset.k;
 
-    if (inp.inputMode === 'numeric' || inp.pattern === '[0-9]*') {
+    if ((inp.inputMode === 'numeric' || inp.pattern === '[0-9]*') && key !== 'dowryAdvance' && key !== 'dowryDeferred') {
       inp.addEventListener('input', () => {
         inp.value = inp.value.replace(/[^0-9]/g, '');
       });
@@ -731,14 +724,12 @@ function attachFormHandlers(partyKey) {
     });
   }
 
-  // ✅ معالج رفع الصورة
   const photoInput = document.getElementById('photoInput');
   if (photoInput) {
     photoInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      // تحقق أولي
       if (!file.type.startsWith('image/')) {
         toast(t('invalidImage') || 'الملف ليس صورة', 'error');
         return;
@@ -749,7 +740,6 @@ function attachFormHandlers(partyKey) {
       try {
         const result = await compressImage(file);
 
-        // تحقق من الحجم بعد الضغط
         if (result.size > 500 * 1024) {
           toast(t('imageTooLarge') || 'الصورة كبيرة جداً حتى بعد الضغط', 'error');
           return;
@@ -838,7 +828,6 @@ async function savePartyAndReturn() {
     state.partyStatus[def.key] = true;
     state.partySavedAt[def.key] = new Date().toISOString();
 
-    // رسالة التهنئة للزوجين
     const isSpouse = def.key === 'groom' || def.key === 'bride';
     if (isSpouse) {
       showBlessingMessage(def.key);
