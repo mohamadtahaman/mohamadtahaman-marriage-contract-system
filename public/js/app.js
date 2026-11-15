@@ -1,5 +1,5 @@
 /* ============================================================
-   Marriage Contract System V3 - With Photo Upload, Text Dowry & Notes Limit
+   Marriage Contract System V3 - With Photo Upload, Text Dowry & Notes Counter
 ============================================================ */
 
 const state = {
@@ -479,6 +479,7 @@ function buildPartyForm(def, p) {
   }
 
   const groom = def.isGroom;
+  const notesLength = p.dowryNotes ? p.dowryNotes.length : 0;
 
   let html = `<div class="form-grid">
     <div class="section-title">${def.icon} ${t(def.labelKey)}</div>
@@ -578,7 +579,7 @@ function buildPartyForm(def, p) {
           <div class="field">
             <label>${t('dowryAdvance')}</label>
             <input type="text"
-                   data-k="dowryAdvance" value="${esc(p.dowryAdvance)}" placeholder="أدخل المهر المقدم">
+                   data-k="dowryAdvance" value="${esc(p.dowryAdvance)}" placeholder="أدخل المهر المقدم (مثال: خاتم ذهبي)">
           </div>
           <div class="field">
             <label>${t('dowryDeferred')}</label>
@@ -586,8 +587,11 @@ function buildPartyForm(def, p) {
                    data-k="dowryDeferred" value="${esc(p.dowryDeferred)}" placeholder="أدخل المهر المؤخر">
           </div>
           <div class="field field-full">
-            <label>${t('dowryNotes')} <small style="color:#666; font-weight:normal;">(حد أقصى 250 حرفاً)</small></label>
-            <textarea data-k="dowryNotes" maxlength="250" placeholder="${t('dowryNotesPH')}">${esc(p.dowryNotes)}</textarea>
+            <label>${t('dowryNotes')}</label>
+            <textarea data-k="dowryNotes" maxlength="250" id="dowryNotesInput" placeholder="${t('dowryNotesPH')}">${esc(p.dowryNotes)}</textarea>
+            <div style="text-align: left; font-size: 12px; color: #666; margin-top: 4px;">
+              <span id="charCount">${notesLength}</span> / 250 حرفاً
+            </div>
           </div>
         </div>
       </div>
@@ -663,7 +667,7 @@ function buildPartyForm(def, p) {
         ${t('save')}
       </button>
       <div class="save-hint" id="saveHint">${t('incomplete')}</div>
-    </div>`;
+    `;
 
   return html;
 }
@@ -678,18 +682,16 @@ function attachFormHandlers(partyKey) {
     const key = inp.dataset.k;
     if (!key) return;
 
-    if ((inp.inputMode === 'numeric' || inp.pattern === '[0-9]*') && key !== 'dowryAdvance' && key !== 'dowryDeferred') {
-      inp.addEventListener('input', () => {
-        inp.value = inp.value.replace(/[^0-9]/g, '');
-      });
-    }
-
     if (inp.tagName === 'INPUT' && inp.dataset.lang) {
       inp.addEventListener('input', () => applyLanguageFilter(inp));
     }
 
     const handler = () => {
       party[key] = inp.value;
+      if (key === 'dowryNotes') {
+        const counter = document.getElementById('charCount');
+        if (counter) counter.textContent = inp.value.length;
+      }
       inp.classList.remove('error');
       updateSaveButtonState(PARTY_DEFS[state.currentPartyIndex], party);
     };
