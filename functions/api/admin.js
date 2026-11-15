@@ -1,6 +1,6 @@
 /* ============================================================
    Cloudflare Function: POST /api/admin
-   النسخة الأصلية الصحيحة - متوافقة تماماً مع واجهة admin-edit.js والحفظ
+   النسخة الأصلية الكاملة - مع تفعيل الحفظ، العرض، والمهر (نصوص وأرقام)
 ============================================================ */
 
 const PERMISSIONS = {
@@ -60,6 +60,7 @@ export async function onRequestPost(context) {
   }
 
   const allowedRoles = PERMISSIONS[action] || [];
+
   if (!allowedRoles.includes('all') && !allowedRoles.includes(userRole)) {
     return jsonResponse({ success: false, error: 'forbidden', message: 'ليس لديك صلاحية لهذا الإجراء' }, 403);
   }
@@ -217,11 +218,13 @@ async function handleView(env, code) {
   try {
     const contract = { code: code, finished: false, finishedAt: null, contractDate: null, parties: {} };
     const contractRow = await env.DB.prepare('SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?').bind(code).first();
+    
     if (contractRow) {
       contract.finished = contractRow.status === 'sent';
       contract.contractDate = contractRow.contract_date;
       if (contractRow.sent_at) contract.finishedAt = new Date(contractRow.sent_at * 1000).toISOString();
       
+      // جلب الأطراف وملء كافة الحقول لكي لا تظهر فارغة
       const parties = await env.DB.prepare(`SELECT * FROM parties WHERE contract_id = ?`).bind(contractRow.id).all();
       for (const p of parties.results || []) {
         contract.parties[p.role] = { 
@@ -245,6 +248,7 @@ async function handleView(env, code) {
         };
       }
       
+      // جلب المهر وربطه بالزوج
       const dowry = await env.DB.prepare('SELECT amount_advance, amount_deferred, notes FROM dowries WHERE contract_id = ?').bind(contractRow.id).first();
       if (dowry) {
         if (!contract.parties.groom) contract.parties.groom = {};
@@ -313,6 +317,7 @@ async function handleUpdateParty(env, body, auth) {
       ).run();
     }
 
+    // حفظ المهر كـ Text (يقبل أرقام ونصوص معاً)
     if (role === 'groom' && (data.dowryAdvance !== undefined || data.dowryDeferred !== undefined || data.dowryNotes !== undefined)) {
       const existingDowry = await env.DB.prepare('SELECT id FROM dowries WHERE contract_id = ?').bind(contractId).first();
       const adv = data.dowryAdvance !== undefined ? String(data.dowryAdvance) : '';
