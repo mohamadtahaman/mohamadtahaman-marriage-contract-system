@@ -1,6 +1,6 @@
 /* ============================================================
    Cloudflare Function: POST /api/admin
-   النسخة الأصلية السليمة تماماً مع تفعيل الحفظ والمهر (نصوص وأرقام)
+   النسخة الكاملة الأصلية - مع تفعيل حفظ التعديلات والمهر (نصوص وأرقام)
 ============================================================ */
 
 const PERMISSIONS = {
@@ -101,10 +101,13 @@ export async function onRequestPost(context) {
       result = await handleExport(env); 
       await logAudit(env, auth.userId, username, 'export', 'تصدير نسخة احتياطية');
       break;
-    case 'update_party':     result = await handleUpdateParty(env, body, auth); break;
+    case 'update_party':     
+      result = await handleUpdateParty(env, body, auth); 
+      await logAudit(env, auth.userId, username, 'update_party', `تعديل بيانات ${body.role} للعقد ${body.code}`);
+      break;
     case 'update_contract':  
       result = await handleUpdateContract(env, body, auth); 
-      await logAudit(env, auth.userId, username, 'update_contract', `تعديل وحفظ العقد رقم: ${body.code}`);
+      await logAudit(env, auth.userId, username, 'update_contract', `تعديل بيانات العقد ${body.code}`);
       break;
     
     // المحذوفات والسجلات
@@ -225,7 +228,7 @@ async function handleArchive(env) {
 async function handleView(env, code) {
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) return jsonResponse({ success: false, error: 'invalid_code' }, 400);
   try {
-    const contract = { code: code, finished: false, finishedAt: null, contractDate: null, parties: {}, dowry: {} };
+    const contract = { code: code, finished: false, finishedAt: null, contractDate: null, parties: {} };
     const contractRow = await env.DB.prepare('SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?').bind(code).first();
     if (contractRow) {
       contract.finished = contractRow.status === 'sent';
@@ -236,12 +239,10 @@ async function handleView(env, code) {
         contract.parties[p.role] = { nameDe: p.name_de, nameAr: p.name_ar, birthDay: p.birth_day, birthMonth: p.birth_month, birthYear: p.birth_year, birthCountry: p.birth_country, birthRegion: p.birth_region, idType: p.id_type, idNumber: p.id_number, addressNumber: p.address_number, addressStreet: p.address_street, postalCode: p.postal_code, city: p.city, motherNameDe: p.mother_name_de, motherNameAr: p.mother_name_ar, waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center };
       }
       const dowry = await env.DB.prepare('SELECT amount_advance, amount_deferred, notes FROM dowries WHERE contract_id = ?').bind(contractRow.id).first();
-      if (dowry) {
-        contract.dowry = {
-          amountAdvance: dowry.amount_advance || '',
-          amountDeferred: dowry.amount_deferred || '',
-          notes: dowry.notes || ''
-        };
+      if (dowry && contract.parties.groom) {
+        contract.parties.groom.dowryAdvance = dowry.amount_advance; 
+        contract.parties.groom.dowryDeferred = dowry.amount_deferred; 
+        contract.parties.groom.dowryNotes = dowry.notes;
       }
     } else {
       const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
@@ -255,12 +256,12 @@ async function handleView(env, code) {
 }
 
 /* ============================================================
-   تعديل وحفظ العقد ودعم المهر (نصوص وأرقام)
+   تفعيل حفظ بيانات الطرف (بما في ذلك المهر النصي/الرقمي للزوج) في D1
 ============================================================ */
-async function handleUpdateContract(env, body, auth) {
-  const { code, contractDate, status, parties, dowry } = body;
-  if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
-    return jsonResponse({ success: false, error: 'invalid_code', message: 'كود غير صالح' }, 400);
+async function handleUpdateParty(env, body, auth) {
+  const { code, role, data } = body;
+  if (!code || !/^[A-Z0-9]{6}$/.test(code) || !role || !data) {
+    return jsonResponse({ success: false, error: 'invalid_data', message: 'بيانات غير صالحة' }, 400);
   }
 
   try {
@@ -269,72 +270,81 @@ async function handleUpdateContract(env, body, auth) {
 
     if (contractRow) {
       contractId = contractRow.id;
-      await env.DB.prepare(`
-        UPDATE contracts SET contract_date = ?, status = COALESCE(?, status), updated_at = ? WHERE id = ?
-      `).bind(contractDate || null, status || null, Math.floor(Date.now() / 1000), contractId).run();
     } else {
-      const insertRes = await env.DB.prepare(`
-        INSERT INTO contracts (code, contract_date, status, created_at) VALUES (?, ?, ?, ?)
-      `).bind(code, contractDate || null, status || 'sent', Math.floor(Date.now() / 1000)).run();
+      const insertRes = await env.DB.prepare('INSERT INTO contracts (code, status, created_at) VALUES (?, "draft", ?)').bind(code, Math.floor(Date.now() / 1000)).run();
       contractId = insertRes.meta.last_row_id;
     }
 
-    if (parties && typeof parties === 'object') {
-      for (const [role, pData] of Object.entries(parties)) {
-        if (!pData) continue;
-        const existingParty = await env.DB.prepare('SELECT id FROM parties WHERE contract_id = ? AND role = ?').bind(contractId, role).first();
-        
-        if (existingParty) {
-          await env.DB.prepare(`
-            UPDATE parties SET 
-              name_de = ?, name_ar = ?, birth_day = ?, birth_month = ?, birth_year = ?, 
-              birth_country = ?, birth_region = ?, id_type = ?, id_number = ?, 
-              address_number = ?, address_street = ?, postal_code = ?, city = ?, 
-              mother_name_de = ?, mother_name_ar = ?
-            WHERE contract_id = ? AND role = ?
-          `).bind(
-            pData.nameDe || '', pData.nameAr || '', pData.birthDay || '', pData.birthMonth || '', pData.birthYear || '',
-            pData.birthCountry || '', pData.birthRegion || '', pData.idType || '', pData.idNumber || '',
-            pData.addressNumber || '', pData.addressStreet || '', pData.postalCode || '', pData.city || '',
-            pData.motherNameDe || '', pData.motherNameAr || '',
-            contractId, role
-          ).run();
-        } else {
-          await env.DB.prepare(`
-            INSERT INTO parties (
-              contract_id, role, name_de, name_ar, birth_day, birth_month, birth_year, 
-              birth_country, birth_region, id_type, id_number, address_number, 
-              address_street, postal_code, city, mother_name_de, mother_name_ar
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(
-            contractId, role,
-            pData.nameDe || '', pData.nameAr || '', pData.birthDay || '', pData.birthMonth || '', pData.birthYear || '',
-            pData.birthCountry || '', pData.birthRegion || '', pData.idType || '', pData.idNumber || '',
-            pData.addressNumber || '', pData.addressStreet || '', pData.postalCode || '', pData.city || '',
-            pData.motherNameDe || '', pData.motherNameAr || ''
-          ).run();
-        }
-      }
+    const existing = await env.DB.prepare('SELECT id FROM parties WHERE contract_id = ? AND role = ?').bind(contractId, role).first();
+
+    if (existing) {
+      await env.DB.prepare(`
+        UPDATE parties SET 
+          name_de = ?, name_ar = ?, birth_day = ?, birth_month = ?, birth_year = ?, 
+          birth_country = ?, birth_region = ?, id_type = ?, id_number = ?, 
+          address_number = ?, address_street = ?, postal_code = ?, city = ?, 
+          mother_name_de = ?, mother_name_ar = ?, wali_is_bride = ?, witness_is_center = ?
+        WHERE contract_id = ? AND role = ?
+      `).bind(
+        data.nameDe || '', data.nameAr || '', data.birthDay || '', data.birthMonth || '', data.birthYear || '',
+        data.birthCountry || '', data.birthRegion || '', data.idType || 'id', data.idNumber || '',
+        data.addressNumber || '', data.addressStreet || '', data.postalCode || '', data.city || '',
+        data.motherNameDe || '', data.motherNameAr || '', data.waliIsBride ? 1 : 0, data.witnessIsCenter ? 1 : 0,
+        contractId, role
+      ).run();
+    } else {
+      await env.DB.prepare(`
+        INSERT INTO parties (
+          contract_id, role, name_de, name_ar, birth_day, birth_month, birth_year, 
+          birth_country, birth_region, id_type, id_number, address_number, 
+          address_street, postal_code, city, mother_name_de, mother_name_ar, wali_is_bride, witness_is_center
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        contractId, role,
+        data.nameDe || '', data.nameAr || '', data.birthDay || '', data.birthMonth || '', data.birthYear || '',
+        data.birthCountry || '', data.birthRegion || '', data.idType || 'id', data.idNumber || '',
+        data.addressNumber || '', data.addressStreet || '', data.postalCode || '', data.city || '',
+        data.motherNameDe || '', data.motherNameAr || '', data.waliIsBride ? 1 : 0, data.witnessIsCenter ? 1 : 0
+      ).run();
     }
 
-    if (dowry && typeof dowry === 'object') {
+    // حفظ تفاصيل المهر في جدول dowries عند حفظ بيانات الزوج (groom)
+    if (role === 'groom' && (data.dowryAdvance !== undefined || data.dowryDeferred !== undefined || data.dowryNotes !== undefined)) {
       const existingDowry = await env.DB.prepare('SELECT id FROM dowries WHERE contract_id = ?').bind(contractId).first();
-      const advanceVal = dowry.amountAdvance !== undefined ? String(dowry.amountAdvance) : '';
-      const deferredVal = dowry.amountDeferred !== undefined ? String(dowry.amountDeferred) : '';
-      const notesVal = dowry.notes !== undefined ? String(dowry.notes) : '';
+      const adv = data.dowryAdvance !== undefined ? String(data.dowryAdvance) : '';
+      const def = data.dowryDeferred !== undefined ? String(data.dowryDeferred) : '';
+      const notes = data.dowryNotes !== undefined ? String(data.dowryNotes) : '';
 
       if (existingDowry) {
-        await env.DB.prepare(`
-          UPDATE dowries SET amount_advance = ?, amount_deferred = ?, notes = ? WHERE contract_id = ?
-        `).bind(advanceVal, deferredVal, notesVal, contractId).run();
+        await env.DB.prepare('UPDATE dowries SET amount_advance = ?, amount_deferred = ?, notes = ? WHERE contract_id = ?').bind(adv, def, notes, contractId).run();
       } else {
-        await env.DB.prepare(`
-          INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes) VALUES (?, ?, ?, ?)
-        `).bind(contractId, advanceVal, deferredVal, notesVal).run();
+        await env.DB.prepare('INSERT INTO dowries (contract_id, amount_advance, amount_deferred, notes) VALUES (?, ?, ?, ?)').bind(contractId, adv, def, notes).run();
       }
     }
 
-    return jsonResponse({ success: true, message: 'تم حفظ التعديلات بنجاح' }, 200);
+    return jsonResponse({ success: true, message: 'تم الحفظ بنجاح' }, 200);
+  } catch (err) {
+    return jsonResponse({ success: false, error: 'db_error', message: err.message }, 500);
+  }
+}
+
+/* ============================================================
+   تفعيل حفظ تاريخ العقد في D1
+============================================================ */
+async function handleUpdateContract(env, body, auth) {
+  const { code, contract_date } = body;
+  if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
+    return jsonResponse({ success: false, error: 'invalid_code', message: 'كود غير صالح' }, 400);
+  }
+
+  try {
+    let contractRow = await env.DB.prepare('SELECT id FROM contracts WHERE code = ?').bind(code).first();
+    if (contractRow) {
+      await env.DB.prepare('UPDATE contracts SET contract_date = ?, updated_at = ? WHERE id = ?').bind(contract_date || null, Math.floor(Date.now() / 1000), contractRow.id).run();
+    } else {
+      await env.DB.prepare('INSERT INTO contracts (code, contract_date, status, created_at) VALUES (?, ?, "draft", ?)').bind(code, contract_date || null, Math.floor(Date.now() / 1000)).run();
+    }
+    return jsonResponse({ success: true, message: 'تم تحديث العقد بنجاح' }, 200);
   } catch (err) {
     return jsonResponse({ success: false, error: 'db_error', message: err.message }, 500);
   }
@@ -475,7 +485,6 @@ async function handleExport(env) {
     return jsonResponse({ success: true, exported_at: new Date().toISOString(), total: result.length, data: result }, 200);
   } catch (err) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
 }
-async function handleUpdateParty(env, body, auth) { return jsonResponse({ success: true }, 200); }
 
 export async function onRequestGet() { return jsonResponse({ message: 'استخدم POST فقط' }, 405); }
 
