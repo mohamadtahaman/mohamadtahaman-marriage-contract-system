@@ -1,6 +1,6 @@
 /* ============================================================
    Cloudflare Function: POST /api/admin
-   النسخة الكاملة الأصلية - مع تفعيل حفظ التعديلات والمهر (نصوص وأرقام)
+   النسخة الأصلية الصحيحة - متوافقة تماماً مع واجهة admin-edit.js والحفظ
 ============================================================ */
 
 const PERMISSIONS = {
@@ -51,7 +51,6 @@ export async function onRequestPost(context) {
 
   const userRole = auth.role;
 
-  // تسجيل الدخول الفعلي في سجلات التدقيق
   if (action === 'login') {
     await logAudit(env, auth.userId, username, 'login', 'تسجيل دخول ناجح للمستخدم');
     return jsonResponse({
@@ -61,7 +60,6 @@ export async function onRequestPost(context) {
   }
 
   const allowedRoles = PERMISSIONS[action] || [];
-
   if (!allowedRoles.includes('all') && !allowedRoles.includes(userRole)) {
     return jsonResponse({ success: false, error: 'forbidden', message: 'ليس لديك صلاحية لهذا الإجراء' }, 403);
   }
@@ -109,8 +107,6 @@ export async function onRequestPost(context) {
       result = await handleUpdateContract(env, body, auth); 
       await logAudit(env, auth.userId, username, 'update_contract', `تعديل بيانات العقد ${body.code}`);
       break;
-    
-    // المحذوفات والسجلات
     case 'get_trash':        result = await handleGetTrash(env); break;
     case 'restore':          
       result = await handleRestore(env, body.code); 
@@ -127,9 +123,6 @@ export async function onRequestPost(context) {
   return result;
 }
 
-/* ============================================================
-   دالة تسجيل التدقيق المخصصة (بدون تكرار)
-============================================================ */
 async function logAudit(env, userId, username, action, details) {
   try {
     const timestamp = Math.floor(Date.now() / 1000);
@@ -139,9 +132,6 @@ async function logAudit(env, userId, username, action, details) {
   } catch (e) {}
 }
 
-/* ============================================================
-   Authentication Core (Original Unmodified)
-============================================================ */
 async function authenticate(env, username, password) {
   username = username.toLowerCase();
   try {
@@ -160,9 +150,6 @@ async function authenticate(env, username, password) {
   return { success: false, error: 'not_found' };
 }
 
-/* ============================================================
-   الدوال الأساسية
-============================================================ */
 async function handleList(env) {
   try {
     const codesRaw = await env.CONTRACT_KV.get('codes');
@@ -234,15 +221,36 @@ async function handleView(env, code) {
       contract.finished = contractRow.status === 'sent';
       contract.contractDate = contractRow.contract_date;
       if (contractRow.sent_at) contract.finishedAt = new Date(contractRow.sent_at * 1000).toISOString();
-      const parties = await env.DB.prepare(`SELECT role, name_de, name_ar, birth_day, birth_month, birth_year, birth_country, birth_region, id_type, id_number, address_number, address_street, postal_code, city, mother_name_de, mother_name_ar, wali_is_bride, witness_is_center FROM parties WHERE contract_id = ?`).bind(contractRow.id).all();
+      
+      const parties = await env.DB.prepare(`SELECT * FROM parties WHERE contract_id = ?`).bind(contractRow.id).all();
       for (const p of parties.results || []) {
-        contract.parties[p.role] = { nameDe: p.name_de, nameAr: p.name_ar, birthDay: p.birth_day, birthMonth: p.birth_month, birthYear: p.birth_year, birthCountry: p.birth_country, birthRegion: p.birth_region, idType: p.id_type, idNumber: p.id_number, addressNumber: p.address_number, addressStreet: p.address_street, postalCode: p.postal_code, city: p.city, motherNameDe: p.mother_name_de, motherNameAr: p.mother_name_ar, waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center };
+        contract.parties[p.role] = { 
+          nameDe: p.name_de || '', 
+          nameAr: p.name_ar || '', 
+          birthDay: p.birth_day || '', 
+          birthMonth: p.birth_month || '', 
+          birthYear: p.birth_year || '', 
+          birthCountry: p.birth_country || '', 
+          birthRegion: p.birth_region || '', 
+          idType: p.id_type || 'id', 
+          idNumber: p.id_number || '', 
+          addressNumber: p.address_number || '', 
+          addressStreet: p.address_street || '', 
+          postalCode: p.postal_code || '', 
+          city: p.city || '', 
+          motherNameDe: p.mother_name_de || '', 
+          motherNameAr: p.mother_name_ar || '', 
+          waliIsBride: !!p.wali_is_bride, 
+          witnessIsCenter: !!p.witness_is_center 
+        };
       }
+      
       const dowry = await env.DB.prepare('SELECT amount_advance, amount_deferred, notes FROM dowries WHERE contract_id = ?').bind(contractRow.id).first();
-      if (dowry && contract.parties.groom) {
-        contract.parties.groom.dowryAdvance = dowry.amount_advance; 
-        contract.parties.groom.dowryDeferred = dowry.amount_deferred; 
-        contract.parties.groom.dowryNotes = dowry.notes;
+      if (dowry) {
+        if (!contract.parties.groom) contract.parties.groom = {};
+        contract.parties.groom.dowryAdvance = dowry.amount_advance || ''; 
+        contract.parties.groom.dowryDeferred = dowry.amount_deferred || ''; 
+        contract.parties.groom.dowryNotes = dowry.notes || '';
       }
     } else {
       const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
@@ -252,12 +260,9 @@ async function handleView(env, code) {
       }
     }
     return jsonResponse({ success: true, contract }, 200);
-  } catch (err) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
+  } catch (err) { return jsonResponse({ success: false, error: 'db_error', message: err.message }, 500); }
 }
 
-/* ============================================================
-   تفعيل حفظ بيانات الطرف (بما في ذلك المهر النصي/الرقمي للزوج) في D1
-============================================================ */
 async function handleUpdateParty(env, body, auth) {
   const { code, role, data } = body;
   if (!code || !/^[A-Z0-9]{6}$/.test(code) || !role || !data) {
@@ -308,7 +313,6 @@ async function handleUpdateParty(env, body, auth) {
       ).run();
     }
 
-    // حفظ تفاصيل المهر في جدول dowries عند حفظ بيانات الزوج (groom)
     if (role === 'groom' && (data.dowryAdvance !== undefined || data.dowryDeferred !== undefined || data.dowryNotes !== undefined)) {
       const existingDowry = await env.DB.prepare('SELECT id FROM dowries WHERE contract_id = ?').bind(contractId).first();
       const adv = data.dowryAdvance !== undefined ? String(data.dowryAdvance) : '';
@@ -328,9 +332,6 @@ async function handleUpdateParty(env, body, auth) {
   }
 }
 
-/* ============================================================
-   تفعيل حفظ تاريخ العقد في D1
-============================================================ */
 async function handleUpdateContract(env, body, auth) {
   const { code, contract_date } = body;
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
