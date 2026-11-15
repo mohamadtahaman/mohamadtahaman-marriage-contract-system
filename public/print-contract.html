@@ -6,24 +6,24 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>شهادة عقد زواج - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
-<link rel="styleshee
-  t" href="./css/print.css?v=1">
+<link rel="stylesheet" href="./css/print.css?v=1">
 <style>
+  /* تنسيق صف الملاحظات ليظل محصوراً داخل حدود العقد تماماً وبشكل أنيق */
   .notes-full-row {
-    margin: 8px 10px 4px 10px;
-    padding: 6px 12px;
+    margin: 6px 0 0 0;
+    padding: 6px 10px;
     background: #fdfdfd;
     border: 1px solid #d0d7de;
-    border-radius: 6px;
+    border-radius: 4px;
+    width: 100%;
     box-sizing: border-box;
-    max-width: calc(100% - 20px);
     overflow: hidden;
   }
   .notes-full-row .wd-label {
     font-weight: bold;
     display: flex;
     justify-content: space-between;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     font-size: 11px;
     color: #1a4d8a;
   }
@@ -34,43 +34,6 @@
     line-height: 1.4;
     color: #222;
     text-align: right;
-  }
-  /* تنسيقات لضمان توافق العرض مع سكريبت الطباعة (print.js) وتجنب ظهور الصفحة فارغة */
-  .cert-header { grid-template-columns: 1fr !important; }
-  .cert-header-photo { display: none !important; }
-  .cert-info-strip .info-line { justify-content: center !important; }
-  
-  /* جعل خانة الملاحظات تأخذ العرض بالكامل أفقياً */
-  .notes-row, .notes-full-row, [class*="notes"] {
-    grid-column: 1 / -1 !important;
-    width: 100% !important;
-  }
-
-  @media print {
-    @page { size: A4 portrait; margin: 0; }
-    html, body {
-      background: #fff;
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 210mm !important;
-      height: 297mm !important;
-      overflow: hidden !important;
-    }
-    .toolbar { display: none !important; }
-    .certificate-wrap, .cert-wrap-screen {
-      margin: 0 !important;
-      padding: 4mm !important;
-      width: 100% !important;
-      height: 100% !important;
-      box-sizing: border-box !important;
-    }
-    .certificate {
-      border: 3px solid #1a4d8a !important;
-      padding: 6px !important;
-      height: 100% !important;
-      box-sizing: border-box !important;
-      overflow: hidden !important;
-    }
   }
 </style>
 </head>
@@ -112,10 +75,10 @@
   </div>
 </div>
 
-<!-- الشهادة (تعتمد على print.js لملء البيانات بناءً على الهيكل الأصلي) -->
+<!-- الشهادة -->
 <div id="certificateWrap" class="certificate-wrap hidden">
   <div class="certificate" id="certificate">
-    <!-- سيتم بناؤه بواسطة السكريبت ديناميكياً -->
+    <!-- سيتم بناؤه بواسطة JS -->
   </div>
 </div>
 
