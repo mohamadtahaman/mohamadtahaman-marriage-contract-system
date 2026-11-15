@@ -1,5 +1,5 @@
 /* ============================================================
-   Marriage Contract System V3 - With Photo Upload & Text Dowry
+   Marriage Contract System V3 - With Photo Upload, Text Dowry & Notes Limit
 ============================================================ */
 
 const state = {
@@ -44,7 +44,7 @@ function emptyParty() {
     dowryAdvance: '', dowryDeferred: '', dowryNotes: '',
     waliIsBride: false,
     witnessIsCenter: false,
-    photo: '',  // الصورة الشخصية
+    photo: '',
   };
 }
 
@@ -578,7 +578,7 @@ function buildPartyForm(def, p) {
           <div class="field">
             <label>${t('dowryAdvance')}</label>
             <input type="text"
-                   data-k="dowryAdvance" value="${esc(p.dowryAdvance)}" placeholder="أدخل المهر المقدم (مثال: خاتم ذهبي)">
+                   data-k="dowryAdvance" value="${esc(p.dowryAdvance)}" placeholder="أدخل المهر المقدم">
           </div>
           <div class="field">
             <label>${t('dowryDeferred')}</label>
@@ -586,8 +586,8 @@ function buildPartyForm(def, p) {
                    data-k="dowryDeferred" value="${esc(p.dowryDeferred)}" placeholder="أدخل المهر المؤخر">
           </div>
           <div class="field field-full">
-            <label>${t('dowryNotes')}</label>
-            <textarea data-k="dowryNotes" placeholder="${t('dowryNotesPH')}">${esc(p.dowryNotes)}</textarea>
+            <label>${t('dowryNotes')} <small style="color:#666; font-weight:normal;">(حد أقصى 250 حرفاً)</small></label>
+            <textarea data-k="dowryNotes" maxlength="250" placeholder="${t('dowryNotesPH')}">${esc(p.dowryNotes)}</textarea>
           </div>
         </div>
       </div>
@@ -663,7 +663,7 @@ function buildPartyForm(def, p) {
         ${t('save')}
       </button>
       <div class="save-hint" id="saveHint">${t('incomplete')}</div>
-    `;
+    </div>`;
 
   return html;
 }
@@ -674,8 +674,9 @@ function buildPartyForm(def, p) {
 function attachFormHandlers(partyKey) {
   const party = state.contractData[partyKey];
 
-  document.querySelectorAll('#partyFormWrap [data-k]').forEach(inp => {
+  document.querySelectorAll('#partyFormWrap [data-k], #partyFormWrap textarea').forEach(inp => {
     const key = inp.dataset.k;
+    if (!key) return;
 
     if ((inp.inputMode === 'numeric' || inp.pattern === '[0-9]*') && key !== 'dowryAdvance' && key !== 'dowryDeferred') {
       inp.addEventListener('input', () => {
