@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - CSS V20 (Full Watermark Coverage)
+   Print Contract - CSS V21 (Perfect Watermark Coverage)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,7 +33,7 @@ body {
 }
 
 /* ============================================================
-   HEADER (تغطية كاملة للخلفية المائلة)
+   HEADER (تغطية كاملة ومرتبة للوجو)
 ============================================================ */
 .cert-header {
   display: grid;
@@ -45,25 +45,24 @@ body {
   margin-bottom: 6px;
   min-height: 90px;
   
-  /* الحفاظ على القص عند الحدود */
   position: relative;
-  overflow: hidden; 
+  overflow: hidden; /* لقص أي جزء يطلع بره المستطيل */
   background-color: transparent;
 }
 
-/* اللوجو المكرر - تم تكبيره لـ 300% لتغطية الأطراف بعد الدوران */
+/* اللوجو المكرر المائل - تم ضبط الأبعاد والمسافات */
 .cert-header::before {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 300%; /* تكبير العرض */
-  height: 300%; /* تكبير الطول */
+  top: -50%; /* توسيع لأعلى */
+  left: -50%; /* توسيع لليسار */
+  width: 200%; /* مساحة كافية جداً لتغطية الأركان */
+  height: 200%;
   background-image: url('../imeges/logo2.webp'); 
   background-repeat: repeat;
-  background-size: 60px 60px;
-  opacity: 0.15; 
-  transform: translate(-50%, -50%) rotate(45deg); 
+  background-size: 90px 90px; /* زيادة المسافة بين اللوجوهات عشان ميبقاش متراكب */
+  opacity: 0.12; /* شفافية مريحة */
+  transform: rotate(45deg); 
   z-index: 0;
   pointer-events: none;
 }
