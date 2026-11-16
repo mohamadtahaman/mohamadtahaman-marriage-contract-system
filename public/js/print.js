@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - JS V19 (PDF Generator)
+   Print Contract - JS V20 (Fits exactly on 1 A4 Page)
 ============================================================ */
 
 const printState = {
@@ -368,27 +368,39 @@ function renderContract(contract) {
 }
 
 /* ============================================================
-   Download PDF (Forced A4)
+   Download PDF (Force exactly 1 Page)
 ============================================================ */
 function downloadPDF() {
   const element = $('certificate');
   const code = printState.contract?.code || 'contract';
   
-  const opt = {
-    margin:       0,
-    filename:     `Ehevertrag_${code}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
   const btn = document.querySelector('.btn-pdf');
   if (btn) {
     btn.textContent = '⏳ جارٍ التحميل...';
     btn.disabled = true;
   }
 
+  // إضافة كلاس بيصغر المسافات مؤقتاً عشان يدخل في صفحة واحدة
+  document.body.classList.add('pdf-mode');
+
+  const opt = {
+    margin:       0,
+    filename:     `Ehevertrag_${code}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } // إجبار عدم تقسيم الصفحات
+  };
+
   html2pdf().set(opt).from(element).save().then(() => {
+    document.body.classList.remove('pdf-mode'); // إزالة الكلاس بعد التحميل
+    if (btn) {
+      btn.textContent = '📄 تحميل PDF (A4)';
+      btn.disabled = false;
+    }
+  }).catch(err => {
+    console.error('PDF Error:', err);
+    document.body.classList.remove('pdf-mode');
     if (btn) {
       btn.textContent = '📄 تحميل PDF (A4)';
       btn.disabled = false;
