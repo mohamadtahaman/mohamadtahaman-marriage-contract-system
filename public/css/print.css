@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - CSS V19 (Watermark Confined to Header)
+   Print Contract - CSS V20 (Full Watermark Coverage)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,7 +33,7 @@ body {
 }
 
 /* ============================================================
-   HEADER (مع الخلفية المائلة 45 درجة محصورة بالداخل)
+   HEADER (تغطية كاملة للخلفية المائلة)
 ============================================================ */
 .cert-header {
   display: grid;
@@ -45,30 +45,30 @@ body {
   margin-bottom: 6px;
   min-height: 90px;
   
-  /* الإعدادات دي هي اللي بتمنع اللوجو إنه يطلع بره */
+  /* الحفاظ على القص عند الحدود */
   position: relative;
-  overflow: hidden; /* قص أي حاجة بتطلع بره المستطيل */
+  overflow: hidden; 
   background-color: transparent;
 }
 
-/* اللوجو المكرر المائل - بيتوسط المستطيل بالظبط */
+/* اللوجو المكرر - تم تكبيره لـ 300% لتغطية الأطراف بعد الدوران */
 .cert-header::before {
   content: "";
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 150%; /* عشان يغطي الأركان وهو مائل */
-  height: 150%;
-  background-image: url('../imeges/logo2.webp'); /* تأكد من المسار */
+  width: 300%; /* تكبير العرض */
+  height: 300%; /* تكبير الطول */
+  background-image: url('../imeges/logo2.webp'); 
   background-repeat: repeat;
   background-size: 60px 60px;
-  opacity: 0.15; /* وضوح خفيف */
-  transform: translate(-50%, -50%) rotate(45deg); /* التوسط + الميلان */
+  opacity: 0.15; 
+  transform: translate(-50%, -50%) rotate(45deg); 
   z-index: 0;
   pointer-events: none;
 }
 
-/* رفع محتوى الهيدر (الصور والنص) فوق الخلفية */
+/* رفع محتوى الهيدر فوق الخلفية */
 .cert-header > * {
   position: relative;
   z-index: 1;
