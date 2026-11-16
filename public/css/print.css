@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - CSS V21 (Perfect Watermark Coverage)
+   Print Contract - CSS V22 (Full Watermark & Flex A4 Print)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -33,7 +33,7 @@ body {
 }
 
 /* ============================================================
-   HEADER (تغطية كاملة ومرتبة للوجو)
+   HEADER (تغطية شاملة للخلفية)
 ============================================================ */
 .cert-header {
   display: grid;
@@ -50,18 +50,18 @@ body {
   background-color: transparent;
 }
 
-/* اللوجو المكرر المائل - تم ضبط الأبعاد والمسافات */
+/* اللوجو المكرر المائل - مساحة ضخمة لتغطية الأطراف */
 .cert-header::before {
   content: "";
   position: absolute;
-  top: -50%; /* توسيع لأعلى */
-  left: -50%; /* توسيع لليسار */
-  width: 200%; /* مساحة كافية جداً لتغطية الأركان */
-  height: 200%;
+  top: -1000px; /* توسيع لأعلى */
+  left: -1000px; /* توسيع لليسار */
+  width: 3000px; /* مساحة ضخمة جداً */
+  height: 3000px;
   background-image: url('../imeges/logo2.webp'); 
   background-repeat: repeat;
-  background-size: 90px 90px; /* زيادة المسافة بين اللوجوهات عشان ميبقاش متراكب */
-  opacity: 0.12; /* شفافية مريحة */
+  background-size: 70px 70px; /* مسافة مريحة بين اللوجوهات */
+  opacity: 0.15; 
   transform: rotate(45deg); 
   z-index: 0;
   pointer-events: none;
@@ -221,18 +221,20 @@ body {
 .footer-note-center em { display: block; direction: ltr; margin-top: 2px; font-size: 9px; }
 
 /* ============================================================
-   Print A4
+   Print A4 (تعبئة الصفحة بالكامل - Flex Print)
    ============================================================ */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 3mm 4mm;
+    margin: 0; /* إزالة هوامش المتصفح الافتراضية */
   }
 
   body {
     background: #fff;
     padding: 0;
     margin: 0;
+    width: 210mm;
+    height: 297mm; /* طول ورقة A4 */
   }
 
   .toolbar, .loading-screen, .error-screen {
@@ -243,22 +245,28 @@ body {
     margin: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
-    max-width: 100% !important;
     width: 100% !important;
-    page-break-inside: avoid;
+    height: 100% !important;
   }
 
   .certificate {
     border: 2px solid #1a4d8a !important;
-    padding: 4px !important;
+    padding: 5mm !important; /* مساحة داخلية أمان */
     background: #fff;
     width: 100% !important;
-    max-width: 100% !important;
+    height: 297mm !important; /* إجبار الارتفاع على طول الورقة */
     box-sizing: border-box;
+    
+    /* السر هنا: استخدام الفليكس عشان نوزع المسافات ونملأ الصفحة */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; 
   }
 
+  /* إزالة الهوامش السفلية عشان الفليكس يشتغل صح */
   .cert-header, .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures, .cert-footer {
     page-break-inside: avoid;
+    margin-bottom: 0 !important;
   }
 
   * {
