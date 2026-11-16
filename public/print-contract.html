@@ -7,7 +7,7 @@
 <title>شهادة عقد زواج - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
 <!-- تم زيادة رقم الإصدار عشان نكسر الكاش -->
-<link rel="stylesheet" href="./css/print.css?v=4">
+<link rel="stylesheet" href="./css/print.css?v=5">
 
 <style>
   /* =========================================
@@ -41,26 +41,26 @@
   }
 
   /* =========================================
-     2. صورة logo2 كخلفية مكررة (Watermark) للجزء العلوي
+     2. صورة logo2 كخلفية مكررة (Watermark) للجزء العلوي فقط
      ========================================= */
   .certificate {
     position: relative !important;
     background-color: #fff !important;
   }
 
-  /* اللوجو كخلفية شفافة ومكررة في الجزء العلوي */
+  /* اللوجو كخلفية شفافة ومكررة في الجزء العلوي فقط */
   .certificate::before {
     content: "";
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
     width: 100% !important; /* تغطية العرض بالكامل */
-    height: 400px !important; /* ارتفاع المنطقة اللي هيتكرر فيها اللوجو */
+    height: 230px !important; /* تغطية الجزء العلوي فقط (الصور والترويسة) */
     background-image: url('./imeges/logo2.webp') !important; 
     background-repeat: repeat !important; /* تكرار في كل الاتجاهات */
     background-position: top center !important;
-    background-size: 150px 150px !important; /* الحفاظ على حجم اللوجو الأساسي */
-    opacity: 0.35 !important; /* زيادة الوضوح */
+    background-size: 150px 150px !important; /* الحفاظ على الحجم الأساسي بدون تصغير أو تكبير */
+    opacity: 0.45 !important; /* زيادة الوضوح */
     z-index: 0 !important;
     pointer-events: none !important;
   }
@@ -154,6 +154,6 @@
   </div>
 </div>
 
-<script src="./js/print.js?v=4"></script>
+<script src="./js/print.js?v=5"></script>
 </body>
 </html>
