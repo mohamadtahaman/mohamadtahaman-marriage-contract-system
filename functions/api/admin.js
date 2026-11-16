@@ -1,6 +1,6 @@
 /* ============================================================
    Cloudflare Function: POST /api/admin
-   النسخة الأصلية المُفعّلة للحفظ والعرض بشكل صحيح
+   النسخة التقنية المباشرة لمعالجة العرض والحفظ
 ============================================================ */
 
 const PERMISSIONS = {
@@ -52,7 +52,7 @@ export async function onRequestPost(context) {
   const userRole = auth.role;
 
   if (action === 'login') {
-    await logAudit(env, auth.userId, username, 'login', 'تسجيل دخول ناجح للمستخدم');
+    await logAudit(env, auth.userId, username, 'login', 'تسجيل دخول ناجح');
     return jsonResponse({
       success: true,
       user: { id: auth.userId, username: auth.username, role: auth.role },
@@ -60,7 +60,6 @@ export async function onRequestPost(context) {
   }
 
   const allowedRoles = PERMISSIONS[action] || [];
-
   if (!allowedRoles.includes('all') && !allowedRoles.includes(userRole)) {
     return jsonResponse({ success: false, error: 'forbidden', message: 'ليس لديك صلاحية لهذا الإجراء' }, 403);
   }
@@ -69,54 +68,21 @@ export async function onRequestPost(context) {
   switch (action) {
     case 'list':             result = await handleList(env); break;
     case 'archive':          result = await handleArchive(env); break;
-    case 'generate':         
-      result = await handleGenerate(env); 
-      await logAudit(env, auth.userId, username, 'generate', 'توليد 5 أكواد جديدة');
-      break;
-    case 'delete':           
-      result = await handleDelete(env, body.code); 
-      await logAudit(env, auth.userId, username, 'delete', `نقل العقد ${body.code} إلى المحذوفات`);
-      break;
+    case 'generate':         result = await handleGenerate(env); break;
+    case 'delete':           result = await handleDelete(env, body.code); break;
     case 'view':             result = await handleView(env, body.code); break;
     case 'search':           result = await handleSearch(env, body.query); break;
-    case 'clear_drafts':     
-      result = await handleClearDrafts(env, body.code, body.all); 
-      await logAudit(env, auth.userId, username, 'clear_all_drafts', body.all ? 'مسح جميع المسودات' : `مسح مسودات العقد ${body.code}`);
-      break;
-    case 'change_password':  
-      result = await handleChangePassword(env, auth, body); 
-      await logAudit(env, auth.userId, username, 'change_password', 'تغيير كلمة المرور');
-      break;
+    case 'clear_drafts':     result = await handleClearDrafts(env, body.code, body.all); break;
+    case 'change_password':  result = await handleChangePassword(env, auth, body); break;
     case 'list_users':       result = await handleListUsers(env); break;
-    case 'create_user':      
-      result = await handleCreateUser(env, body); 
-      await logAudit(env, auth.userId, username, 'create_user', `إنشاء مستخدم جديد: ${body.user_username}`);
-      break;
-    case 'delete_user':      
-      result = await handleDeleteUser(env, body); 
-      await logAudit(env, auth.userId, username, 'delete_user', `حذف المستخدم رقم: ${body.user_id}`);
-      break;
-    case 'export':           
-      result = await handleExport(env); 
-      await logAudit(env, auth.userId, username, 'export', 'تصدير نسخة احتياطية');
-      break;
-    case 'update_party':     
-      result = await handleUpdateParty(env, body, auth); 
-      await logAudit(env, auth.userId, username, 'update_party', `تعديل بيانات ${body.role} للعقد ${body.code}`);
-      break;
-    case 'update_contract':  
-      result = await handleUpdateContract(env, body, auth); 
-      await logAudit(env, auth.userId, username, 'update_contract', `تعديل بيانات العقد ${body.code}`);
-      break;
+    case 'create_user':      result = await handleCreateUser(env, body); break;
+    case 'delete_user':      result = await handleDeleteUser(env, body); break;
+    case 'export':           result = await handleExport(env); break;
+    case 'update_party':     result = await handleUpdateParty(env, body, auth); break;
+    case 'update_contract':  result = await handleUpdateContract(env, body, auth); break;
     case 'get_trash':        result = await handleGetTrash(env); break;
-    case 'restore':          
-      result = await handleRestore(env, body.code); 
-      await logAudit(env, auth.userId, username, 'restore', `استرجاع العقد ${body.code}`);
-      break;
-    case 'permanent_delete': 
-      result = await handlePermanentDelete(env, body.code); 
-      await logAudit(env, auth.userId, username, 'permanent_delete', `حذف نهائي للعقد ${body.code}`);
-      break;
+    case 'restore':          result = await handleRestore(env, body.code); break;
+    case 'permanent_delete': result = await handlePermanentDelete(env, body.code); break;
     case 'audit_logs':       result = await handleAuditLogs(env); break;
     default:
       return jsonResponse({ success: false, error: 'unknown_action', message: 'إجراء غير معروف' }, 400);
@@ -173,16 +139,6 @@ async function handleList(env) {
             partySummary[p.role] = { nameDe: p.name_de || '—', nameAr: p.name_ar || '—', waliIsBride: !!p.wali_is_bride, witnessIsCenter: !!p.witness_is_center };
           }
         } catch (e) {}
-      } else {
-        for (const key of partyKeys) {
-          const partyRaw = await env.CONTRACT_KV.get(`contract_${code}_${key}`);
-          if (partyRaw) {
-            try {
-              const party = JSON.parse(partyRaw);
-              partySummary[key] = { nameDe: party.nameDe || '—', nameAr: party.nameAr || '—', waliIsBride: !!party.waliIsBride, witnessIsCenter: !!party.witnessIsCenter };
-            } catch (e) { partySummary[key] = null; }
-          } else { partySummary[key] = null; }
-        }
       }
       const savedCount = partyKeys.filter(k => partySummary[k] !== null && partySummary[k] !== undefined).length;
       contracts.push({
@@ -253,15 +209,6 @@ async function handleView(env, code) {
         contract.parties.groom.dowryAdvance = dowry.amount_advance || ''; 
         contract.parties.groom.dowryDeferred = dowry.amount_deferred || ''; 
         contract.parties.groom.dowryNotes = dowry.notes || '';
-      }
-    }
-
-    // Fallback لقراءة البيانات من KV إذا لزم الأمر لضمان عدم فراغ الخانات
-    const roles = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
-    for (const r of roles) {
-      if (!contract.parties[r]) {
-        const raw = await env.CONTRACT_KV.get(`contract_${code}_${r}`);
-        if (raw) { try { contract.parties[r] = JSON.parse(raw); } catch (e) {} }
       }
     }
 
@@ -365,17 +312,6 @@ async function handleDelete(env, code) {
     const contractRow = await env.DB.prepare('SELECT id FROM contracts WHERE code = ?').bind(code).first();
     if (contractRow) {
       await env.DB.prepare("UPDATE contracts SET status = 'deleted', sent_at = ? WHERE id = ?").bind(Math.floor(Date.now() / 1000), contractRow.id).run();
-    } else {
-      const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
-      const deletes = [];
-      for (const key of partyKeys) {
-        deletes.push(env.CONTRACT_KV.delete(`contract_${code}_${key}`));
-        deletes.push(env.CONTRACT_KV.delete(`contract_${code}_saved_${key}`));
-      }
-      deletes.push(env.CONTRACT_KV.delete(`contract_${code}_finished`));
-      deletes.push(env.CONTRACT_KV.delete(`contract_${code}_finished_at`));
-      deletes.push(env.CONTRACT_KV.delete(`contract_${code}_date`));
-      await Promise.all(deletes);
     }
     return jsonResponse({ success: true, message: 'تم النقل للمحذوفات' }, 200);
   } catch (err) { return jsonResponse({ success: false, error: 'delete_error' }, 500); }
@@ -412,11 +348,6 @@ async function handlePermanentDelete(env, code) {
       await env.DB.prepare('DELETE FROM parties WHERE contract_id = ?').bind(contractRow.id).run();
       await env.DB.prepare('DELETE FROM dowries WHERE contract_id = ?').bind(contractRow.id).run();
       await env.DB.prepare('DELETE FROM contracts WHERE id = ?').bind(contractRow.id).run();
-    }
-    const partyKeys = ['groom', 'bride', 'wali', 'witness1', 'witness2'];
-    for (const key of partyKeys) {
-      await env.CONTRACT_KV.delete(`contract_${code}_${key}`);
-      await env.CONTRACT_KV.delete(`contract_${code}_saved_${key}`);
     }
     return jsonResponse({ success: true, message: 'تم الحذف النهائي' }, 200);
   } catch (e) { return jsonResponse({ success: false, error: 'db_error' }, 500); }
