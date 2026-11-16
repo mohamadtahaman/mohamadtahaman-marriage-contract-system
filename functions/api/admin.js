@@ -68,52 +68,52 @@ export async function onRequestPost(context) {
   switch (action) {
     case 'list':             result = await handleList(env); break;
     case 'archive':          result = await handleArchive(env); break;
-    case 'generate':         
-      result = await handleGenerate(env); 
+    case 'generate':
+      result = await handleGenerate(env);
       await logAudit(env, auth.userId, username, 'generate', 'توليد 5 أكواد جديدة');
       break;
-    case 'delete':           
-      result = await handleDelete(env, body.code); 
+    case 'delete':
+      result = await handleDelete(env, body.code);
       await logAudit(env, auth.userId, username, 'delete', `نقل العقد ${body.code} إلى المحذوفات`);
       break;
     case 'view':             result = await handleView(env, body.code); break;
     case 'search':           result = await handleSearch(env, body.query); break;
-    case 'clear_drafts':     
-      result = await handleClearDrafts(env, body.code, body.all); 
+    case 'clear_drafts':
+      result = await handleClearDrafts(env, body.code, body.all);
       await logAudit(env, auth.userId, username, 'clear_all_drafts', body.all ? 'مسح جميع المسودات' : `مسح مسودات العقد ${body.code}`);
       break;
-    case 'change_password':  
-      result = await handleChangePassword(env, auth, body); 
+    case 'change_password':
+      result = await handleChangePassword(env, auth, body);
       await logAudit(env, auth.userId, username, 'change_password', 'تغيير كلمة المرور');
       break;
     case 'list_users':       result = await handleListUsers(env); break;
-    case 'create_user':      
-      result = await handleCreateUser(env, body); 
+    case 'create_user':
+      result = await handleCreateUser(env, body);
       await logAudit(env, auth.userId, username, 'create_user', `إنشاء مستخدم جديد: ${body.user_username}`);
       break;
-    case 'delete_user':      
-      result = await handleDeleteUser(env, body); 
+    case 'delete_user':
+      result = await handleDeleteUser(env, body);
       await logAudit(env, auth.userId, username, 'delete_user', `حذف المستخدم رقم: ${body.user_id}`);
       break;
-    case 'export':           
-      result = await handleExport(env); 
+    case 'export':
+      result = await handleExport(env);
       await logAudit(env, auth.userId, username, 'export', 'تصدير نسخة احتياطية');
       break;
-    case 'update_party':     
-      result = await handleUpdateParty(env, body, auth); 
+    case 'update_party':
+      result = await handleUpdateParty(env, body, auth);
       await logAudit(env, auth.userId, username, 'update_party', `تعديل بيانات ${body.role} للعقد ${body.code}`);
       break;
-    case 'update_contract':  
-      result = await handleUpdateContract(env, body, auth); 
+    case 'update_contract':
+      result = await handleUpdateContract(env, body, auth);
       await logAudit(env, auth.userId, username, 'update_contract', `تعديل بيانات العقد ${body.code}`);
       break;
     case 'get_trash':        result = await handleGetTrash(env); break;
-    case 'restore':          
-      result = await handleRestore(env, body.code); 
+    case 'restore':
+      result = await handleRestore(env, body.code);
       await logAudit(env, auth.userId, username, 'restore', `استرجاع العقد ${body.code}`);
       break;
-    case 'permanent_delete': 
-      result = await handlePermanentDelete(env, body.code); 
+    case 'permanent_delete':
+      result = await handlePermanentDelete(env, body.code);
       await logAudit(env, auth.userId, username, 'permanent_delete', `حذف نهائي للعقد ${body.code}`);
       break;
     case 'audit_logs':       result = await handleAuditLogs(env); break;
@@ -217,47 +217,47 @@ async function handleView(env, code) {
   try {
     const contract = { code: code, finished: false, finishedAt: null, contractDate: null, parties: {} };
     const contractRow = await env.DB.prepare('SELECT id, status, sent_at, contract_date FROM contracts WHERE code = ?').bind(code).first();
-    
+
     if (contractRow) {
       contract.finished = contractRow.status === 'sent';
       contract.contractDate = contractRow.contract_date;
       if (contractRow.sent_at) contract.finishedAt = new Date(contractRow.sent_at * 1000).toISOString();
-      
+
       const parties = await env.DB.prepare(`SELECT * FROM parties WHERE contract_id = ?`).bind(contractRow.id).all();
       for (const p of parties.results || []) {
-        contract.parties[p.role] = { 
-          nameDe: p.name_de || '', 
-          nameAr: p.name_ar || '', 
-          birthDay: p.birth_day || '', 
-          birthMonth: p.birth_month || '', 
-          birthYear: p.birth_year || '', 
-          birthCountry: p.birth_country || '', 
-          birthRegion: p.birth_region || '', 
-          idType: p.id_type || 'id', 
-          idNumber: p.id_number || '', 
-          addressNumber: p.address_number || '', 
-          addressStreet: p.address_street || '', 
-          postalCode: p.postal_code || '', 
-          city: p.city || '', 
-          motherNameDe: p.mother_name_de || '', 
-          motherNameAr: p.mother_name_ar || '', 
-          waliIsBride: !!p.wali_is_bride, 
-          witnessIsCenter: !!p.witness_is_center 
+        contract.parties[p.role] = {
+          nameDe: p.name_de || '',
+          nameAr: p.name_ar || '',
+          birthDay: p.birth_day || '',
+          birthMonth: p.birth_month || '',
+          birthYear: p.birth_year || '',
+          birthCountry: p.birth_country || '',
+          birthRegion: p.birth_region || '',
+          idType: p.id_type || 'id',
+          idNumber: p.id_number || '',
+          addressNumber: p.address_number || '',
+          addressStreet: p.address_street || '',
+          postalCode: p.postal_code || '',
+          city: p.city || '',
+          motherNameDe: p.mother_name_de || '',
+          motherNameAr: p.mother_name_ar || '',
+          waliIsBride: !!p.wali_is_bride,
+          witnessIsCenter: !!p.witness_is_center
         };
       }
-      
+
       const dowry = await env.DB.prepare('SELECT amount_advance, amount_deferred, notes FROM dowries WHERE contract_id = ?').bind(contractRow.id).first();
       if (dowry) {
         if (!contract.parties.groom) contract.parties.groom = {};
-        contract.parties.groom.dowryAdvance = dowry.amount_advance || ''; 
-        contract.parties.groom.dowryDeferred = dowry.amount_deferred || ''; 
+        contract.parties.groom.dowryAdvance = dowry.amount_advance || '';
+        contract.parties.groom.dowryDeferred = dowry.amount_deferred || '';
         contract.parties.groom.dowryNotes = dowry.notes || '';
       }
     }
 
     return jsonResponse({ success: true, contract }, 200);
-  } catch (err) { 
-    return jsonResponse({ success: false, error: 'db_error', message: err.message }, 500); 
+  } catch (err) {
+    return jsonResponse({ success: false, error: 'db_error', message: err.message }, 500);
   }
 }
 
@@ -282,10 +282,10 @@ async function handleUpdateParty(env, body, auth) {
 
     if (existing) {
       await env.DB.prepare(`
-        UPDATE parties SET 
-          name_de = ?, name_ar = ?, birth_day = ?, birth_month = ?, birth_year = ?, 
-          birth_country = ?, birth_region = ?, id_type = ?, id_number = ?, 
-          address_number = ?, address_street = ?, postal_code = ?, city = ?, 
+        UPDATE parties SET
+          name_de = ?, name_ar = ?, birth_day = ?, birth_month = ?, birth_year = ?,
+          birth_country = ?, birth_region = ?, id_type = ?, id_number = ?,
+          address_number = ?, address_street = ?, postal_code = ?, city = ?,
           mother_name_de = ?, mother_name_ar = ?, wali_is_bride = ?, witness_is_center = ?
         WHERE contract_id = ? AND role = ?
       `).bind(
@@ -298,8 +298,8 @@ async function handleUpdateParty(env, body, auth) {
     } else {
       await env.DB.prepare(`
         INSERT INTO parties (
-          contract_id, role, name_de, name_ar, birth_day, birth_month, birth_year, 
-          birth_country, birth_region, id_type, id_number, address_number, 
+          contract_id, role, name_de, name_ar, birth_day, birth_month, birth_year,
+          birth_country, birth_region, id_type, id_number, address_number,
           address_street, postal_code, city, mother_name_de, mother_name_ar, wali_is_bride, witness_is_center
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
@@ -331,17 +331,36 @@ async function handleUpdateParty(env, body, auth) {
 }
 
 async function handleUpdateContract(env, body, auth) {
-  const { code, contract_date } = body;
+  const { code, contract_date, status } = body;
   if (!code || !/^[A-Z0-9]{6}$/.test(code)) {
     return jsonResponse({ success: false, error: 'invalid_code', message: 'كود غير صالح' }, 400);
   }
 
   try {
-    let contractRow = await env.DB.prepare('SELECT id FROM contracts WHERE code = ?').bind(code).first();
+    const now = Math.floor(Date.now() / 1000);
+    const contractRow = await env.DB.prepare('SELECT id, status FROM contracts WHERE code = ?').bind(code).first();
+
     if (contractRow) {
-      await env.DB.prepare('UPDATE contracts SET contract_date = ?, updated_at = ? WHERE id = ?').bind(contract_date || null, Math.floor(Date.now() / 1000), contractRow.id).run();
+      const fields = ['contract_date = ?', 'updated_at = ?'];
+      const values = [contract_date || null, now];
+
+      if (status && ['draft', 'sent'].includes(status) && status !== contractRow.status) {
+        fields.push('status = ?');
+        values.push(status);
+        if (status === 'sent') {
+          fields.push('sent_at = ?');
+          values.push(now);
+        } else {
+          fields.push('sent_at = NULL');
+        }
+      }
+
+      values.push(contractRow.id);
+      await env.DB.prepare(`UPDATE contracts SET ${fields.join(', ')} WHERE id = ?`).bind(...values).run();
     } else {
-      await env.DB.prepare('INSERT INTO contracts (code, contract_date, status, created_at) VALUES (?, ?, "draft", ?)').bind(code, contract_date || null, Math.floor(Date.now() / 1000)).run();
+      await env.DB.prepare(
+        'INSERT INTO contracts (code, contract_date, status, created_at) VALUES (?, ?, ?, ?)'
+      ).bind(code, contract_date || null, status || 'draft', now).run();
     }
     return jsonResponse({ success: true, message: 'تم تحديث العقد بنجاح' }, 200);
   } catch (err) {
@@ -399,9 +418,9 @@ async function handlePermanentDelete(env, code) {
 async function handleAuditLogs(env) {
   try {
     const logs = await env.DB.prepare(`
-      SELECT a.*, u.username as auth_user 
-      FROM audit_log a 
-      LEFT JOIN users u ON a.user_id = u.id 
+      SELECT a.*, u.username as auth_user
+      FROM audit_log a
+      LEFT JOIN users u ON a.user_id = u.id
       ORDER BY a.id DESC LIMIT 100
     `).all();
     return jsonResponse({ success: true, logs: logs.results || [] }, 200);
