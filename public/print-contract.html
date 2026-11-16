@@ -8,10 +8,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./css/print.css?v=1">
 
- <style>
-  /* إعادة الملاحظات لتكون داخل عمود المهر الأيسر تماماً (داخل حدود المربع الأخضر) */
+<style>
+  /* =========================================
+     1. تعديلات الملاحظات (Bemerkungen)
+     ========================================= */
   .notes-full-row, .wali-dowry-col .wd-row.notes-box {
-    margin-top: 6px;
+    margin-top: 4px; /* تقليل المسافة العلوية */
     padding: 4px 6px;
     background: #fdfdfd;
     border: 1px solid #d0d7de;
@@ -19,18 +21,98 @@
     width: 100%;
     box-sizing: border-box;
   }
+  
   .wd-value {
     unicode-bidi: plaintext;
     direction: auto;
     text-align: right;
     white-space: pre-wrap;
     word-break: break-word;
-    font-size: 11px;
-    line-height: 1.35;
+    font-size: 10px; /* تصغير الخط قليلاً */
+    line-height: 1.3;
     color: #222;
   }
-</style>
 
+  /* توحيد خط الملاحظات وتصغيره ليتناسب مع باقي العقد */
+  .notes-full-row .wd-value, 
+  .wali-dowry-col .wd-row.notes-box .wd-value,
+  .bemerkungen-text {
+    font-family: 'Tajawal', 'Noto Naskh Arabic', sans-serif !important;
+    font-size: 10px !important; 
+    line-height: 1.35 !important;
+    color: #333 !important;
+  }
+
+  /* =========================================
+     2. صورة logo2 كخلفية (Watermark) للجزء العلوي
+     ========================================= */
+  .certificate {
+    position: relative; /* ضروري عشان الخلفية تتثبت جواه */
+    background-color: #fff;
+  }
+
+  /* اللوجو كخلفية شفافة في الجزء العلوي */
+  .certificate::before {
+    content: "";
+    position: absolute;
+    top: 5mm; /* مسافة من أعلى الصفحة */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140px; /* عرض اللوجو (تقدر تغيره) */
+    height: 140px; /* طول اللوجو (تقدر تغيره) */
+    background-image: url('logo2.png'); /* مسار الصورة */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.12; /* الشفافية: 0.1 شفاف جداً، 1 معتم */
+    z-index: 0;
+    pointer-events: none; /* عشان ميعطلش الضغط على النصوص */
+  }
+
+  /* التأكد إن كل المحتوى فوق صورة الخلفية */
+  .certificate > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* =========================================
+     3. ضبط الطباعة عشان تدخل في ورقة A4 واحدة
+     ========================================= */
+  @media print {
+    /* إعدادات صفحة A4 وتقليل الهوامش */
+    @page {
+      size: A4 portrait;
+      margin: 4mm 6mm; /* تقليل الهوامش الخارجية */
+    }
+
+    body {
+      background: white !important;
+      /* تصغير الحجم بنسبة 85% عشان العقد كله يدخل في صفحة واحدة */
+      zoom: 0.85; 
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* إخفاء شريط الأدوات */
+    .toolbar, #toolbar {
+      display: none !important;
+    }
+
+    /* تقليل المساحات بين الصفوف والجداول */
+    table, tr, td, th, .certificate-row, .party-box {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      padding-top: 2px !important;
+      padding-bottom: 2px !important;
+    }
+
+    /* منع قطع الصفحة جوه أي مربع أو جدول */
+    .certificate, table, tr, td {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+  }
+</style>
 
 </head>
 <body>
