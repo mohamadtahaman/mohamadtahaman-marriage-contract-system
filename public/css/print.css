@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - CSS V23 (Mobile Print Fixed)
+   Print Contract - CSS V24 (Fits exactly on 1 A4 Page)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -192,65 +192,56 @@ body {
 .footer-note-center em { display: block; direction: ltr; margin-top: 2px; font-size: 9px; }
 
 /* ============================================================
-   Print A4 (تعديل جذري للموبايل)
+   PDF Mode (تعديلات مؤقتة عشان تطلع في صفحة واحدة)
+============================================================ */
+body.pdf-mode .certificate {
+  padding: 4px !important;
+  border: 2px solid #1a4d8a !important;
+}
+
+body.pdf-mode .cert-header { 
+  margin-bottom: 2px !important; 
+  min-height: 80px !important; 
+  padding: 2px 0 !important;
+}
+
+body.pdf-mode .cert-info-strip { margin-bottom: 2px !important; min-height: 32px !important; }
+body.pdf-mode .cert-two-cols { margin-bottom: 2px !important; }
+body.pdf-mode .cert-wali-dowry { margin-bottom: 2px !important; }
+body.pdf-mode .cert-witness-box { margin-bottom: 2px !important; }
+body.pdf-mode .cert-party-signatures { margin-bottom: 2px !important; padding: 4px 8px !important; }
+
+body.pdf-mode .cv-row { padding: 1px 0 !important; }
+body.pdf-mode .wd-row { padding: 2px 0 !important; }
+
+body.pdf-mode .cert-footer { 
+  min-height: 110px !important; 
+}
+
+body.pdf-mode .cert-footer-sign { min-height: 110px !important; }
+body.pdf-mode .footer-text-ar { line-height: 1.5 !important; margin-bottom: 2px !important; }
+body.pdf-mode .footer-text-de { line-height: 1.4 !important; margin-bottom: 2px !important; }
+body.pdf-mode .party-sig-cell { min-height: 40px !important; padding: 2px !important; }
+body.pdf-mode .party-sig-cell .sig-line { height: 10px !important; margin-top: 2px !important; }
+
+/* ============================================================
+   Print A4 (لما تطبع من المتصفح)
    ============================================================ */
 @media print {
-  @page {
-    size: A4 portrait;
-    margin: 0; 
-  }
-
-  html, body {
-    width: 210mm;
-    height: 297mm;
-    margin: 0;
-    padding: 0;
-    background: #fff;
-  }
-
-  .toolbar, .loading-screen, .error-screen {
-    display: none !important;
-  }
-
-  .certificate-wrap {
-    margin: 0 !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    max-width: none !important;
-    width: 210mm !important;
-    height: 297mm !important;
-  }
-
-  .certificate {
-    border: 2px solid #1a4d8a !important;
-    padding: 4mm !important; 
-    background: #fff;
-    width: 100% !important;
-    height: 100% !important; 
-    box-sizing: border-box;
-    display: block;
-  }
-
+  @page { size: A4 portrait; margin: 0; }
+  html, body { width: 210mm; height: 297mm; margin: 0; padding: 0; background: #fff; }
+  .toolbar, .loading-screen, .error-screen { display: none !important; }
+  .certificate-wrap { margin: 0 !important; padding: 0 !important; box-shadow: none !important; max-width: none !important; width: 210mm !important; height: 297mm !important; }
+  .certificate { border: 2px solid #1a4d8a !important; padding: 4mm !important; background: #fff; width: 100% !important; height: 100% !important; box-sizing: border-box; display: block; }
   .cert-header { margin-bottom: 2mm !important; }
   .cert-info-strip { margin-bottom: 2mm !important; }
   .cert-two-cols { margin-bottom: 2mm !important; }
   .cert-wali-dowry { margin-bottom: 2mm !important; }
   .cert-witness-box { margin-bottom: 2mm !important; }
   .cert-party-signatures { margin-bottom: 2mm !important; }
-  
-  .cert-footer { 
-    min-height: 50mm !important; 
-    margin-top: auto !important; 
-  }
-
-  .cert-header, .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures, .cert-footer {
-    page-break-inside: avoid;
-  }
-
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
+  .cert-footer { min-height: 50mm !important; margin-top: auto !important; }
+  .cert-header, .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures, .cert-footer { page-break-inside: avoid; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 
 /* ============================================================
