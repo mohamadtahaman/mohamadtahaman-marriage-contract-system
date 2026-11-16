@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - CSS V26 (Perfect A4 & Notes Container)
+   Print Contract - CSS V27 (Native Print & Fixed Notes)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -98,8 +98,6 @@ body {
 .toolbar button { padding: 9px 18px; border: none; border-radius: 8px; font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
 .btn-print { background: #c9a961; color: #1b4332; }
 .btn-print:hover { background: #e9d5a1; }
-.btn-pdf { background: #fff; color: #2d6a4f; }
-.btn-pdf:hover { background: #e8f3ed; }
 .btn-close { background: rgba(255,255,255,0.15); color: #fff; }
 .btn-close:hover { background: rgba(255,255,255,0.25); }
 
@@ -138,7 +136,7 @@ body {
 ============================================================ */
 .cert-wali-dowry { border: 1.5px solid #1a4d8a; border-top: none; margin-bottom: 5px; background: #fff; position: relative; z-index: 2; }
 .wali-dowry-grid { display: grid; grid-template-columns: 1fr 1fr; }
-.wali-dowry-col { padding: 8px 12px; border-left: 1px solid #1a4d8a; overflow: hidden; /* لمنع خروج النص */ }
+.wali-dowry-col { padding: 8px 12px; border-left: 1px solid #1a4d8a; overflow: hidden; }
 .wali-dowry-col:last-child { border-left: none; }
 .col-subsection-title-light { font-size: 10.5px; font-weight: 900; color: #1a4d8a; margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px dashed #1a4d8a; text-align: right; direction: rtl; }
 .wd-row { display: flex; align-items: flex-end; gap: 8px; padding: 4px 0; direction: ltr; border-bottom: 1px dotted #ddd; }
@@ -152,36 +150,38 @@ body {
 .wd-value.wd-gold .wd-value-de { color: #8b6f1e; font-weight: 900; font-size: 13px; }
 
 /* ============================================================
-   NOTES (تصحيح شكل المربع)
+   NOTES (تصحيح قاطع لمشكلة التداخل)
    ============================================================ */
 .notes-column-box {
   margin-top: 6px;
-  padding: 4px 6px;
+  padding: 5px;
   background: #fdfdfd;
   border: 1px solid #d0d7de;
   border-radius: 4px;
   width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  overflow: hidden; /* لمنع النص من الخروج */
+  display: block !important; /* إجبار المربع ياخد حجمه */
 }
 .notes-col-label {
   font-size: 10px;
   font-weight: bold;
   color: #1a4d8a;
   border-bottom: 1px dotted #1a4d8a;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   display: flex;
   justify-content: space-between;
 }
 .notes-col-text {
-  font-size: 10px;
-  line-height: 1.5; 
+  font-family: 'Tajawal', 'Noto Naskh Arabic', sans-serif !important;
+  font-size: 10px !important;
+  line-height: 1.4 !important; 
   color: #333;
   word-break: break-word !important;
   overflow-wrap: break-word !important;
-  white-space: normal !important; 
-  max-width: 100%;
+  white-space: pre-wrap !important; 
+  text-align: right;
+  direction: rtl;
+  display: block !important;
+  width: 100% !important;
 }
 
 /* ============================================================
@@ -225,10 +225,9 @@ body {
 .footer-note-center em { display: block; direction: ltr; margin-top: 2px; font-size: 9px; }
 
 /* ============================================================
-   Print A4 (هنا السر: إجبار المتصفح على طباعة A4)
+   Print A4 (إجبار المتصفح على الطباعة)
    ============================================================ */
 @media print {
-  /* إجبار الصفحة تكون A4 */
   @page { 
     size: A4 portrait !important; 
     margin: 0 !important; 
@@ -260,12 +259,9 @@ body {
     width: 100% !important; 
     height: 100% !important; 
     box-sizing: border-box !important; 
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
+    display: block !important; /* شيلنا الفليكس عشان ميبوظش الطباعة */
   }
 
-  /* مسافات مضبوطة */
   .cert-header { margin-bottom: 2mm !important; }
   .cert-info-strip { margin-bottom: 2mm !important; }
   .cert-two-cols { margin-bottom: 2mm !important; }
