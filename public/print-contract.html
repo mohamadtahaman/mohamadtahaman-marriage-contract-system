@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>شهادة عقد زواج - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
-<!-- تم إضافة v=2 في آخر اللينك عشان نكسر الكاش -->
-<link rel="stylesheet" href="./css/print.css?v=2">
+<!-- تم زيادة رقم الإصدار عشان نكسر الكاش -->
+<link rel="stylesheet" href="./css/print.css?v=3">
 
 <style>
   /* =========================================
@@ -52,12 +52,12 @@
   .certificate::before {
     content: "";
     position: absolute !important;
-    top: 15mm !important; /* المسافة من أعلى الصفحة */
+    top: 15px !important; /* المسافة من أعلى الشهادة */
     left: 50% !important;
     transform: translateX(-50%) !important;
-    width: 160px !important; /* عرض اللوجو */
-    height: 160px !important; /* طول اللوجو */
-    background-image: url('logo2.webp') !important; /* تم تعديل الامتداد هنا */
+    width: 150px !important; /* عرض اللوجو */
+    height: 150px !important; /* طول اللوجو */
+    background-image: url('./imeges/logo2.webp') !important; /* تم تصحيح المسار واسم الفولدر */
     background-repeat: no-repeat !important;
     background-position: center !important;
     background-size: contain !important;
@@ -78,12 +78,12 @@
   @media print {
     @page {
       size: A4 portrait !important;
-      margin: 3mm 5mm !important; /* تقليل الهوامش الخارجية جداً */
+      margin: 2mm 4mm !important; /* تقليل الهوامش الخارجية جداً */
     }
 
     body {
       background: white !important;
-      zoom: 0.82 !important; /* تصغير الحجم لـ 82% عشان يدخل في صفحة واحدة */
+      zoom: 0.80 !important; /* تصغير الحجم لـ 80% عشان العقد كله يدخل في صفحة واحدة */
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
@@ -155,6 +155,6 @@
   </div>
 </div>
 
-<script src="./js/print.js?v=2"></script>
+<script src="./js/print.js?v=3"></script>
 </body>
 </html>
