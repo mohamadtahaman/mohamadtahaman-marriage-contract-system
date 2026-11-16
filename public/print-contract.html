@@ -7,7 +7,7 @@
 <title>شهادة عقد زواج - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
 <!-- تم زيادة رقم الإصدار عشان نكسر الكاش -->
-<link rel="stylesheet" href="./css/print.css?v=7">
+<link rel="stylesheet" href="./css/print.css?v=10">
 
 <style>
   /* =========================================
@@ -24,7 +24,6 @@
     box-sizing: border-box !important;
   }
   
-  /* إجبار الخط والصغر على الملاحظات عشان نوحد شكله */
   .notes-full-row .wd-value, 
   .wali-dowry-col .wd-row.notes-box .wd-value,
   .bemerkungen-text,
@@ -41,58 +40,91 @@
   }
 
   /* =========================================
-     2. صورة logo2 كخلفية مكررة (Watermark) للمستطيل الأول فقط
+     2. صورة logo2 كخلفية مكررة ومائلة 45 درجة
      ========================================= */
   .certificate {
     position: relative !important;
     background-color: #fff !important;
+    overflow: hidden; /* لمنع أي جزء زايد من الخلفية */
   }
 
-  /* اللوجو كخلفية شفافة ومكررة */
   .certificate::before {
     content: "";
     position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important; /* تغطية العرض بالكامل */
-    height: 135px !important; /* الارتفاع محصور في المستطيل العلوي فقط */
+    top: -50px !important;
+    left: -50px !important;
+    width: calc(100% + 100px) !important; 
+    height: 230px !important; 
     background-image: url('./imeges/logo2.webp') !important; 
-    background-repeat: repeat !important; /* تكرار في كل الاتجاهات */
-    background-position: top center !important;
-    background-size: 50px 50px !important; /* تصغير الحجم بنسبة 50% */
-    opacity: 0.35 !important; /* درجة وضوح مريحة للعين */
+    background-repeat: repeat !important; 
+    background-size: 50px 50px !important; 
+    opacity: 0.35 !important; 
     z-index: 0 !important;
     pointer-events: none !important;
+    
+    /* دوران 45 درجة */
+    transform: rotate(45deg) !important; 
   }
 
-  /* التأكد إن كل المحتوى فوق صورة الخلفية */
   .certificate > * {
     position: relative !important;
     z-index: 1 !important;
   }
 
   /* =========================================
-     3. ضبط الطباعة عشان تدخل في ورقة A4 واحدة
+     3. قهر المستطيلات الخمسة (الإمضاءات) عشان توفر مساحة
+     ========================================= */
+  /* بنستهدف أي جدول أو مربع في آخر الصفحة */
+  .signatures, .signature-box, .sig-box, .signatures td, .signature-cell, 
+  table:last-of-type td {
+    border-bottom: 2px dotted #333 !important; /* تحويل الخط إلى نقاط */
+    padding: 2px !important; /* تقليل المساحة */
+    vertical-align: top !important;
+  }
+
+  /* إجبار النصوص (عربي/ألماني) إنها تبقى جنب بعض */
+  .signature-title, .sig-title, .signature-name, .signature-box div, 
+  table:last-of-type td * {
+    display: inline-block !important; /* يخليهم جنب بعض */
+    flex-direction: row !important;
+    font-size: 11px !important; /* تصغير الخط شوية */
+    line-height: 1.2 !important;
+    margin: 0 2px !important;
+    padding: 0 !important;
+  }
+  
+  /* إخفاء أي سطر جديد بين الاسمين */
+  .signature-title br, .sig-title br, .signature-box br, 
+  table:last-of-type td br {
+    display: none !important;
+  }
+
+  /* إخفاء أي خطوط صلبة قديمة */
+  .signature-line, .sig-line {
+    border-bottom: none !important;
+  }
+
+
+  /* =========================================
+     4. ضبط الطباعة
      ========================================= */
   @media print {
     @page {
       size: A4 portrait !important;
-      margin: 2mm 4mm !important; /* تقليل الهوامش الخارجية جداً */
+      margin: 2mm 4mm !important; 
     }
 
     body {
       background: white !important;
-      zoom: 0.80 !important; /* تصغير الحجم لـ 80% عشان العقد كله يدخل في صفحة واحدة */
+      zoom: 0.80 !important; 
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
 
-    /* إخفاء شريط الأدوات */
     .toolbar, #toolbar {
       display: none !important;
     }
 
-    /* تقليل المسافات بين الصفوف والجداول */
     table, tr, td, th, .certificate-row, .party-box {
       margin-top: 0 !important;
       margin-bottom: 0 !important;
@@ -100,7 +132,6 @@
       padding-bottom: 1px !important;
     }
 
-    /* منع قطع الصفحة جوه أي مربع أو جدول */
     .certificate, table, tr, td {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
@@ -154,6 +185,6 @@
   </div>
 </div>
 
-<script src="./js/print.js?v=7"></script>
+<script src="./js/print.js?v=10"></script>
 </body>
 </html>
