@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - JS V18 (Signature Space Optimized)
+   Print Contract - JS V19 (PDF Generator)
 ============================================================ */
 
 const printState = {
@@ -367,14 +367,33 @@ function renderContract(contract) {
   $('certificateWrap').classList.remove('hidden');
 }
 
+/* ============================================================
+   Download PDF (Forced A4)
+============================================================ */
 function downloadPDF() {
-  const originalTitle = document.title;
+  const element = $('certificate');
   const code = printState.contract?.code || 'contract';
-  document.title = `Ehevertrag_${code}`;
-  setTimeout(() => {
-    window.print();
-    setTimeout(() => { document.title = originalTitle; }, 100);
-  }, 100);
+  
+  const opt = {
+    margin:       0,
+    filename:     `Ehevertrag_${code}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  const btn = document.querySelector('.btn-pdf');
+  if (btn) {
+    btn.textContent = '⏳ جارٍ التحميل...';
+    btn.disabled = true;
+  }
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    if (btn) {
+      btn.textContent = '📄 تحميل PDF (A4)';
+      btn.disabled = false;
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
