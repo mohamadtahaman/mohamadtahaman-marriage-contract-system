@@ -6,13 +6,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>شهادة عقد زواج - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
-<!-- تم زيادة رقم الإصدار عشان نكسر الكاش -->
-<link rel="stylesheet" href="./css/print.css?v=10">
+<link rel="stylesheet" href="./css/print.css?v=24">
+
+<!-- مكتبة تحويل الشاشة إلى PDF مقاس A4 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <style>
-  /* =========================================
-     1. تعديلات الملاحظات (Bemerkungen)
-     ========================================= */
+  /* إعدادات الملاحظات */
   .notes-full-row, 
   .wali-dowry-col .wd-row.notes-box {
     margin-top: 4px !important;
@@ -38,107 +38,7 @@
     white-space: pre-wrap !important;
     word-break: break-word !important;
   }
-
-  /* =========================================
-     2. صورة logo2 كخلفية مكررة ومائلة 45 درجة
-     ========================================= */
-  .certificate {
-    position: relative !important;
-    background-color: #fff !important;
-    overflow: hidden; /* لمنع أي جزء زايد من الخلفية */
-  }
-
-  .certificate::before {
-    content: "";
-    position: absolute !important;
-    top: -50px !important;
-    left: -50px !important;
-    width: calc(100% + 100px) !important; 
-    height: 230px !important; 
-    background-image: url('./imeges/logo2.webp') !important; 
-    background-repeat: repeat !important; 
-    background-size: 50px 50px !important; 
-    opacity: 0.35 !important; 
-    z-index: 0 !important;
-    pointer-events: none !important;
-    
-    /* دوران 45 درجة */
-    transform: rotate(45deg) !important; 
-  }
-
-  .certificate > * {
-    position: relative !important;
-    z-index: 1 !important;
-  }
-
-  /* =========================================
-     3. قهر المستطيلات الخمسة (الإمضاءات) عشان توفر مساحة
-     ========================================= */
-  /* بنستهدف أي جدول أو مربع في آخر الصفحة */
-  .signatures, .signature-box, .sig-box, .signatures td, .signature-cell, 
-  table:last-of-type td {
-    border-bottom: 2px dotted #333 !important; /* تحويل الخط إلى نقاط */
-    padding: 2px !important; /* تقليل المساحة */
-    vertical-align: top !important;
-  }
-
-  /* إجبار النصوص (عربي/ألماني) إنها تبقى جنب بعض */
-  .signature-title, .sig-title, .signature-name, .signature-box div, 
-  table:last-of-type td * {
-    display: inline-block !important; /* يخليهم جنب بعض */
-    flex-direction: row !important;
-    font-size: 11px !important; /* تصغير الخط شوية */
-    line-height: 1.2 !important;
-    margin: 0 2px !important;
-    padding: 0 !important;
-  }
-  
-  /* إخفاء أي سطر جديد بين الاسمين */
-  .signature-title br, .sig-title br, .signature-box br, 
-  table:last-of-type td br {
-    display: none !important;
-  }
-
-  /* إخفاء أي خطوط صلبة قديمة */
-  .signature-line, .sig-line {
-    border-bottom: none !important;
-  }
-
-
-  /* =========================================
-     4. ضبط الطباعة
-     ========================================= */
-  @media print {
-    @page {
-      size: A4 portrait !important;
-      margin: 2mm 4mm !important; 
-    }
-
-    body {
-      background: white !important;
-      zoom: 0.80 !important; 
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-
-    .toolbar, #toolbar {
-      display: none !important;
-    }
-
-    table, tr, td, th, .certificate-row, .party-box {
-      margin-top: 0 !important;
-      margin-bottom: 0 !important;
-      padding-top: 1px !important;
-      padding-bottom: 1px !important;
-    }
-
-    .certificate, table, tr, td {
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
-    }
-  }
 </style>
-
 </head>
 <body>
 
@@ -165,7 +65,7 @@
       🖨 طباعة
     </button>
     <button onclick="downloadPDF()" class="btn-pdf">
-      📄 تحميل PDF
+      📄 تحميل PDF (A4)
     </button>
   </div>
   <div class="toolbar-center">
@@ -185,6 +85,6 @@
   </div>
 </div>
 
-<script src="./js/print.js?v=10"></script>
+<script src="./js/print.js?v=24"></script>
 </body>
 </html>
