@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - JS V20 (Fits exactly on 1 A4 Page)
+   Print Contract - JS V21 (High Res & No Blank Pages)
 ============================================================ */
 
 const printState = {
@@ -368,7 +368,7 @@ function renderContract(contract) {
 }
 
 /* ============================================================
-   Download PDF (Force exactly 1 Page)
+   Download PDF (High Resolution)
 ============================================================ */
 function downloadPDF() {
   const element = $('certificate');
@@ -380,20 +380,19 @@ function downloadPDF() {
     btn.disabled = true;
   }
 
-  // إضافة كلاس بيصغر المسافات مؤقتاً عشان يدخل في صفحة واحدة
   document.body.classList.add('pdf-mode');
 
   const opt = {
     margin:       0,
     filename:     `Ehevertrag_${code}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+    image:        { type: 'jpeg', quality: 1 }, // أعلى جودة
+    html2canvas:  { scale: 4, useCORS: true, scrollY: 0 }, // زيادة الدقة (Resolution)
     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] } // إجبار عدم تقسيم الصفحات
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
   };
 
   html2pdf().set(opt).from(element).save().then(() => {
-    document.body.classList.remove('pdf-mode'); // إزالة الكلاس بعد التحميل
+    document.body.classList.remove('pdf-mode');
     if (btn) {
       btn.textContent = '📄 تحميل PDF (A4)';
       btn.disabled = false;
