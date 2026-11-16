@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - CSS V25 (Fixed Overlap & Blank Page)
+   Print Contract - CSS V26 (Perfect A4 & Notes Container)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -138,7 +138,7 @@ body {
 ============================================================ */
 .cert-wali-dowry { border: 1.5px solid #1a4d8a; border-top: none; margin-bottom: 5px; background: #fff; position: relative; z-index: 2; }
 .wali-dowry-grid { display: grid; grid-template-columns: 1fr 1fr; }
-.wali-dowry-col { padding: 8px 12px; border-left: 1px solid #1a4d8a; }
+.wali-dowry-col { padding: 8px 12px; border-left: 1px solid #1a4d8a; overflow: hidden; /* لمنع خروج النص */ }
 .wali-dowry-col:last-child { border-left: none; }
 .col-subsection-title-light { font-size: 10.5px; font-weight: 900; color: #1a4d8a; margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px dashed #1a4d8a; text-align: right; direction: rtl; }
 .wd-row { display: flex; align-items: flex-end; gap: 8px; padding: 4px 0; direction: ltr; border-bottom: 1px dotted #ddd; }
@@ -152,16 +152,18 @@ body {
 .wd-value.wd-gold .wd-value-de { color: #8b6f1e; font-weight: 900; font-size: 13px; }
 
 /* ============================================================
-   NOTES (تم حل مشكلة التداخل)
+   NOTES (تصحيح شكل المربع)
    ============================================================ */
 .notes-column-box {
-  margin-top: 4px;
+  margin-top: 6px;
   padding: 4px 6px;
   background: #fdfdfd;
   border: 1px solid #d0d7de;
   border-radius: 4px;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
+  overflow: hidden; /* لمنع النص من الخروج */
 }
 .notes-col-label {
   font-size: 10px;
@@ -174,11 +176,12 @@ body {
 }
 .notes-col-text {
   font-size: 10px;
-  line-height: 1.5; /* مسافة بين السطور تمنع التداخل */
+  line-height: 1.5; 
   color: #333;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important; 
+  max-width: 100%;
 }
 
 /* ============================================================
@@ -222,64 +225,68 @@ body {
 .footer-note-center em { display: block; direction: ltr; margin-top: 2px; font-size: 9px; }
 
 /* ============================================================
-   PDF Mode (منع الصفحة الزايدة وتحسين التنسيق)
-============================================================ */
-body.pdf-mode .certificate {
-  padding: 4px !important;
-  border: 2px solid #1a4d8a !important;
-  height: 296mm !important; /* أقل من 297 بـ 1 مللي عشان نضمن مفيش صفحة تانية */
-  overflow: hidden !important;
-}
-
-body.pdf-mode .cert-header { 
-  margin-bottom: 2px !important; 
-  min-height: 80px !important; 
-  padding: 2px 0 !important;
-}
-
-body.pdf-mode .cert-info-strip { margin-bottom: 2px !important; min-height: 32px !important; }
-body.pdf-mode .cert-two-cols { margin-bottom: 2px !important; }
-body.pdf-mode .cert-wali-dowry { margin-bottom: 2px !important; }
-body.pdf-mode .cert-witness-box { margin-bottom: 2px !important; }
-body.pdf-mode .cert-party-signatures { margin-bottom: 2px !important; padding: 4px 8px !important; }
-
-body.pdf-mode .cv-row { padding: 1px 0 !important; }
-body.pdf-mode .wd-row { padding: 2px 0 !important; }
-
-body.pdf-mode .cert-footer { 
-  min-height: 110px !important; 
-}
-
-body.pdf-mode .cert-footer-sign { min-height: 110px !important; }
-body.pdf-mode .footer-text-ar { line-height: 1.5 !important; margin-bottom: 2px !important; }
-body.pdf-mode .footer-text-de { line-height: 1.4 !important; margin-bottom: 2px !important; }
-body.pdf-mode .party-sig-cell { min-height: 40px !important; padding: 2px !important; }
-body.pdf-mode .party-sig-cell .sig-line { height: 10px !important; margin-top: 2px !important; }
-body.pdf-mode .notes-col-text { line-height: 1.4 !important; } /* تصغير بسيط في وضع الـ PDF */
-
-/* ============================================================
-   Print A4
+   Print A4 (هنا السر: إجبار المتصفح على طباعة A4)
    ============================================================ */
 @media print {
-  @page { size: A4 portrait; margin: 0; }
-  html, body { width: 210mm; height: 297mm; margin: 0; padding: 0; background: #fff; }
+  /* إجبار الصفحة تكون A4 */
+  @page { 
+    size: A4 portrait !important; 
+    margin: 0 !important; 
+  }
+  
+  html, body { 
+    width: 210mm !important; 
+    height: 297mm !important; 
+    margin: 0 !important; 
+    padding: 0 !important; 
+    background: #fff !important; 
+  }
+  
   .toolbar, .loading-screen, .error-screen { display: none !important; }
-  .certificate-wrap { margin: 0 !important; padding: 0 !important; box-shadow: none !important; max-width: none !important; width: 210mm !important; height: 297mm !important; }
-  .certificate { border: 2px solid #1a4d8a !important; padding: 4mm !important; background: #fff; width: 100% !important; height: 100% !important; box-sizing: border-box; display: block; }
+  
+  .certificate-wrap { 
+    margin: 0 !important; 
+    padding: 0 !important; 
+    box-shadow: none !important; 
+    max-width: none !important; 
+    width: 210mm !important; 
+    height: 297mm !important; 
+  }
+  
+  .certificate { 
+    border: 2px solid #1a4d8a !important; 
+    padding: 4mm !important; 
+    background: #fff !important; 
+    width: 100% !important; 
+    height: 100% !important; 
+    box-sizing: border-box !important; 
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  /* مسافات مضبوطة */
   .cert-header { margin-bottom: 2mm !important; }
   .cert-info-strip { margin-bottom: 2mm !important; }
   .cert-two-cols { margin-bottom: 2mm !important; }
   .cert-wali-dowry { margin-bottom: 2mm !important; }
   .cert-witness-box { margin-bottom: 2mm !important; }
   .cert-party-signatures { margin-bottom: 2mm !important; }
-  .cert-footer { min-height: 50mm !important; margin-top: auto !important; }
-  .cert-header, .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures, .cert-footer { page-break-inside: avoid; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .cert-footer { min-height: 50mm !important; }
+  
+  .cert-header, .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures, .cert-footer { 
+    page-break-inside: avoid !important; 
+  }
+  
+  * { 
+    -webkit-print-color-adjust: exact !important; 
+    print-color-adjust: exact !important; 
+  }
 }
 
 /* ============================================================
    Responsive (Mobile View)
-============================================================ */
+   ============================================================ */
 @media (max-width: 720px) {
   body { padding: 10px; }
   .toolbar { padding: 10px 12px; }
