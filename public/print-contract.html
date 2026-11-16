@@ -7,7 +7,7 @@
 <title>شهادة عقد زواج - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
 <!-- تم زيادة رقم الإصدار عشان نكسر الكاش -->
-<link rel="stylesheet" href="./css/print.css?v=3">
+<link rel="stylesheet" href="./css/print.css?v=4">
 
 <style>
   /* =========================================
@@ -41,27 +41,26 @@
   }
 
   /* =========================================
-     2. صورة logo2 كخلفية (Watermark) للجزء العلوي
+     2. صورة logo2 كخلفية مكررة (Watermark) للجزء العلوي
      ========================================= */
   .certificate {
     position: relative !important;
     background-color: #fff !important;
   }
 
-  /* اللوجو كخلفية شفافة في الجزء العلوي */
+  /* اللوجو كخلفية شفافة ومكررة في الجزء العلوي */
   .certificate::before {
     content: "";
     position: absolute !important;
-    top: 15px !important; /* المسافة من أعلى الشهادة */
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: 150px !important; /* عرض اللوجو */
-    height: 150px !important; /* طول اللوجو */
-    background-image: url('./imeges/logo2.webp') !important; /* تم تصحيح المسار واسم الفولدر */
-    background-repeat: no-repeat !important;
-    background-position: center !important;
-    background-size: contain !important;
-    opacity: 0.15 !important; /* الشفافية */
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important; /* تغطية العرض بالكامل */
+    height: 400px !important; /* ارتفاع المنطقة اللي هيتكرر فيها اللوجو */
+    background-image: url('./imeges/logo2.webp') !important; 
+    background-repeat: repeat !important; /* تكرار في كل الاتجاهات */
+    background-position: top center !important;
+    background-size: 150px 150px !important; /* الحفاظ على حجم اللوجو الأساسي */
+    opacity: 0.35 !important; /* زيادة الوضوح */
     z-index: 0 !important;
     pointer-events: none !important;
   }
@@ -155,6 +154,6 @@
   </div>
 </div>
 
-<script src="./js/print.js?v=3"></script>
+<script src="./js/print.js?v=4"></script>
 </body>
 </html>
