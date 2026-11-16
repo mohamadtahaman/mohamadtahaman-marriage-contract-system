@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - CSS V24 (Fits exactly on 1 A4 Page)
+   Print Contract - CSS V25 (Fixed Overlap & Blank Page)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -152,6 +152,36 @@ body {
 .wd-value.wd-gold .wd-value-de { color: #8b6f1e; font-weight: 900; font-size: 13px; }
 
 /* ============================================================
+   NOTES (تم حل مشكلة التداخل)
+   ============================================================ */
+.notes-column-box {
+  margin-top: 4px;
+  padding: 4px 6px;
+  background: #fdfdfd;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.notes-col-label {
+  font-size: 10px;
+  font-weight: bold;
+  color: #1a4d8a;
+  border-bottom: 1px dotted #1a4d8a;
+  margin-bottom: 2px;
+  display: flex;
+  justify-content: space-between;
+}
+.notes-col-text {
+  font-size: 10px;
+  line-height: 1.5; /* مسافة بين السطور تمنع التداخل */
+  color: #333;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* ============================================================
    WITNESSES
 ============================================================ */
 .cert-witness-box { display: grid; grid-template-columns: 1fr 1fr; border: 1.5px solid #1a4d8a; border-top: none; margin-bottom: 5px; background: #fff; position: relative; z-index: 2; }
@@ -192,11 +222,13 @@ body {
 .footer-note-center em { display: block; direction: ltr; margin-top: 2px; font-size: 9px; }
 
 /* ============================================================
-   PDF Mode (تعديلات مؤقتة عشان تطلع في صفحة واحدة)
+   PDF Mode (منع الصفحة الزايدة وتحسين التنسيق)
 ============================================================ */
 body.pdf-mode .certificate {
   padding: 4px !important;
   border: 2px solid #1a4d8a !important;
+  height: 296mm !important; /* أقل من 297 بـ 1 مللي عشان نضمن مفيش صفحة تانية */
+  overflow: hidden !important;
 }
 
 body.pdf-mode .cert-header { 
@@ -223,9 +255,10 @@ body.pdf-mode .footer-text-ar { line-height: 1.5 !important; margin-bottom: 2px 
 body.pdf-mode .footer-text-de { line-height: 1.4 !important; margin-bottom: 2px !important; }
 body.pdf-mode .party-sig-cell { min-height: 40px !important; padding: 2px !important; }
 body.pdf-mode .party-sig-cell .sig-line { height: 10px !important; margin-top: 2px !important; }
+body.pdf-mode .notes-col-text { line-height: 1.4 !important; } /* تصغير بسيط في وضع الـ PDF */
 
 /* ============================================================
-   Print A4 (لما تطبع من المتصفح)
+   Print A4
    ============================================================ */
 @media print {
   @page { size: A4 portrait; margin: 0; }
