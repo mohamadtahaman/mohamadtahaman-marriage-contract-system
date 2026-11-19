@@ -6,7 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>شهادة عقد زواج - Arresalah Zentrum</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./css/print.css?v=27">
+<link rel="stylesheet" href="./css/print.css?v=30">
+<!-- مكتبة تحويل الشاشة إلى PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -26,11 +28,11 @@
   </div>
 </div>
 
-<!-- شريط الأدوات (لا يُطبع) -->
+<!-- شريط الأدوات (زرار واحد بس) -->
 <div id="toolbar" class="toolbar hidden">
   <div class="toolbar-left">
-    <button onclick="window.print()" class="btn-print">
-      🖨 طباعة / حفظ PDF
+    <button onclick="downloadPDF()" class="btn-pdf">
+      📄 تحميل PDF (A4)
     </button>
   </div>
   <div class="toolbar-center">
@@ -50,6 +52,6 @@
   </div>
 </div>
 
-<script src="./js/print.js?v=27"></script>
+<script src="./js/print.js?v=30"></script>
 </body>
 </html>
