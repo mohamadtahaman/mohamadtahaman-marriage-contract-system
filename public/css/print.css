@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - CSS V31 (Fixed Desktop View & Overlaps)
+   Print Contract - CSS V32 (Perfect Arabic & 1 Page)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -96,10 +96,8 @@ body {
 .toolbar-center { font-size: 13px; opacity: 0.9; }
 .toolbar-code strong { color: #c9a961; font-family: 'Courier New', monospace; letter-spacing: 2px; margin-right: 6px; }
 .toolbar button { padding: 9px 18px; border: none; border-radius: 8px; font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-.btn-print { background: #c9a961; color: #1b4332; }
-.btn-print:hover { background: #e9d5a1; }
-.btn-pdf { background: #fff; color: #2d6a4f; }
-.btn-pdf:hover { background: #e8f3ed; }
+.btn-pdf { background: #c9a961; color: #1b4332; }
+.btn-pdf:hover { background: #e9d5a1; }
 .btn-close { background: rgba(255,255,255,0.15); color: #fff; }
 .btn-close:hover { background: rgba(255,255,255,0.25); }
 
@@ -152,7 +150,7 @@ body {
 .wd-value.wd-gold .wd-value-de { color: #8b6f1e; font-weight: 900; font-size: 13px; }
 
 /* ============================================================
-   NOTES (تصحيح التداخل بشكل نهائي)
+   NOTES (تنسيق أساسي)
    ============================================================ */
 .notes-column-box {
   margin-top: 4px;
@@ -227,7 +225,7 @@ body {
 .footer-note-center em { display: block; direction: ltr; margin-top: 2px; font-size: 9px; }
 
 /* ============================================================
-   PDF MODE (تغيير الجذري لمنع القص)
+   PDF MODE (المعالجة النهائية)
    ============================================================ */
 body.pdf-mode {
   background: #fff !important;
@@ -241,10 +239,9 @@ body.pdf-mode .certificate-wrap {
 }
 
 body.pdf-mode .certificate {
-  width: 1024px !important; /* عرض ثابت عشان ياخد راحته زي الكمبيوتر */
-  height: auto !important;
-  min-height: 1450px !important; /* طول مناسب مقارب للـ A4 عشان يدخل صفحة واحدة */
-  padding: 30px !important; 
+  width: 1024px !important; 
+  height: 1445px !important; /* طول يضمن صفحة واحدة بس */
+  padding: 25px !important; 
   border: 2px solid #1a4d8a !important;
   background: #fff !important;
   box-sizing: border-box !important;
@@ -252,27 +249,29 @@ body.pdf-mode .certificate {
   display: block !important;
 }
 
-/* تقليل المسافات في وضع الـ PDF */
-body.pdf-mode .cert-header { margin-bottom: 10px !important; min-height: 100px !important; }
-body.pdf-mode .cert-info-strip { margin-bottom: 10px !important; }
-body.pdf-mode .cert-two-cols { margin-bottom: 10px !important; }
-body.pdf-mode .cert-wali-dowry { margin-bottom: 10px !important; }
-body.pdf-mode .cert-witness-box { margin-bottom: 10px !important; }
-body.pdf-mode .cert-party-signatures { margin-bottom: 10px !important; }
-body.pdf-mode .cert-footer { min-height: 200px !important; }
+/* تقليل المسافات عشان الكلام كله يلحق يدخل */
+body.pdf-mode .cert-header { margin-bottom: 8px !important; min-height: 90px !important; }
+body.pdf-mode .cert-info-strip { margin-bottom: 8px !important; }
+body.pdf-mode .cert-two-cols { margin-bottom: 8px !important; }
+body.pdf-mode .cert-wali-dowry { margin-bottom: 8px !important; }
+body.pdf-mode .cert-witness-box { margin-bottom: 8px !important; }
+body.pdf-mode .cert-party-signatures { margin-bottom: 8px !important; }
+body.pdf-mode .cert-footer { min-height: 160px !important; }
 
-/* إصلاح مشكلة تداخل النصوص في الملاحظات */
+/* إصلاح الملاحظات: تغيير الخط لـ Arial عشان الموبايل ميفككوش، وتكبير المسافات */
 body.pdf-mode .notes-column-box {
   display: block !important;
   width: 100% !important;
   overflow: visible !important;
 }
 body.pdf-mode .notes-col-text {
+  font-family: Arial, Helvetica, sans-serif !important; /* خط ثابت */
   display: block !important;
   width: 100% !important;
   word-break: normal !important;
   white-space: normal !important;
-  line-height: 1.6 !important; 
+  line-height: 1.8 !important; /* مسافة كبيرة بين السطور عشان ميتداخلوش */
+  letter-spacing: 0 !important;
 }
 
 /* ============================================================
