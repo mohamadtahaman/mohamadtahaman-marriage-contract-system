@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - JS V30 (Only PDF Generation)
+   Print Contract - JS V31 (Forced Desktop Width for PDF)
 ============================================================ */
 
 const printState = {
@@ -368,7 +368,7 @@ function renderContract(contract) {
 }
 
 /* ============================================================
-   Download PDF
+   Download PDF (Force Desktop View for Rendering)
 ============================================================ */
 function downloadPDF() {
   const element = $('certificate');
@@ -385,10 +385,18 @@ function downloadPDF() {
   const opt = {
     margin:       0,
     filename:     `Ehevertrag_${code}.pdf`,
-    image:        { type: 'jpeg', quality: 1 }, 
-    html2canvas:  { scale: 2, useCORS: true, scrollY: 0, windowWidth: 800 }, 
+    image:        { type: 'jpeg', quality: 1 },
+    // السر هنا: إجبار المتصفح إنه يرسم العرض على 1024 بكسل (زي الكمبيوتر)
+    html2canvas:  { 
+      scale: 2, 
+      useCORS: true, 
+      scrollY: 0, 
+      windowWidth: 1024, 
+      width: 1024,
+      windowHeight: 1500 
+    }, 
     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak:    { mode: ['avoid-all', 'css'] } // منع تقسيم الصفحات
+    pagebreak:    { mode: ['css', 'legacy'] } 
   };
 
   html2pdf().set(opt).from(element).save().then(() => {
