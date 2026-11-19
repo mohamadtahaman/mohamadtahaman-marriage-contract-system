@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - CSS V28 (PDF Fixed Text Overlap)
+   Print Contract - CSS V29 (Force 1 Page on Mobile Print)
 ============================================================ */
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -177,9 +177,9 @@ body {
   font-size: 10px !important;
   line-height: 1.5 !important; 
   color: #333;
-  word-break: normal !important; /* تغيير مهم جداً */
+  word-break: normal !important; 
   overflow-wrap: break-word !important;
-  white-space: normal !important; /* تغيير مهم جداً */
+  white-space: normal !important; 
   text-align: right;
   direction: rtl;
   display: block !important;
@@ -227,43 +227,66 @@ body {
 .footer-note-center em { display: block; direction: ltr; margin-top: 2px; font-size: 9px; }
 
 /* ============================================================
-   PDF Mode (إجبار الصفحة على تكون A4 ومستقيمة)
-   ============================================================ */
-body.pdf-mode .certificate {
-  padding: 5mm !important;
-  border: 2px solid #1a4d8a !important;
-  width: 210mm !important;
-  height: 296mm !important; /* 1 مللي أقل عشان نضمن صفحة واحدة */
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-}
-
-body.pdf-mode .cert-header { margin-bottom: 2mm !important; }
-body.pdf-mode .cert-info-strip { margin-bottom: 2mm !important; }
-body.pdf-mode .cert-two-cols { margin-bottom: 2mm !important; }
-body.pdf-mode .cert-wali-dowry { margin-bottom: 2mm !important; }
-body.pdf-mode .cert-witness-box { margin-bottom: 2mm !important; }
-body.pdf-mode .cert-party-signatures { margin-bottom: 2mm !important; }
-body.pdf-mode .cert-footer { min-height: 45mm !important; }
-
-/* ============================================================
-   Print A4 (لو حبيت تطبع عادي)
+   Print A4 (السحر هنا: تصغير الحجم عشان الموبايل ميقصش)
    ============================================================ */
 @media print {
-  @page { size: A4 portrait; margin: 0; }
-  html, body { width: 210mm; height: 297mm; margin: 0; padding: 0; background: #fff; }
+  @page { 
+    size: A4 portrait; 
+    margin: 0; 
+  }
+  
+  html, body { 
+    width: 210mm; 
+    height: 297mm; 
+    margin: 0; 
+    padding: 0; 
+    background: #fff; 
+  }
+  
   .toolbar, .loading-screen, .error-screen { display: none !important; }
-  .certificate-wrap { margin: 0 !important; padding: 0 !important; box-shadow: none !important; width: 210mm !important; height: 297mm !important; }
-  .certificate { border: 2px solid #1a4d8a !important; padding: 4mm !important; background: #fff; width: 100% !important; height: 100% !important; box-sizing: border-box; }
+  
+  .certificate-wrap { 
+    margin: 0 !important; 
+    padding: 0 !important; 
+    box-shadow: none !important; 
+    max-width: none !important; 
+    width: 210mm !important; 
+    height: 297mm !important; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .certificate { 
+    border: 2px solid #1a4d8a !important; 
+    padding: 4mm !important; 
+    background: #fff !important; 
+    width: 100% !important; 
+    height: 100% !important; 
+    box-sizing: border-box !important; 
+    display: block !important;
+    
+    /* 🔥 السر هنا: تصغير الشهادة بنسبة 15% عشان تضمن إنها تدخل في ورقة واحدة */
+    zoom: 0.85 !important; 
+    -webkit-zoom: 0.85 !important;
+  }
+
   .cert-header { margin-bottom: 2mm !important; }
   .cert-info-strip { margin-bottom: 2mm !important; }
   .cert-two-cols { margin-bottom: 2mm !important; }
   .cert-wali-dowry { margin-bottom: 2mm !important; }
   .cert-witness-box { margin-bottom: 2mm !important; }
   .cert-party-signatures { margin-bottom: 2mm !important; }
-  .cert-footer { min-height: 50mm !important; margin-top: auto !important; }
-  .cert-header, .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures, .cert-footer { page-break-inside: avoid; }
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .cert-footer { min-height: 45mm !important; }
+  
+  .cert-header, .cert-info-strip, .cert-two-cols, .cert-wali-dowry, .cert-witness-box, .cert-party-signatures, .cert-footer { 
+    page-break-inside: avoid !important; 
+  }
+  
+  * { 
+    -webkit-print-color-adjust: exact !important; 
+    print-color-adjust: exact !important; 
+  }
 }
 
 /* ============================================================
