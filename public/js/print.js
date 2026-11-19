@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - JS V23 (PDF Fixed Layout)
+   Print Contract - JS V30 (Only PDF Generation)
 ============================================================ */
 
 const printState = {
@@ -368,7 +368,7 @@ function renderContract(contract) {
 }
 
 /* ============================================================
-   Download PDF (Fixed)
+   Download PDF
 ============================================================ */
 function downloadPDF() {
   const element = $('certificate');
@@ -386,9 +386,9 @@ function downloadPDF() {
     margin:       0,
     filename:     `Ehevertrag_${code}.pdf`,
     image:        { type: 'jpeg', quality: 1 }, 
-    html2canvas:  { scale: 3, useCORS: true, scrollY: 0 }, 
+    html2canvas:  { scale: 2, useCORS: true, scrollY: 0, windowWidth: 800 }, 
     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+    pagebreak:    { mode: ['avoid-all', 'css'] } // منع تقسيم الصفحات
   };
 
   html2pdf().set(opt).from(element).save().then(() => {
@@ -425,5 +425,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     showError('فشل التحميل', err.message);
   }
 });
-
-window.downloadPDF = downloadPDF;
