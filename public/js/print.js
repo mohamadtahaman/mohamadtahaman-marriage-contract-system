@@ -1,5 +1,5 @@
 /* ============================================================
-   Print Contract - JS V22 (Native Print Only)
+   Print Contract - JS V23 (PDF Fixed Layout)
 ============================================================ */
 
 const printState = {
@@ -367,6 +367,46 @@ function renderContract(contract) {
   $('certificateWrap').classList.remove('hidden');
 }
 
+/* ============================================================
+   Download PDF (Fixed)
+============================================================ */
+function downloadPDF() {
+  const element = $('certificate');
+  const code = printState.contract?.code || 'contract';
+  
+  const btn = document.querySelector('.btn-pdf');
+  if (btn) {
+    btn.textContent = '⏳ جارٍ التحميل...';
+    btn.disabled = true;
+  }
+
+  document.body.classList.add('pdf-mode');
+
+  const opt = {
+    margin:       0,
+    filename:     `Ehevertrag_${code}.pdf`,
+    image:        { type: 'jpeg', quality: 1 }, 
+    html2canvas:  { scale: 3, useCORS: true, scrollY: 0 }, 
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    document.body.classList.remove('pdf-mode');
+    if (btn) {
+      btn.textContent = '📄 تحميل PDF (A4)';
+      btn.disabled = false;
+    }
+  }).catch(err => {
+    console.error('PDF Error:', err);
+    document.body.classList.remove('pdf-mode');
+    if (btn) {
+      btn.textContent = '📄 تحميل PDF (A4)';
+      btn.disabled = false;
+    }
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const params = new URLSearchParams(window.location.search);
   const code = (params.get('code') || '').trim().toUpperCase();
@@ -385,3 +425,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     showError('فشل التحميل', err.message);
   }
 });
+
+window.downloadPDF = downloadPDF;
